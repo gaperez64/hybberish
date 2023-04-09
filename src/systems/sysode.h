@@ -16,3 +16,5 @@ typedef struct ODEExpTree {
   struct ODEExpTree *left;
   struct ODEExpTree *right;
 } ODEExpTree;
+
+ODEExpTree *newOdeExpNode(char *, ODEExpType);
