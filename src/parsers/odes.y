@@ -9,12 +9,13 @@
 
 %code top {
   #include <stdio.h>
+  #include "lex.odes.h"
 }
 %code requires {
   typedef void* yyscan_t;
 }
 %code {
-  int yylex(YYSTYPE* yylvalp, YYLTYPE* yyllocp, yyscan_t scanner);
+  /*int yylex(YYSTYPE* yylvalp, YYLTYPE* yyllocp, yyscan_t scanner);*/
   void yyerror(YYLTYPE* yyllocp, yyscan_t unused, const char* msg);
 }
 
@@ -56,10 +57,7 @@ term: NUMBER
 
 %%
 
-int main (int argc, char **argv) {
-    yyparse();
-}
-
-void yyerror (char const *s) {
-  fprintf (stderr, "%s\n", s);
+void yyerror(YYLTYPE* yyllocp, yyscan_t unused, const char* msg) {
+  fprintf(stderr, "[%d:%d]: %s\n",
+          yyllocp->first_line, yyllocp->first_column, msg);
 }
