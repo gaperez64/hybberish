@@ -17,5 +17,11 @@ typedef struct ODEExpTree {
   struct ODEExpTree *right;
 } ODEExpTree;
 
+typedef struct ODEList {
+  char *var;
+  ODEExpTree *exp;
+  struct ODEList *next;
+} ODEList;
+
 ODEExpTree *newOdeExpNode(char *, ODEExpType);
 ODEExpTree *newOdeExpTree(char *, ODEExpType, ODEExpTree *, ODEExpTree *);
