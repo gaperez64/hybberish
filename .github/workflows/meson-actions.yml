@@ -24,10 +24,12 @@ jobs:
       with:
         python-version: '3.x'
     - run: pip install meson ninja
+    - run: sudo apt-get install clang-format
     - run: meson setup builddir/
       env:
         CC: gcc
     - run: meson test -C builddir/ -v
+    - run: ninja -C builddir clang-format-check
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
@@ -42,11 +44,13 @@ jobs:
       with:
         python-version: '3.x'
     - run: brew install gcc
+    - run: brew install clang-format
     - run: pip install meson ninja
     - run: meson setup builddir/
       env:
         CC: gcc
     - run: meson test -C builddir/ -v
+    - run: ninja -C builddir clang-format-check
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
