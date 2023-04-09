@@ -24,7 +24,7 @@ jobs:
       with:
         python-version: '3.x'
     - run: pip install meson ninja
-    - run: sudo apt-get install clang-format-16
+    - run: sudo apt-get install clang-format-13
     - run: meson setup builddir/
       env:
         CC: gcc

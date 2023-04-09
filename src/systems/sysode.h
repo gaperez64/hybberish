@@ -18,3 +18,4 @@ typedef struct ODEExpTree {
 } ODEExpTree;
 
 ODEExpTree *newOdeExpNode(char *, ODEExpType);
+ODEExpTree *newOdeExpTree(char *, ODEExpType, ODEExpTree *, ODEExpTree *);
