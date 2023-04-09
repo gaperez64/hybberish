@@ -7,7 +7,7 @@ project('hybberish', 'c',
 # Flex as a generator
 flex = find_program('flex')
 lgen = generator(flex,
-                 output: ['lex.@BASENAME@.c', 'lex.@BASENAME@.h'],
+                 output: ['@BASENAME@.lex.c', '@BASENAME@.lex.h'],
                  arguments: ['--outfile=@OUTPUT0@',
                              '--header-file=@OUTPUT1@',
                              '@INPUT@'])
