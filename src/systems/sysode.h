@@ -17,12 +17,14 @@ typedef struct ODEExpTree {
   struct ODEExpTree *right;
 } ODEExpTree;
 
+ODEExpTree *newOdeExpNode(char *, ODEExpType);
+ODEExpTree *newOdeExpTree(char *, ODEExpType, ODEExpTree *, ODEExpTree *);
+void delOdeExpTree(ODEExpTree *);
+
 typedef struct ODEList {
   char *var;
   ODEExpTree *exp;
   struct ODEList *next;
 } ODEList;
 
-ODEExpTree *newOdeExpNode(char *, ODEExpType);
-ODEExpTree *newOdeExpTree(char *, ODEExpType, ODEExpTree *, ODEExpTree *);
-void delOdeExpTree(ODEExpTree *);
+ODEList *newOdeList(char *, ODEExpTree *);
