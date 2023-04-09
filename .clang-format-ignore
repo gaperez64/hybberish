@@ -1,0 +1,5 @@
+# Ignore parser generated files
+src/parsers/*.tab.h
+src/parsers/*.lex.h
+src/parsers/*.tab.c
+src/parsers/*.lex.c
