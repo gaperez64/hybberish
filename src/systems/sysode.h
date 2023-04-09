@@ -25,3 +25,4 @@ typedef struct ODEList {
 
 ODEExpTree *newOdeExpNode(char *, ODEExpType);
 ODEExpTree *newOdeExpTree(char *, ODEExpType, ODEExpTree *, ODEExpTree *);
+void delOdeExpTree(ODEExpTree *);
