@@ -33,10 +33,13 @@ int main(int argc, char *argv[]) {
   /* printing */
   char *buffer = (char *)malloc(100 * sizeof(char));
   FILE *stream = fmemopen(buffer, 100, "w");
+  const char *msg = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
   printOdeExpTree(tree, stream);
   fprintf(stream, "%c", '\0');
-  printf("%s\n", buffer);
-  assert(strcmp(buffer, "(-b + sqrt((b^2) - ((4 * a) * c))) / (2 * a)"));
+  printf("expect: %s\n", msg);
+  printf("got: %s\n", buffer);
+  assert(!strcmp(buffer, msg));
+  
   /* clean */
   delOdeExpTree(tree);
   free(buffer);

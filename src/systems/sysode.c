@@ -87,7 +87,7 @@ static void printBinOp(ODEExpType type, FILE *where) {
     fprintf(where, " / ");
     break;
   case ODE_EXP_OP:
-    fprintf(where, " ^ ");
+    fprintf(where, "^");
     break;
   default:
     assert(false);
