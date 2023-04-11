@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+/* Ordinary differential expression trees */
 typedef enum ODEExpType {
   ODE_NUM,
   ODE_ADD_OP,
@@ -25,10 +26,14 @@ ODEExpTree *newOdeExpTree(ODEExpType, char *, ODEExpTree *, ODEExpTree *);
 void delOdeExpTree(ODEExpTree *);
 void printOdeExpTree(ODEExpTree *, FILE *);
 
+/* Lists of ODEs */
 typedef struct ODEList {
-  char *var;
+  char *fun;
   ODEExpTree *exp;
   struct ODEList *next;
 } ODEList;
 
 ODEList *newOdeList(char *, ODEExpTree *);
+ODEList *newOdeElem(ODEList *, char *, ODEExpTree *);
+void delOdeList(ODEList *);
+void printOdeList(ODEList *, FILE *);
