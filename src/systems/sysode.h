@@ -1,14 +1,16 @@
-enum ODEExpType {
-  NUM,
-  ADD_OP,
-  SUB_OP,
-  MUL_OP,
-  DIV_OP,
-  EXP_OP,
-  NEG,
-  VAR,
-  FUN,
-};
+#include <stdio.h>
+
+typedef enum ODEExpType {
+  ODE_NUM,
+  ODE_ADD_OP,
+  ODE_SUB_OP,
+  ODE_MUL_OP,
+  ODE_DIV_OP,
+  ODE_EXP_OP,
+  ODE_NEG,
+  ODE_VAR,
+  ODE_FUN,
+} ODEExpType;
 
 typedef struct ODEExpTree {
   char *data;
@@ -17,9 +19,11 @@ typedef struct ODEExpTree {
   struct ODEExpTree *right;
 } ODEExpTree;
 
-ODEExpTree *newOdeExpNode(char *, ODEExpType);
-ODEExpTree *newOdeExpTree(char *, ODEExpType, ODEExpTree *, ODEExpTree *);
+ODEExpTree *newOdeExpLeaf(ODEExpType, char *);
+ODEExpTree *newOdeExpOp(ODEExpType, ODEExpTree *, ODEExpTree *);
+ODEExpTree *newOdeExpTree(ODEExpType, char *, ODEExpTree *, ODEExpTree *);
 void delOdeExpTree(ODEExpTree *);
+void printOdeExpTree(ODEExpTree *, FILE *);
 
 typedef struct ODEList {
   char *var;
