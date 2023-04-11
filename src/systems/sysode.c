@@ -140,8 +140,8 @@ void printOdeExpTree(ODEExpTree *tree, FILE *where) {
 }
 
 ODEList *newOdeList(char *fun, ODEExpTree *exp) {
-  ODEList *list = (ODEList *)malloc(ODEList);
-  list->fun = strdup(fun);
+  ODEList *list = (ODEList *)malloc(sizeof(ODEList));
+  list->fun = fun;
   list->exp = exp;
   list->next = NULL;
   return list;
@@ -166,7 +166,7 @@ void printOdeList(ODEList *list, FILE *where) {
   assert(list->fun != NULL);
   fprintf(where, "%s' = ", list->fun);
   assert(list->exp != NULL);
-  printOdeExpTree(list->exp);
+  printOdeExpTree(list->exp, where);
   fprintf(where, "; ");
   if (list->next != NULL)
     printOdeList(list->next, where);
