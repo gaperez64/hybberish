@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   printf("expect: %s\n", msg);
   printf("got: %s\n", buffer);
   assert(!strcmp(buffer, msg));
-  
+
   /* clean */
   delOdeExpTree(tree);
   free(buffer);

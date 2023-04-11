@@ -38,13 +38,14 @@ int main(int argc, char *argv[]) {
   /* printing */
   char *buffer = (char *)malloc(100 * sizeof(char));
   FILE *stream = fmemopen(buffer, 100, "w");
-  const char *msg = "last' = (2 * at); y' = sqrt(((b^2) - ((4 * a) * c))); x' = -b";
+  const char *msg =
+      "last' = (2 * at); y' = sqrt(((b^2) - ((4 * a) * c))); x' = -b";
   printOdeList(list, stream);
   fprintf(stream, "%c", '\0');
   printf("expect: %s\n", msg);
   printf("got: %s\n", buffer);
   assert(strcmp(buffer, msg));
- 
+
   /* clean */
   delOdeList(list);
   free(buffer);
