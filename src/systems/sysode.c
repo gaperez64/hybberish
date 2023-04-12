@@ -52,6 +52,7 @@ ODEExpTree *newOdeExpTree(ODEExpType type, char *name, ODEExpTree *left,
     assert(left != NULL);
     tree->left = left;
     assert(right == NULL);
+    tree->right = right;
     break;
   default:
     assert(false);
