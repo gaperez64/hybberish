@@ -36,9 +36,10 @@ int main(int argc, char *argv[]) {
   assert(stream != NULL);
   const char *msg = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
   printOdeExpTree(tree, stream);
+  fprintf(stream, "%c", '\0');
   fclose(stream); /* close to flush */
-  printf("expect: |%s|\n", msg);
-  printf("got: |%s|\n", buffer);
+  printf("expect: |%s| = %lu\n", msg, strlen(msg));
+  printf("got: |%s| = %lu\n", buffer, strlen(buffer));
   printf("!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
 

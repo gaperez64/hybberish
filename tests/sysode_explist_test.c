@@ -42,8 +42,8 @@ int main(int argc, char *argv[]) {
       "last' = (2 * at); y' = sqrt(((b^2) - ((4 * a) * c))); x' = -b; ";
   printOdeList(list, stream);
   fclose(stream); /* close to flush */
-  printf("expect: |%s|\n", msg);
-  printf("got: |%s|\n", buffer);
+  printf("expect: |%s| = %lu\n", msg, strlen(msg));
+  printf("got: |%s| = %lu\n", buffer, strlen(buffer));
   printf("!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
 
