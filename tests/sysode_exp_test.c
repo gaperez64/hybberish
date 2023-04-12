@@ -10,6 +10,7 @@ int main(int argc, char *argv[]) {
   /*(void)argv*/;
 
   /* (-b + sqrt((b^2) - ((4a)c))) / (2a) */
+  printf(" ** building leaves **\n");
   ODEExpTree *b1 = newOdeExpLeaf(ODE_VAR, strdup("b"));
   ODEExpTree *b2 = newOdeExpLeaf(ODE_VAR, strdup("b"));
   ODEExpTree *n2 = newOdeExpLeaf(ODE_NUM, strdup("2"));
