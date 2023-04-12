@@ -97,6 +97,7 @@ static void printBinOp(ODEExpType type, FILE *where) {
 
 void printOdeExpTree(ODEExpTree *tree, FILE *where) {
   /* A simple depth-first search while printing in-order */
+  assert(tree != NULL);
   switch (tree->type) {
   /* binary operators */
   case ODE_ADD_OP:

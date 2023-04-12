@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
   FILE *stream = fmemopen(buffer, 100, "w");
   assert(stream != NULL);
   const char *msg = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
+  fprintf(stderr, "before printing\n");
   printOdeExpTree(tree, stream);
   fclose(stream); /* close to flush */
   fprintf(stderr, "expect: |%s| = %lu\n", msg, strlen(msg));
