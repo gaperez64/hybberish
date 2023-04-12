@@ -33,17 +33,19 @@ int main(int argc, char *argv[]) {
   /* printing */
   char *buffer = (char *)malloc(100 * sizeof(char));
   FILE *stream = fmemopen(buffer, 100, "w");
+  assert(stream != NULL);
   const char *msg = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
-  printOdeExpTree(tree, stderr);
   printOdeExpTree(tree, stream);
-  fclose(stream); /* close to flush */
+  fflush(stream);
   printf("expect: |%s| = %lu\n", msg, strlen(msg));
   printf("got: |%s| = %lu\n", buffer, strlen(buffer));
   printf("!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
+  fprintf(stderr, "done!\n");
 
   /* clean */
   delOdeExpTree(tree);
+  fclose(stream);
   free(buffer);
   return 0;
 }
