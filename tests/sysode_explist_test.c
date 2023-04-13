@@ -38,18 +38,18 @@ int main(int argc, char *argv[]) {
   /* printing */
   char buffer[100];
   FILE *stream = fmemopen(buffer, 100, "w");
+  assert(stream != NULL);
   const char *msg =
       "last' = (2 * at); y' = sqrt(((b^2) - ((4 * a) * c))); x' = -b; ";
   printOdeList(list, stderr);
   printOdeList(list, stream);
-  fflush(stream);
+  fclose(stream); /* close to flush and write null byte */
   fprintf(stderr, "expect: |%s| = %lu\n", msg, strlen(msg));
   fprintf(stderr, "got: |%s| = %lu\n", buffer, strlen(buffer));
   fprintf(stderr, "!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
 
   /* clean */
-  fclose(stream);
   delOdeList(list);
   return 0;
 }

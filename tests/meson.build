@@ -1,4 +1,7 @@
 # Tests
+t = executable('fmopn', 'fmopn.c')
+test('test fmemopen working', t)
+
 t = executable('sysode_exp_test', 'sysode_exp_test.c',
                link_with : sysode_lib,
                include_directories : sysode_inc)
