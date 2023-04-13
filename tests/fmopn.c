@@ -18,7 +18,7 @@ main (void)
 
 
     while ((ch = fgetc(stream)) != EOF)
-        printf("Got %c\n", ch);
+        fprintf(stderr, "Got %c\n", ch);
 
 
     fclose(stream);
