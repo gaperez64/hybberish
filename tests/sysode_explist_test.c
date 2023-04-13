@@ -36,19 +36,20 @@ int main(int argc, char *argv[]) {
   list = newOdeElem(list, strdup("last"), t3);
 
   /* printing */
-  char *buffer = (char *)malloc(100 * sizeof(char));
+  char buffer[100];
   FILE *stream = fmemopen(buffer, 100, "w");
   const char *msg =
       "last' = (2 * at); y' = sqrt(((b^2) - ((4 * a) * c))); x' = -b; ";
+  printOdeList(list, stderr);
   printOdeList(list, stream);
-  fclose(stream); /* close to flush */
-  printf("expect: |%s| = %lu\n", msg, strlen(msg));
-  printf("got: |%s| = %lu\n", buffer, strlen(buffer));
-  printf("!strcmp = %i\n", !strcmp(buffer, msg));
+  fflush(stream);
+  fprintf(stderr, "expect: |%s| = %lu\n", msg, strlen(msg));
+  fprintf(stderr, "got: |%s| = %lu\n", buffer, strlen(buffer));
+  fprintf(stderr, "!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
 
   /* clean */
+  fclose(stream);
   delOdeList(list);
-  free(buffer);
   return 0;
 }
