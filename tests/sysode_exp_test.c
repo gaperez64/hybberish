@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
   /* printing */
   char buffer[100];
-  FILE *stream = fmemopen(buffer, 100, "w+");
+  FILE *stream = fmemopen(buffer, 100, "w");
   assert(stream != NULL);
   const char msg[] = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
   printOdeExpTree(tree, stream);
