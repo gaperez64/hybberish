@@ -34,17 +34,16 @@ int main(int argc, char *argv[]) {
   char buffer[100];
   FILE *stream = fmemopen(buffer, 100, "w+");
   assert(stream != NULL);
-  const char *msg = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
+  const char msg[] = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
   printOdeExpTree(tree, stream);
-  fflush(stream);
-  fprintf(stderr, "expect: |%s| = %lu\n", msg, strlen(msg));
-  fprintf(stderr, "got: |%s| = %lu\n", buffer, strlen(buffer));
-  fprintf(stderr, "!strcmp = %i\n", !strcmp(buffer, msg));
+  fclose(stream); /* close to flush and write null byte */
+  printf("expect: |%s| = %lu\n", msg, strlen(msg));
+  printf("got: |%s| = %lu\n", buffer, strlen(buffer));
+  printf("!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
   fprintf(stderr, "done!\n");
 
   /* clean */
   delOdeExpTree(tree);
-  fclose(stream);
   return 0;
 }

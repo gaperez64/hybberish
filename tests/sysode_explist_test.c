@@ -39,14 +39,13 @@ int main(int argc, char *argv[]) {
   char buffer[100];
   FILE *stream = fmemopen(buffer, 100, "w");
   assert(stream != NULL);
-  const char *msg =
+  const char msg[] =
       "last' = (2 * at); y' = sqrt(((b^2) - ((4 * a) * c))); x' = -b; ";
-  printOdeList(list, stderr);
   printOdeList(list, stream);
   fclose(stream); /* close to flush and write null byte */
-  fprintf(stderr, "expect: |%s| = %lu\n", msg, strlen(msg));
-  fprintf(stderr, "got: |%s| = %lu\n", buffer, strlen(buffer));
-  fprintf(stderr, "!strcmp = %i\n", !strcmp(buffer, msg));
+  printf("expect: |%s| = %lu\n", msg, strlen(msg));
+  printf("got: |%s| = %lu\n", buffer, strlen(buffer));
+  printf("!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
 
   /* clean */

@@ -23,7 +23,7 @@ jobs:
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
-    - run: sudo apt-get upgrade libc
+    - run: sudo apt-get upgrade glibc
     - run: pip install meson ninja
     - run: meson setup builddir/
       env:
