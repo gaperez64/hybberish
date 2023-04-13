@@ -14,7 +14,7 @@ main (void)
 
     stream = fmemopen(buffer, strlen (buffer), "r");
     if (stream == NULL)
-        /* handle error */;
+        fprintf(stderr, "got null!\n");
 
 
     while ((ch = fgetc(stream)) != EOF)
