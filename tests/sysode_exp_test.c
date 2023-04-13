@@ -31,12 +31,13 @@ int main(int argc, char *argv[]) {
   ODEExpTree *tree = newOdeExpOp(ODE_DIV_OP, sum, twoa);
 
   /* printing */
-  char buffer[100] = "";
-  FILE *stream = fmemopen(buffer, 100, "w");
+  char *buffer;
+  size_t buflen;
+  FILE *stream = open_memstream(&buffer, &buflen);
   assert(stream != NULL);
   const char msg[] = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
   printOdeExpTree(tree, stream);
-  fclose(stream); /* close to flush and write null byte = end of string */
+  fflush(stream);
   printf("expect: |%s| = %lu\n", msg, strlen(msg));
   printf("got: |%s| = %lu\n", buffer, strlen(buffer));
   printf("!strcmp = %i\n", !strcmp(buffer, msg));
@@ -45,5 +46,6 @@ int main(int argc, char *argv[]) {
 
   /* clean */
   delOdeExpTree(tree);
+  fclose(stream);
   return 0;
 }
