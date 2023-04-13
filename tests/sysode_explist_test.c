@@ -21,13 +21,11 @@ int main(int argc, char *argv[]) {
 
   /* leaves ready, now build the trees */
   ODEExpTree *t1 = newOdeExpOp(ODE_NEG, b1, NULL);
-
   ODEExpTree *exp = newOdeExpOp(ODE_EXP_OP, b2, n2);
   ODEExpTree *foura = newOdeExpOp(ODE_MUL_OP, n4, a1);
   ODEExpTree *fourac = newOdeExpOp(ODE_MUL_OP, foura, c1);
   ODEExpTree *min = newOdeExpOp(ODE_SUB_OP, exp, fourac);
   ODEExpTree *t2 = newOdeExpTree(ODE_FUN, strdup("sqrt"), min, NULL);
-
   ODEExpTree *t3 = newOdeExpOp(ODE_MUL_OP, m2, a2);
 
   /* tress ready, now creating the list */
