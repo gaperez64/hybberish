@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
   ODEExpTree *tree = newOdeExpOp(ODE_DIV_OP, sum, twoa);
 
   /* printing */
-  char buffer[100];
+  char buffer[100] = "";
   FILE *stream = fmemopen(buffer, 100, "w");
   assert(stream != NULL);
   const char msg[] = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
