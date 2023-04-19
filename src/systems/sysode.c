@@ -149,10 +149,16 @@ ODEList *newOdeList(char *fun, ODEExpTree *exp) {
   return list;
 }
 
-ODEList *newOdeElem(ODEList *tail, char *fun, ODEExpTree *exp) {
-  ODEList *head = newOdeList(fun, exp);
+ODEList *appOdeElem(ODEList *tail, ODEList *head) {
+  assert(head != NULL);
+  assert(head->next == NULL);
   head->next = tail;
   return head;
+}
+
+ODEList *newOdeElem(ODEList *tail, char *fun, ODEExpTree *exp) {
+  ODEList *head = newOdeList(fun, exp);
+  return appOdeElem(tail, head);
 }
 
 void delOdeList(ODEList *list) {
