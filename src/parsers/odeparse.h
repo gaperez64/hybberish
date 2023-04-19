@@ -2,6 +2,6 @@
 #define ODEPARSE_H
 
 void setOdeInputString(const char *);
-void endOdeScan();
+void endOdeScan(void);
 
 #endif

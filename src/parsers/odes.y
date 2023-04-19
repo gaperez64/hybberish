@@ -3,15 +3,11 @@
 %define api.value.type {char *}
 %define parse.error detailed
 %define api.prefix {odes}
-%param { yyscan_t scanner }
 
 %code top {
   #include <stdio.h>
   #include "odeparse.h"
   #include "odes.lex.h"
-}
-%code requires {
-  typedef void* yyscan_t;
 }
 %code {
   void yyerror(const char *);
@@ -56,7 +52,7 @@ term: NUMBER
 %%
 
 void yyerror(const char *str) {
-  fprintf(stderr, "[line %d] Error: %s\n", yylineno, str);
+  fprintf(stderr, "[line %d] Error: %s\n", odeslineno, str);
 }
 
 int parseOdeString(const char *in) {

@@ -9,6 +9,8 @@ void yyerror(char const *);
 
 %option yylineno
 %option noyywrap
+%option noinput
+%option nounput
 %option prefix="odes"
 
 %%
@@ -36,6 +38,6 @@ void setOdeInputString(const char *in) {
   yy_scan_string(in);
 }
 
-void endOdeScan() {
+void endOdeScan(void) {
   yy_delete_buffer(YY_CURRENT_BUFFER);
 }
