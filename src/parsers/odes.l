@@ -1,15 +1,14 @@
 /* Scanner for a system of ODEs */
 
 %{
+#include "odeparse.h"
 #include "odes.tab.h"
 
-void yyerror (char const *);
+void yyerror(char const *);
 %}
 
 %option yylineno
 %option noyywrap
-%option nounput
-%option reentrant
 %option prefix="odes"
 
 %%
@@ -32,3 +31,11 @@ void yyerror (char const *);
 .       { fprintf(stderr, "Unexpected symbol: %c\n", *yytext); return UNKNOWN; }
 
 %%
+
+void setOdeInputString(const char *in) {
+  yy_scan_string(in);
+}
+
+void endOdeScan() {
+  yy_delete_buffer(YY_CURRENT_BUFFER);
+}

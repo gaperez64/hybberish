@@ -1,23 +1,20 @@
 /* Parser for a system of ODEs */
 
-%define api.value.type {char*}
-%define parse.lac full
+%define api.value.type {char *}
 %define parse.error detailed
 %define api.prefix {odes}
-%locations
-%define api.pure
 %param { yyscan_t scanner }
 
 %code top {
   #include <stdio.h>
+  #include "odeparse.h"
   #include "odes.lex.h"
 }
 %code requires {
   typedef void* yyscan_t;
 }
 %code {
-  /*int yylex(YYSTYPE* yylvalp, YYLTYPE* yyllocp, yyscan_t scanner);*/
-  void yyerror(YYLTYPE* yyllocp, yyscan_t unused, const char* msg);
+  void yyerror(const char *);
 }
 
 /* tokens that will be used */
@@ -58,7 +55,13 @@ term: NUMBER
 
 %%
 
-void yyerror(YYLTYPE* yyllocp, yyscan_t unused, const char* msg) {
-  fprintf(stderr, "[%d:%d]: %s\n",
-          yyllocp->first_line, yyllocp->first_column, msg);
+void yyerror(const char *str) {
+  fprintf(stderr, "[line %d] Error: %s\n", yylineno, str);
+}
+
+int parseOdeString(const char *in) {
+  setOdeInputString(in);
+  int rv = yyparse();
+  endOdeScan();
+  return rv;
 }

@@ -1,3 +1,6 @@
+#ifndef SYSODE_H
+#define SYSODE_H
+
 #include <stdio.h>
 
 /* Ordinary differential expression trees */
@@ -37,3 +40,5 @@ ODEList *newOdeList(char *, ODEExpTree *);
 ODEList *newOdeElem(ODEList *, char *, ODEExpTree *);
 void delOdeList(ODEList *);
 void printOdeList(ODEList *, FILE *);
+
+#endif
