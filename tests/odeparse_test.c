@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
   int res = parseOdeString(str, &list);
   assert(res == 0);
 
-  /* printing */
+  /* printing what was parsed */
   char buffer[100];
   FILE *stream = fmemopen(buffer, 100, "w");
   assert(stream != NULL);
