@@ -1,6 +1,7 @@
 /* Scanner for a system of ODEs */
 
 %{
+#include "sysode.h"
 #include "odeparse.h"
 #include "odes.tab.h"
 
@@ -26,8 +27,8 @@ void yyerror(char const *);
 "(" { return LPAR; }
 ")" { return RPAR; }
 
-[0-9](\.[0-9]*)?       { odeslval = strdup(yytext); return NUMBER; }
-[_a-zA-Z][_a-zA-Z0-9]* { odeslval = strdup(yytext); return IDENT; }
+[0-9](\.[0-9]*)?       { odeslval.str = strdup(yytext); return NUMBER; }
+[_a-zA-Z][_a-zA-Z0-9]* { odeslval.str = strdup(yytext); return IDENT; }
 
 [ \t\n] { /* ignore white spaces */ }
 .       { fprintf(stderr, "Unexpected symbol: %c\n", *yytext); return UNKNOWN; }

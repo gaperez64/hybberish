@@ -51,7 +51,8 @@ prod: factor           { $$ = $1; }
 
 factor: term             { $$ = $1; }
       | SUB term         { $$ = newOdeExpOp(ODE_NEG, $2, NULL); }
-      | term EXP NUMBER  { $$ = newOdeExpOp(ODE_EXP_OP, $1, $3); }
+      | term EXP NUMBER  { ODEExpTree *n = newOdeExpLeaf(ODE_NUM, $3); 
+                           $$ = newOdeExpOp(ODE_EXP_OP, $1, n); }
       ;
 
 term: NUMBER                      { $$ = newOdeExpLeaf(ODE_NUM, $1); }

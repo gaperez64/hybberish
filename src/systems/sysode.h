@@ -41,7 +41,7 @@ ODEList *newOdeElem(ODEList *, char *, ODEExpTree *);
 /* Append the second one to the first list,
  * It assumes the first one is a single node!
  */
-ODEList *appOdeElem(ODEList *, ODEList*);
+ODEList *appOdeElem(ODEList *, ODEList *);
 void delOdeList(ODEList *);
 void printOdeList(ODEList *, FILE *);
 
