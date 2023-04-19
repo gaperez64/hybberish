@@ -6,7 +6,7 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  /* to avoid silly warnings about unused parameters */
+  /* to avoid silly warnings about unused parameter */
   (void)argc;
   (void)argv;
 
