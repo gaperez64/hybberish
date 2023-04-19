@@ -8,6 +8,7 @@ void yyerror (char const *);
 
 %option yylineno
 %option noyywrap
+%option nounput
 %option reentrant
 %option prefix="odes"
 

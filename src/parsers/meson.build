@@ -14,3 +14,10 @@ pgen = generator(bison,
                              '--output=@OUTPUT0@',
                              '--defines=@OUTPUT1@',
                              '@INPUT@'])
+
+# ODE parsing library
+odeparse_lib = library('odeparse',
+                       [lgen.process('odes.l'),
+                        pgen.process('odes.y')],
+                       link_with : sysode_lib,
+                       include_directories : sysode_inc)

@@ -3,8 +3,9 @@ project('hybberish', 'c',
   default_options : ['warning_level=3']
 )
 
-subdir('src/parsers')
 subdir('src/systems')
 sysode_inc = include_directories('src/systems')
+subdir('src/parsers')
+odeparse_inc = include_directories('src/parsers')
 
 subdir('tests')

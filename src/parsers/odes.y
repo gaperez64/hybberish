@@ -5,11 +5,12 @@
 %define parse.error detailed
 %define api.prefix {odes}
 %locations
+%define api.pure
 %param { yyscan_t scanner }
 
 %code top {
   #include <stdio.h>
-  #include "lex.odes.h"
+  #include "odes.lex.h"
 }
 %code requires {
   typedef void* yyscan_t;
@@ -25,7 +26,7 @@
 
 %%
 
-odelist: /* epsilon */
+odelist: odedef
        | odelist odedef
        ;
 
