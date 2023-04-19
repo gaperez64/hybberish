@@ -1,14 +1,14 @@
 /* Parser for a system of ODEs */
 
-%define api.value.type {char *}
 %define parse.error detailed
 %define api.prefix {odes}
 
 %code top {
-  #include <stddef.h>
-  #include <stdio.h>
   #include "odeparse.h"
   #include "odes.lex.h"
+  #include "sysode.h"
+  #include <stddef.h>
+  #include <stdio.h>
 }
 %code {
   void yyerror(const char *);
@@ -19,9 +19,11 @@
 %union {
   ODEList *list;
   ODEExpTree *tree;
+  char *str;
 }
-%token NUMBER IDENT SCOLON LPAR RPAR UNKNOWN
+%token SCOLON LPAR RPAR UNKNOWN
 %token ADD SUB MUL DIV EXP EQUAL PRIME
+%token <str> NUMBER IDENT
 %type <list> odelist odedef
 %type <tree> sumofprods prod factor term
 
