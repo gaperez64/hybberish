@@ -43,6 +43,10 @@ jobs:
         python-version: '3.x'
     - run: brew install gcc
     - run: brew install clang-format
+    - run: brew install flex
+    - run: brew install bison
+    - run: brew link --force flex
+    - run: brew link --force bison
     - run: pip install meson ninja
     - run: meson setup builddir/
       env:
