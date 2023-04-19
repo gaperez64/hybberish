@@ -41,8 +41,11 @@ jobs:
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
-    - run: brew install gcc
-    - run: brew install clang-format
+    - run: |
+        brew install gcc clang-format
+        brew install flex bison
+        echo "/usr/local/opt/flex/bin" >> $GITHUB_PATH
+        echo "/usr/local/opt/bison/bin" >> $GITHUB_PATH
     - run: pip install meson ninja
     - run: meson setup builddir/
       env:
