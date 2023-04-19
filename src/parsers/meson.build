@@ -10,8 +10,7 @@ lgen = generator(flex,
 bison = find_program('bison')
 pgen = generator(bison,
                  output: ['@BASENAME@.tab.c', '@BASENAME@.tab.h'],
-                 arguments: ['-Wall',
-                             '--output=@OUTPUT0@',
+                 arguments: ['--output=@OUTPUT0@',
                              '--defines=@OUTPUT1@',
                              '@INPUT@'])
 

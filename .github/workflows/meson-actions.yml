@@ -43,14 +43,10 @@ jobs:
         python-version: '3.x'
     - run: brew install gcc
     - run: brew install clang-format
-    - run: brew install flex
-    - run: brew install bison
     - run: pip install meson ninja
     - run: meson setup builddir/
       env:
         CC: gcc
-        flex: /usr/local/opt/flex/bin/flex
-        bison: /usr/local/opt/bison/bin/bison
     - run: meson test -C builddir/ -v
     - run: ninja -C builddir clang-format-check
     - uses: actions/upload-artifact@v1
