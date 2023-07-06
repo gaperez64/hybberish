@@ -1,6 +1,7 @@
 /* Parser for a system of ODEs */
 
-%define parse.error detailed
+/*%define parse.error detailed*/
+%define parse.error verbose
 %define api.prefix {odes}
 
 %code top {
