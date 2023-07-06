@@ -1,0 +1,28 @@
+Build started at 2023-07-06T13:14:36.647094
+Python binary: /usr/bin/python3
+Python system: Linux
+The Meson build system
+Version: 0.29.0
+Source dir: /home/ramesh/hybberish
+Build dir: /home/ramesh/hybberish/build
+Build type: native build
+Build machine cpu family: x86_64
+Build machine cpu: x86_64
+Project name: hybberish
+Sanity testing C compiler: cc
+Is cross compiler: False.
+Sanity check compiler command line: cc /home/ramesh/hybberish/build/meson-private/sanitycheckc.c -o /home/ramesh/hybberish/build/meson-private/sanitycheckc
+Sanity check compile stdout:
+
+-----
+Sanity check compile stderr:
+
+-----
+Running test binary command: /home/ramesh/hybberish/build/meson-private/sanitycheckc
+Native c compiler: cc (gcc 5.4.0-6ubuntu1)
+Program flex found: YES (/usr/bin/flex)
+Program bison found: YES (/usr/bin/bison)
+Adding test "test sysode expressions".
+Adding test "test sysode expression lists".
+Adding test "test ode parser".
+Build targets in project: 5
