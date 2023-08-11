@@ -19,7 +19,8 @@ typedef struct LINEQExpTree {
 
 LINEQExpTree *newLineqExpLeaf(LINEQExpType, char *);
 LINEQExpTree *newLineqExpOp(LINEQExpType, LINEQExpTree *, LINEQExpTree *);
-LINEQExpTree *newLineqExpTree(LINEQExpType, char *, LINEQExpTree *, LINEQExpTree *);
+LINEQExpTree *newLineqExpTree(LINEQExpType, char *, LINEQExpTree *,
+                              LINEQExpTree *);
 void delLineqExpTree(LINEQExpTree *);
 void printLineqExpTree(LINEQExpTree *, FILE *);
 
