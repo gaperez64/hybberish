@@ -18,7 +18,7 @@
 /* tokens that will be used */
 %union {
   ODEList *list;
-  ODEExpTree *tree;
+  ExpTree *tree;
   char *str;
 }
 %token SCOLON LPAR RPAR UNKNOWN
@@ -40,24 +40,24 @@ odedef: IDENT PRIME EQUAL sumofprods SCOLON  { $$ = newOdeList($1, $4); }
       ;
 
 sumofprods: prod                 { $$ = $1; }
-          | sumofprods ADD prod  { $$ = newOdeExpOp(ODE_ADD_OP, $1, $3); }
-          | sumofprods SUB prod  { $$ = newOdeExpOp(ODE_SUB_OP, $1, $3); }
+          | sumofprods ADD prod  { $$ = newExpOp(EXP_ADD_OP, $1, $3); }
+          | sumofprods SUB prod  { $$ = newExpOp(EXP_SUB_OP, $1, $3); }
           ;
 
 prod: factor           { $$ = $1; }
-    | prod MUL factor  { $$ = newOdeExpOp(ODE_MUL_OP, $1, $3); }
-    | prod DIV factor  { $$ = newOdeExpOp(ODE_DIV_OP, $1, $3); }
+    | prod MUL factor  { $$ = newExpOp(EXP_MUL_OP, $1, $3); }
+    | prod DIV factor  { $$ = newExpOp(EXP_DIV_OP, $1, $3); }
     ;
 
 factor: term             { $$ = $1; }
-      | SUB term         { $$ = newOdeExpOp(ODE_NEG, $2, NULL); }
-      | term EXP NUMBER  { ODEExpTree *n = newOdeExpLeaf(ODE_NUM, $3); 
-                           $$ = newOdeExpOp(ODE_EXP_OP, $1, n); }
+      | SUB term         { $$ = newExpOp(EXP_NEG, $2, NULL); }
+      | term EXP NUMBER  { ExpTree *n = newExpLeaf(EXP_NUM, $3); 
+                           $$ = newExpOp(EXP_EXP_OP, $1, n); }
       ;
 
-term: NUMBER                      { $$ = newOdeExpLeaf(ODE_NUM, $1); }
-    | IDENT                       { $$ = newOdeExpLeaf(ODE_VAR, $1); }
-    | IDENT LPAR sumofprods RPAR  { $$ = newOdeExpTree(ODE_FUN, $1, $3, NULL); }
+term: NUMBER                      { $$ = newExpLeaf(EXP_NUM, $1); }
+    | IDENT                       { $$ = newExpLeaf(EXP_VAR, $1); }
+    | IDENT LPAR sumofprods RPAR  { $$ = newExpTree(EXP_FUN, $1, $3, NULL); }
     | LPAR sumofprods RPAR        { $$ = $2; }
     ;
 

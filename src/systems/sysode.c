@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-ODEList *newOdeList(char *fun, ODEExpTree *exp) {
+ODEList *newOdeList(char *fun, ExpTree *exp) {
   ODEList *list = (ODEList *)malloc(sizeof(ODEList));
   list->fun = fun;
   list->exp = exp;
@@ -20,7 +20,7 @@ ODEList *appOdeElem(ODEList *tail, ODEList *head) {
   return head;
 }
 
-ODEList *newOdeElem(ODEList *tail, char *fun, ODEExpTree *exp) {
+ODEList *newOdeElem(ODEList *tail, char *fun, ExpTree *exp) {
   ODEList *head = newOdeList(fun, exp);
   return appOdeElem(tail, head);
 }
@@ -31,7 +31,7 @@ void delOdeList(ODEList *list) {
   assert(list->fun != NULL);
   free(list->fun);
   assert(list->exp != NULL);
-  delOdeExpTree(list->exp);
+  delExpTree(list->exp);
   free(list);
 }
 
@@ -39,7 +39,7 @@ void printOdeList(ODEList *list, FILE *where) {
   assert(list->fun != NULL);
   fprintf(where, "%s' = ", list->fun);
   assert(list->exp != NULL);
-  printOdeExpTree(list->exp, where);
+  printExpTree(list->exp, where);
   fprintf(where, "; ");
   if (list->next != NULL)
     printOdeList(list->next, where);

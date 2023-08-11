@@ -10,25 +10,25 @@ int main(int argc, char *argv[]) {
   (void)argv;
 
   /* (-b + sqrt((b^2) - ((4a)c))) / (2a) */
-  ExpTree *b1 = newExpLeaf(ODE_VAR, strdup("b"));
-  ExpTree *b2 = newExpLeaf(ODE_VAR, strdup("b"));
-  ExpTree *n2 = newExpLeaf(ODE_NUM, strdup("2"));
-  ExpTree *n4 = newExpLeaf(ODE_NUM, strdup("4"));
-  ExpTree *a1 = newExpLeaf(ODE_VAR, strdup("a"));
-  ExpTree *c1 = newExpLeaf(ODE_VAR, strdup("c"));
-  ExpTree *m2 = newExpLeaf(ODE_NUM, strdup("2"));
-  ExpTree *a2 = newExpLeaf(ODE_VAR, strdup("a"));
+  ExpTree *b1 = newExpLeaf(EXP_VAR, strdup("b"));
+  ExpTree *b2 = newExpLeaf(EXP_VAR, strdup("b"));
+  ExpTree *n2 = newExpLeaf(EXP_NUM, strdup("2"));
+  ExpTree *n4 = newExpLeaf(EXP_NUM, strdup("4"));
+  ExpTree *a1 = newExpLeaf(EXP_VAR, strdup("a"));
+  ExpTree *c1 = newExpLeaf(EXP_VAR, strdup("c"));
+  ExpTree *m2 = newExpLeaf(EXP_NUM, strdup("2"));
+  ExpTree *a2 = newExpLeaf(EXP_VAR, strdup("a"));
 
   /* leaves ready, now build a tree */
-  ExpTree *exp = newExpOp(ODE_EXP_OP, b2, n2);
-  ExpTree *foura = newExpOp(ODE_MUL_OP, n4, a1);
-  ExpTree *fourac = newExpOp(ODE_MUL_OP, foura, c1);
-  ExpTree *min = newExpOp(ODE_SUB_OP, exp, fourac);
-  ExpTree *sqrt = newExpTree(ODE_FUN, strdup("sqrt"), min, NULL);
-  ExpTree *neg = newExpOp(ODE_NEG, b1, NULL);
-  ExpTree *sum = newExpOp(ODE_ADD_OP, neg, sqrt);
-  ExpTree *twoa = newExpOp(ODE_MUL_OP, m2, a2);
-  ExpTree *tree = newExpOp(ODE_DIV_OP, sum, twoa);
+  ExpTree *exp = newExpOp(EXP_EXP_OP, b2, n2);
+  ExpTree *foura = newExpOp(EXP_MUL_OP, n4, a1);
+  ExpTree *fourac = newExpOp(EXP_MUL_OP, foura, c1);
+  ExpTree *min = newExpOp(EXP_SUB_OP, exp, fourac);
+  ExpTree *sqrt = newExpTree(EXP_FUN, strdup("sqrt"), min, NULL);
+  ExpTree *neg = newExpOp(EXP_NEG, b1, NULL);
+  ExpTree *sum = newExpOp(EXP_ADD_OP, neg, sqrt);
+  ExpTree *twoa = newExpOp(EXP_MUL_OP, m2, a2);
+  ExpTree *tree = newExpOp(EXP_DIV_OP, sum, twoa);
 
   /* printing */
   char *buffer;

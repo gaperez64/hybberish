@@ -10,23 +10,23 @@ int main(int argc, char *argv[]) {
   (void)argv;
 
   /* x' = -b; y' = sqrt(b^2 - 4ac); last' = 2at */
-  ODEExpTree *b1 = newOdeExpLeaf(ODE_VAR, strdup("b"));
-  ODEExpTree *b2 = newOdeExpLeaf(ODE_VAR, strdup("b"));
-  ODEExpTree *n2 = newOdeExpLeaf(ODE_NUM, strdup("2"));
-  ODEExpTree *n4 = newOdeExpLeaf(ODE_NUM, strdup("4"));
-  ODEExpTree *a1 = newOdeExpLeaf(ODE_VAR, strdup("a"));
-  ODEExpTree *c1 = newOdeExpLeaf(ODE_VAR, strdup("c"));
-  ODEExpTree *m2 = newOdeExpLeaf(ODE_NUM, strdup("2"));
-  ODEExpTree *a2 = newOdeExpLeaf(ODE_VAR, strdup("at"));
+  ExpTree *b1 = newExpLeaf(EXP_VAR, strdup("b"));
+  ExpTree *b2 = newExpLeaf(EXP_VAR, strdup("b"));
+  ExpTree *n2 = newExpLeaf(EXP_NUM, strdup("2"));
+  ExpTree *n4 = newExpLeaf(EXP_NUM, strdup("4"));
+  ExpTree *a1 = newExpLeaf(EXP_VAR, strdup("a"));
+  ExpTree *c1 = newExpLeaf(EXP_VAR, strdup("c"));
+  ExpTree *m2 = newExpLeaf(EXP_NUM, strdup("2"));
+  ExpTree *a2 = newExpLeaf(EXP_VAR, strdup("at"));
 
   /* leaves ready, now build the trees */
-  ODEExpTree *t1 = newOdeExpOp(ODE_NEG, b1, NULL);
-  ODEExpTree *exp = newOdeExpOp(ODE_EXP_OP, b2, n2);
-  ODEExpTree *foura = newOdeExpOp(ODE_MUL_OP, n4, a1);
-  ODEExpTree *fourac = newOdeExpOp(ODE_MUL_OP, foura, c1);
-  ODEExpTree *min = newOdeExpOp(ODE_SUB_OP, exp, fourac);
-  ODEExpTree *t2 = newOdeExpTree(ODE_FUN, strdup("sqrt"), min, NULL);
-  ODEExpTree *t3 = newOdeExpOp(ODE_MUL_OP, m2, a2);
+  ExpTree *t1 = newExpOp(EXP_NEG, b1, NULL);
+  ExpTree *exp = newExpOp(EXP_EXP_OP, b2, n2);
+  ExpTree *foura = newExpOp(EXP_MUL_OP, n4, a1);
+  ExpTree *fourac = newExpOp(EXP_MUL_OP, foura, c1);
+  ExpTree *min = newExpOp(EXP_SUB_OP, exp, fourac);
+  ExpTree *t2 = newExpTree(EXP_FUN, strdup("sqrt"), min, NULL);
+  ExpTree *t3 = newExpOp(EXP_MUL_OP, m2, a2);
 
   /* tress ready, now creating the list */
   ODEList *list = newOdeList(strdup("x"), t1);

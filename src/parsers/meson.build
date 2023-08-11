@@ -18,5 +18,5 @@ pgen = generator(bison,
 odeparse_lib = library('odeparse',
                        [lgen.process('odes.l'),
                         pgen.process('odes.y')],
-                       link_with : sysode_lib,
-                       include_directories : sysode_inc)
+                       link_with : [fun_lib, sysode_lib],
+                       include_directories : [fun_inc, sysode_inc])

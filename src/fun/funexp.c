@@ -10,11 +10,11 @@ ExpTree *newExpLeaf(ExpType type, char *name) {
   tree->data = name;
   tree->type = type;
   switch (type) {
-  case ODE_NUM:
+  case EXP_NUM:
     tree->left = NULL;
     tree->right = NULL;
     break;
-  case ODE_VAR:
+  case EXP_VAR:
     tree->left = NULL;
     tree->right = NULL;
     break;
@@ -29,26 +29,25 @@ ExpTree *newExpOp(ExpType type, ExpTree *left, ExpTree *right) {
   return newExpTree(type, NULL, left, right);
 }
 
-ExpTree *newExpTree(ExpType type, char *name, ExpTree *left,
-                          ExpTree *right) {
+ExpTree *newExpTree(ExpType type, char *name, ExpTree *left, ExpTree *right) {
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
   tree->data = name;
   tree->type = type;
   switch (type) {
   /* binary operators */
-  case ODE_ADD_OP:
-  case ODE_SUB_OP:
-  case ODE_MUL_OP:
-  case ODE_DIV_OP:
-  case ODE_EXP_OP:
+  case EXP_ADD_OP:
+  case EXP_SUB_OP:
+  case EXP_MUL_OP:
+  case EXP_DIV_OP:
+  case EXP_EXP_OP:
     assert(left != NULL);
     tree->left = left;
     assert(right != NULL);
     tree->right = right;
     break;
   /* unary operators */
-  case ODE_NEG:
-  case ODE_FUN:
+  case EXP_NEG:
+  case EXP_FUN:
     assert(left != NULL);
     tree->left = left;
     assert(right == NULL);
@@ -75,19 +74,19 @@ void delExpTree(ExpTree *tree) {
 
 static void printBinOp(ExpType type, FILE *where) {
   switch (type) {
-  case ODE_ADD_OP:
+  case EXP_ADD_OP:
     fprintf(where, " + ");
     break;
-  case ODE_SUB_OP:
+  case EXP_SUB_OP:
     fprintf(where, " - ");
     break;
-  case ODE_MUL_OP:
+  case EXP_MUL_OP:
     fprintf(where, " * ");
     break;
-  case ODE_DIV_OP:
+  case EXP_DIV_OP:
     fprintf(where, " / ");
     break;
-  case ODE_EXP_OP:
+  case EXP_EXP_OP:
     fprintf(where, "^");
     break;
   default:
@@ -100,11 +99,11 @@ void printExpTree(ExpTree *tree, FILE *where) {
   assert(tree != NULL);
   switch (tree->type) {
   /* binary operators */
-  case ODE_ADD_OP:
-  case ODE_SUB_OP:
-  case ODE_MUL_OP:
-  case ODE_DIV_OP:
-  case ODE_EXP_OP:
+  case EXP_ADD_OP:
+  case EXP_SUB_OP:
+  case EXP_MUL_OP:
+  case EXP_DIV_OP:
+  case EXP_EXP_OP:
     fprintf(where, "(");
     assert(tree->left != NULL);
     printExpTree(tree->left, where);
@@ -114,13 +113,13 @@ void printExpTree(ExpTree *tree, FILE *where) {
     fprintf(where, ")");
     break;
   /* unary operators */
-  case ODE_NEG:
+  case EXP_NEG:
     fprintf(where, "-");
     assert(tree->left != NULL);
     printExpTree(tree->left, where);
     assert(tree->right == NULL);
     break;
-  case ODE_FUN:
+  case EXP_FUN:
     assert(tree->data != NULL);
     fprintf(where, "%s(", tree->data);
     assert(tree->left != NULL);
@@ -129,8 +128,8 @@ void printExpTree(ExpTree *tree, FILE *where) {
     assert(tree->right == NULL);
     break;
   /* base cases */
-  case ODE_NUM:
-  case ODE_VAR:
+  case EXP_NUM:
+  case EXP_VAR:
     assert(tree->data != NULL);
     fprintf(where, "%s", tree->data);
     assert(tree->left == NULL);
