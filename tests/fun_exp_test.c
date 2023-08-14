@@ -1,4 +1,4 @@
-#include "sysode.h"
+#include "funexp.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  /* x' = -b; y' = sqrt(b^2 - 4ac); last' = 2at */
+  /* (-b + sqrt((b^2) - ((4a)c))) / (2a) */
   ExpTree *b1 = newExpLeaf(EXP_VAR, strdup("b"));
   ExpTree *b2 = newExpLeaf(EXP_VAR, strdup("b"));
   ExpTree *n2 = newExpLeaf(EXP_NUM, strdup("2"));
@@ -17,36 +17,35 @@ int main(int argc, char *argv[]) {
   ExpTree *a1 = newExpLeaf(EXP_VAR, strdup("a"));
   ExpTree *c1 = newExpLeaf(EXP_VAR, strdup("c"));
   ExpTree *m2 = newExpLeaf(EXP_NUM, strdup("2"));
-  ExpTree *a2 = newExpLeaf(EXP_VAR, strdup("at"));
+  ExpTree *a2 = newExpLeaf(EXP_VAR, strdup("a"));
 
-  /* leaves ready, now build the trees */
-  ExpTree *t1 = newExpOp(EXP_NEG, b1, NULL);
+  /* leaves ready, now build a tree */
   ExpTree *exp = newExpOp(EXP_EXP_OP, b2, n2);
   ExpTree *foura = newExpOp(EXP_MUL_OP, n4, a1);
   ExpTree *fourac = newExpOp(EXP_MUL_OP, foura, c1);
   ExpTree *min = newExpOp(EXP_SUB_OP, exp, fourac);
-  ExpTree *t2 = newExpTree(EXP_FUN, strdup("sqrt"), min, NULL);
-  ExpTree *t3 = newExpOp(EXP_MUL_OP, m2, a2);
-
-  /* tress ready, now creating the list */
-  ODEList *list = newOdeList(strdup("x"), t1);
-  list = newOdeElem(list, strdup("y"), t2);
-  list = newOdeElem(list, strdup("last"), t3);
+  ExpTree *sqrt = newExpTree(EXP_FUN, strdup("sqrt"), min, NULL);
+  ExpTree *neg = newExpOp(EXP_NEG, b1, NULL);
+  ExpTree *sum = newExpOp(EXP_ADD_OP, neg, sqrt);
+  ExpTree *twoa = newExpOp(EXP_MUL_OP, m2, a2);
+  ExpTree *tree = newExpOp(EXP_DIV_OP, sum, twoa);
 
   /* printing */
-  char buffer[100];
-  FILE *stream = fmemopen(buffer, 100, "w");
+  char *buffer;
+  size_t buflen;
+  FILE *stream = open_memstream(&buffer, &buflen);
   assert(stream != NULL);
-  const char msg[] =
-      "last' = (2 * at); y' = sqrt(((b^2) - ((4 * a) * c))); x' = -b; ";
-  printOdeList(list, stream);
-  fclose(stream); /* close to flush and write null byte */
+  const char msg[] = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
+  printExpTree(tree, stream);
+  fclose(stream); /* close to flush and add a null byte*/
   printf("expect: |%s| = %lu\n", msg, strlen(msg));
   printf("got: |%s| = %lu\n", buffer, strlen(buffer));
   printf("!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
+  fprintf(stderr, "done!\n");
 
   /* clean */
-  delOdeList(list);
+  delExpTree(tree);
+  free(buffer);
   return 0;
 }
