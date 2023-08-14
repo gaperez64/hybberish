@@ -28,5 +28,6 @@ ExpTree *newExpOp(ExpType, ExpTree *, ExpTree *);
 ExpTree *newExpTree(ExpType, char *, ExpTree *, ExpTree *);
 void delExpTree(ExpTree *);
 void printExpTree(ExpTree *, FILE *);
+ExpTree *derivative(ExpTree *, char *);
 
 #endif

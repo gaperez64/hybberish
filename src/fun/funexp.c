@@ -139,3 +139,46 @@ void printExpTree(ExpTree *tree, FILE *where) {
     assert(false);
   }
 }
+
+ExpTree *derivative(ExpTree *expr, char *var) {
+  if (expr == NULL) {
+    return NULL;
+  }
+
+  switch (expr->type) {
+    /* Derivative of a constant is 0 */
+    case EXP_NUM:
+      return newExpLeaf(EXP_NUM, "0");
+    /* Derivative of a variable w.r.t itself is 1 */ 
+    case EXP_VAR:
+      if (strcmp(expr->data, var) == 0) {
+        return newExpLeaf(EXP_NUM, "1");
+    /* Derivative of a variable w.r.t another variable is 0 */  
+      } else {
+        return newExpLeaf(EXP_NUM, "0"); 
+      }
+    case EXP_ADD_OP:
+      return newExpOp(EXP_ADD_OP, derivative(expr->left, var), derivative(expr->right, var));
+    case EXP_SUB_OP:
+      return newExpOp(EXP_SUB_OP, derivative(expr->left, var), derivative(expr->right, var));
+    case EXP_MUL_OP:
+      return newExpOp(EXP_ADD_OP,
+        newExpOp(EXP_MUL_OP, derivative(expr->left, var), expr->right),
+        newExpOp(EXP_MUL_OP, expr->left, derivative(expr->right, var)));
+    case EXP_EXP_OP:
+      return newExpOp(EXP_MUL_OP,
+        newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, expr->right->data), derivative(expr->left, var)),
+        newExpOp(EXP_EXP_OP, expr->left, newExpOp(EXP_SUB_OP, expr->right, newExpLeaf(EXP_NUM, "1"))));
+    /* more cases for other operators */
+    default:
+      assert(false);
+      return NULL;
+  }
+}
+
+
+
+
+
+
+
