@@ -13,3 +13,13 @@ t = executable('odeparse_test', 'odeparse_test.c',
                link_with : [fun_lib, sysode_lib, odeparse_lib],
                include_directories : [fun_inc, sysode_inc, odeparse_inc])
 test('test ode parser', t)
+
+t = executable('derivative_test', 'derivative_test.c',
+               link_with : fun_lib,
+               include_directories : fun_inc)
+test('test derivative', t)
+
+t = executable('integral_test', 'integral_test.c',
+               link_with : fun_lib,
+               include_directories : fun_inc)
+test('test integral', t)
