@@ -140,41 +140,62 @@ void printExpTree(ExpTree *tree, FILE *where) {
   }
 }
 
-ExpTree *derivative(ExpTree *expr, char *var) {
-  if (expr == NULL) {
-    return NULL;
-  }
+ExpTree *cpyExpTree(ExpTree *src) {
+    if (src == NULL) {
+        return NULL;
+    }
 
-  switch (expr->type) {
-    /* Derivative of a constant is 0 */
-    case EXP_NUM:
-      return newExpLeaf(EXP_NUM, "0");
-    /* Derivative of a variable w.r.t itself is 1 */ 
-    case EXP_VAR:
-      if (strcmp(expr->data, var) == 0) {
-        return newExpLeaf(EXP_NUM, "1");
-    /* Derivative of a variable w.r.t another variable is 0 */  
-      } else {
-        return newExpLeaf(EXP_NUM, "0"); 
-      }
-    case EXP_ADD_OP:
-      return newExpOp(EXP_ADD_OP, derivative(expr->left, var), derivative(expr->right, var));
-    case EXP_SUB_OP:
-      return newExpOp(EXP_SUB_OP, derivative(expr->left, var), derivative(expr->right, var));
-    case EXP_MUL_OP:
-      return newExpOp(EXP_ADD_OP,
-        newExpOp(EXP_MUL_OP, derivative(expr->left, var), expr->right),
-        newExpOp(EXP_MUL_OP, expr->left, derivative(expr->right, var)));
-    case EXP_EXP_OP:
-      return newExpOp(EXP_MUL_OP,
-        newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, expr->right->data), derivative(expr->left, var)),
-        newExpOp(EXP_EXP_OP, expr->left, newExpOp(EXP_SUB_OP, expr->right, newExpLeaf(EXP_NUM, "1"))));
-    /* more cases for other operators */
-    default:
-      assert(false);
-      return NULL;
-  }
+    ExpTree *copy = (ExpTree *)malloc(sizeof(ExpTree));
+    if (copy == NULL) {
+        fprintf(stderr, "Memory allocation error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    copy->type = src->type;
+    copy->data = strdup(src->data);
+	/* recursively copy the left tree node */
+    copy->left = cpyExpTree(src->left);
+	/* recursively copy the right tree node */
+    copy->right = cpyExpTree(src->right);
+
+    return copy;
 }
+
+
+ExpTree *derivative(ExpTree *expr, char *var) {
+    if (expr == NULL) {
+        return NULL;
+    }
+
+    switch (expr->type) {
+        case EXP_NUM:
+            return newExpLeaf(EXP_NUM, "0");
+        case EXP_VAR:
+            if (strcmp(expr->data, var) == 0) {
+                return newExpLeaf(EXP_NUM, "1");
+            } else {
+                return newExpLeaf(EXP_NUM, "0");
+            }
+        case EXP_ADD_OP:
+            return newExpOp(EXP_ADD_OP, derivative(expr->left, var), derivative(expr->right, var));
+        case EXP_SUB_OP:
+            return newExpOp(EXP_SUB_OP, derivative(expr->left, var), derivative(expr->right, var));
+        case EXP_MUL_OP:
+            return newExpOp(EXP_ADD_OP,
+                            newExpOp(EXP_MUL_OP, derivative(expr->left, var), cpyExpTree(expr->right)),
+                            newExpOp(EXP_MUL_OP, cpyExpTree(expr->left), derivative(expr->right, var)));
+        case EXP_EXP_OP:
+            return newExpOp(EXP_MUL_OP,
+                            newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, cpyExpTree(expr->right)->data), derivative(expr->left, var)),
+                            newExpOp(EXP_EXP_OP, cpyExpTree(expr->left),
+                                     newExpOp(EXP_SUB_OP, cpyExpTree(expr->right), newExpLeaf(EXP_NUM, "1"))));
+        /* more cases for other operators */
+        default:
+            assert(false);
+            return NULL;
+    }
+}
+
 
 
 
