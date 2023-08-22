@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 ExpTree *newExpLeaf(ExpType type, char *name) {
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
