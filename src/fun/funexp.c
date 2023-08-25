@@ -9,6 +9,8 @@
 ExpTree *newExpLeaf(ExpType type, char *name) {
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
   tree->data = name;
+  //test code
+  tree->data =strdup(name);
   tree->type = type;
   switch (type) {
   case EXP_NUM:
@@ -33,6 +35,7 @@ ExpTree *newExpOp(ExpType type, ExpTree *left, ExpTree *right) {
 ExpTree *newExpTree(ExpType type, char *name, ExpTree *left, ExpTree *right) {
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
   tree->data = name;
+  //tree->data = NULL;
   tree->type = type;
   switch (type) {
   /* binary operators */
@@ -164,46 +167,56 @@ ExpTree *cpyExpTree(ExpTree *src) {
 }
 
 ExpTree *derivative(ExpTree *expr, char *var) {
-  if (expr == NULL) {
-    return NULL;
-  }
-  if (expr == NULL) {
-    return NULL;
-  }
-  switch (expr->type) {
-  case EXP_NUM:
-    return newExpLeaf(EXP_NUM, "0");
-  case EXP_VAR:
-    if (strcmp(expr->data, var) == 0) {
-      return newExpLeaf(EXP_NUM, "1");
-    } else {
-      return newExpLeaf(EXP_NUM, "0");
+    if (expr == NULL) {
+        return NULL;
     }
-  case EXP_ADD_OP:
-    return newExpOp(EXP_ADD_OP, derivative(expr->left, var),
-                    derivative(expr->right, var));
-  case EXP_SUB_OP:
-    return newExpOp(EXP_SUB_OP, derivative(expr->left, var),
-                    derivative(expr->right, var));
-  case EXP_MUL_OP:
-    return newExpOp(EXP_ADD_OP,
-                    newExpOp(EXP_MUL_OP, derivative(expr->left, var),
-                             cpyExpTree(expr->right)),
-                    newExpOp(EXP_MUL_OP, cpyExpTree(expr->left),
-                             derivative(expr->right, var)));
-  case EXP_EXP_OP:
-    return newExpOp(EXP_MUL_OP,
-                    newExpOp(EXP_MUL_OP,
-                             newExpLeaf(EXP_NUM, cpyExpTree(expr->right)->data),
-                             derivative(expr->left, var)),
-                    newExpOp(EXP_EXP_OP, cpyExpTree(expr->left),
-                             newExpOp(EXP_SUB_OP, cpyExpTree(expr->right),
-                                      newExpLeaf(EXP_NUM, "1"))));
-  /* more cases for other operators */
-  default:
-    assert(false);
-    return NULL;
-  }
+
+    switch (expr->type) {
+        case EXP_NUM:
+            return newExpLeaf(EXP_NUM, "0");
+        case EXP_VAR:
+            if (strcmp(expr->data, var) == 0) {
+                return newExpLeaf(EXP_NUM, "1");
+            } else {
+                return newExpLeaf(EXP_NUM, "0");
+            }
+        case EXP_ADD_OP: {
+            ExpTree *left_derivative = derivative(expr->left, var);
+            ExpTree *right_derivative = derivative(expr->right, var);
+            return newExpOp(EXP_ADD_OP, left_derivative, right_derivative);
+        }
+        case EXP_SUB_OP: {
+            ExpTree *left_derivative = derivative(expr->left, var);
+            ExpTree *right_derivative = derivative(expr->right, var);
+            return newExpOp(EXP_SUB_OP, left_derivative, right_derivative);
+        }
+        case EXP_MUL_OP: {
+            ExpTree *left_derivative = derivative(expr->left, var);
+            ExpTree *right_derivative = derivative(expr->right, var);
+            ExpTree *left_copy = cpyExpTree(expr->left);
+            ExpTree *right_copy = cpyExpTree(expr->right);
+
+            ExpTree *left_term = newExpOp(EXP_MUL_OP, left_derivative, right_copy);
+            ExpTree *right_term = newExpOp(EXP_MUL_OP, left_copy, right_derivative);
+
+            return newExpOp(EXP_ADD_OP, left_term, right_term);
+        }
+        case EXP_EXP_OP: {
+            ExpTree *base = expr->left;
+            ExpTree *exponent = expr->right;
+            
+            ExpTree *base_derivative = derivative(base, var);
+            ExpTree *exponent_minus_one = newExpOp(EXP_SUB_OP, exponent, newExpLeaf(EXP_NUM, "1"));
+            ExpTree *exponent_derivative = newExpOp(EXP_MUL_OP, exponent, base_derivative);
+            ExpTree *exponent_term = newExpOp(EXP_EXP_OP, base, exponent_minus_one);
+            
+            return newExpOp(EXP_MUL_OP, exponent_derivative, exponent_term);
+        }
+        /* more cases for other operators */
+        default:
+            assert(false);
+            return NULL;
+    }
 }
 
 ExpTree *integral(ExpTree *expr, char *var) {
