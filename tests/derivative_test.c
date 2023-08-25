@@ -42,12 +42,32 @@ int main(int argc, char *argv[]) {
 
   /* derivative of a variable w.r.t another variable */
   test_derivative(x, "y", "0");
+  
 
   /* derivative of a simple expression: x^2 */
-  test_derivative(newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "2")), "x",
-                  "((2 * 1) * (x^(2 - 1)))");
+  test_derivative(newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "2")), "x", "((2 * 1) * (x^(2 - 1)))");
 
-  /* clean */
+  /* Construct the polynomial: x^3 + 42x^2 + 10x - y */
+    ExpTree *polynomial = newExpOp(
+        EXP_SUB_OP,
+        newExpOp(EXP_ADD_OP,
+            newExpOp(EXP_ADD_OP,
+                newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "3")),
+                newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "42"), newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "2")))
+            ),
+            newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "10"), x)
+        ),
+        y
+    );
+
+  /* Print the polynomial expression */
+    printf("Polynomial expression: ");
+    printExpTree(polynomial, stdout);
+    printf("\n");
+
+  /* Test derivative of the polynomial */
+  test_derivative(polynomial, "x", "(((3 * (x^(3 - 1))) + ((42 * 2) * (x^(2 - 1)))) + 10)");
+
   delExpTree(x);
   delExpTree(y);
   return 0;
