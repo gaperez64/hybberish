@@ -24,6 +24,7 @@ void test_derivative(ExpTree *expr, char *var, const char *expected_msg) {
 
   /* clean */
   free(buffer);
+  delExpTree(der);
 }
 
 int main(int argc, char *argv[]) {
@@ -31,46 +32,62 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  /* variables */
-  ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
-  ExpTree *y = newExpLeaf(EXP_VAR, strdup("y"));
-
   /* derivative of a constant */
   test_derivative(newExpLeaf(EXP_NUM, strdup("5")), "x", "0");
 
   /* derivative of a variable w.r.t itself */
-  test_derivative(x, "x", "1");
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    test_derivative(x, "x", "1");
+    delExpTree(x);
+  }
 
   /* derivative of a variable w.r.t another variable */
-  test_derivative(x, "y", "0");
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    test_derivative(x, "y", "0");
+    delExpTree(x);
+  }
 
   /* derivative of a simple expression: x^2 */
-  test_derivative(newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "2")), "x",
-                  "((2 * 1) * (x^1))");
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    test_derivative(newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "2")), "x",
+                    "((2 * 1) * (x^1))");
+    delExpTree(x);
+  }
 
   /* Construct the polynomial: x^3 + 42x^2 + 10x - y */
-  ExpTree *polynomial = newExpOp(
-      EXP_SUB_OP,
-      newExpOp(
-          EXP_ADD_OP,
-          newExpOp(EXP_ADD_OP,
-                   newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "3")),
-                   newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "42"),
-                            newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "2")))),
-          newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "10"), x)),
-      y);
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *y = newExpLeaf(EXP_VAR, strdup("y"));
 
-  /* Print the polynomial expression */
-  printf("Polynomial expression: ");
-  printExpTree(polynomial, stdout);
-  printf("\n");
+    ExpTree *polynomial = newExpOp(
+        EXP_SUB_OP,
+        newExpOp(
+            EXP_ADD_OP,
+            newExpOp(
+                EXP_ADD_OP, newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "3")),
+                newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "42"),
+                         newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "2")))),
+            newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "10"), x)),
+        y);
 
-  /* Test derivative of the polynomial */
-  test_derivative(polynomial, "x", "(((((3 * 1) * (x^2)) + ((0 * (x^2)) + (42 "
-                                   "* ((2 * 1) * (x^1))))) + ((0 * x) + (10 * "
-                                   "1))) - 0)");
+    /* Print the polynomial expression */
+    printf("Polynomial expression: ");
+    printExpTree(polynomial, stdout);
+    printf("\n");
 
-  delExpTree(x);
-  delExpTree(y);
+    /* Test derivative of the polynomial */
+    test_derivative(polynomial, "x",
+                    "(((((3 * 1) * (x^2)) + ((0 * (x^2)) + (42 "
+                    "* ((2 * 1) * (x^1))))) + ((0 * x) + (10 * "
+                    "1))) - 0)");
+
+    // delExpTree(polynomial);
+    delExpTree(x);
+    delExpTree(y);
+  }
+
   return 0;
 }
