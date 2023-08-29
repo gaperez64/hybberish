@@ -1,6 +1,8 @@
 /* Parser for a system of ODEs */
 
-%define parse.error detailed
+/* %define parse.error detailed */
+/* To be compatible with Bison 3.0.4 */
+%define parse.error verbose
 %define api.prefix {odes}
 
 %code top {
