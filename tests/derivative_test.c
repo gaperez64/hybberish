@@ -24,7 +24,6 @@ void test_derivative(ExpTree *expr, char *var, const char *expected_msg) {
 
   /* clean */
   free(buffer);
-  delExpTree(der);
 }
 
 int main(int argc, char *argv[]) {
@@ -62,16 +61,21 @@ int main(int argc, char *argv[]) {
     ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
     ExpTree *y = newExpLeaf(EXP_VAR, strdup("y"));
 
+    /* Create copies of x and y */
+    ExpTree *x_copy = cpyExpTree(x);
+    ExpTree *y_copy = cpyExpTree(y);
+
+    /* Create the polynomial expression using the copied variables */
     ExpTree *polynomial = newExpOp(
         EXP_SUB_OP,
-        newExpOp(
-            EXP_ADD_OP,
-            newExpOp(
-                EXP_ADD_OP, newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "3")),
-                newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "42"),
-                         newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "2")))),
-            newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "10"), x)),
-        y);
+        newExpOp(EXP_ADD_OP,
+                 newExpOp(EXP_ADD_OP, newExpOp(EXP_EXP_OP, x_copy,
+                                               newExpLeaf(EXP_NUM, "3")),
+                          newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "42"),
+                                   newExpOp(EXP_EXP_OP, x_copy,
+                                            newExpLeaf(EXP_NUM, "2")))),
+                 newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "10"), x_copy)),
+        y_copy);
 
     /* Print the polynomial expression */
     printf("Polynomial expression: ");
@@ -84,9 +88,9 @@ int main(int argc, char *argv[]) {
                     "* ((2 * 1) * (x^1))))) + ((0 * x) + (10 * "
                     "1))) - 0)");
 
-    // delExpTree(polynomial);
-    delExpTree(x);
-    delExpTree(y);
+    /* Delete copied variables */
+    delExpTree(x_copy);
+    delExpTree(y_copy);
   }
 
   return 0;
