@@ -30,5 +30,6 @@ void delExpTree(ExpTree *);
 void printExpTree(ExpTree *, FILE *);
 ExpTree *derivative(ExpTree *, char *);
 ExpTree *integral(ExpTree *expr, char *var);
+ExpTree *cpyExpTree(ExpTree *src);
 
 #endif
