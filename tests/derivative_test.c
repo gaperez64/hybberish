@@ -92,5 +92,53 @@ int main(int argc, char *argv[]) {
     delExpTree(polynomial);
   }
 
+  /* derivative of a sin(x) */
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *sin_x = newExpTree(EXP_FUN, strdup("sin"), cpyExpTree(x), NULL);
+    test_derivative(sin_x, "x", "(cos(x) * 1)");
+    delExpTree(x);
+    delExpTree(sin_x);
+  }
+
+  /* derivative of sine of a polynomial x^3 + 42x^2 + 10x - y */
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *y = newExpLeaf(EXP_VAR, strdup("y"));
+
+    /* Construct the polynomial: x^3 + 42x^2 + 10x - y */
+    ExpTree *polynomial = newExpOp(
+        EXP_SUB_OP,
+        newExpOp(
+            EXP_ADD_OP,
+            newExpOp(
+                EXP_ADD_OP,
+                newExpOp(EXP_EXP_OP, cpyExpTree(x), newExpLeaf(EXP_NUM, "3")),
+                newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "42"),
+                         newExpOp(EXP_EXP_OP, cpyExpTree(x),
+                                  newExpLeaf(EXP_NUM, "2")))),
+            newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "10"), cpyExpTree(x))),
+        cpyExpTree(y));
+
+    /* Print the polynomial expression */
+    printf("Polynomial expression: ");
+    printExpTree(polynomial, stdout);
+    printf("\n");
+
+    /* Test derivative of the sine of the polynomial */
+    ExpTree *sine_polynomial =
+        newExpTree(EXP_FUN, strdup("sin"), cpyExpTree(polynomial), NULL);
+    test_derivative(sine_polynomial, "x",
+                    "(cos(((((x^3) + (42 * (x^2))) + (10 * x)) - y)) * (((((3 "
+                    "* 1) * (x^2)) + ((0 * (x^2)) + (42 * ((2 * 1) * (x^1))))) "
+                    "+ ((0 * x) + (10 * 1))) - 0))");
+
+    /* Free memory */
+    delExpTree(x);
+    delExpTree(y);
+    delExpTree(polynomial);
+    delExpTree(sine_polynomial);
+  }
+
   return 0;
 }
