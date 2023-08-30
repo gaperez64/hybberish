@@ -267,7 +267,7 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
   case EXP_MUL_OP: {
     ExpTree *left_integral = integral(expr->left, var);
-    ExpTree *right = cpyExpTree(expr->right);
+    ExpTree *right = integral(expr->right, var);
     return newExpOp(EXP_MUL_OP, left_integral, right);
   }
   case EXP_EXP_OP: {
