@@ -1,8 +1,8 @@
 #ifndef FUNEXP_H
 #define FUNEXP_H
 
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 
 /* Function expression trees */
 typedef enum ExpType {
