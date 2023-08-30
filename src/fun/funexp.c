@@ -232,6 +232,20 @@ ExpTree *derivative(ExpTree *expr, char *var) {
 
     return final_derivative;
   }
+
+  case EXP_FUN: {
+    if (strcmp(expr->data, "sin") == 0) {
+      ExpTree *arg = expr->left;
+      ExpTree *arg_derivative = derivative(arg, var);
+
+      ExpTree *cos_func =
+          newExpTree(EXP_FUN, strdup("cos"), cpyExpTree(arg), NULL);
+      ExpTree *derivative_result = newExpOp(EXP_MUL_OP, cpyExpTree(cos_func),
+                                            cpyExpTree(arg_derivative));
+
+      return derivative_result;
+    }
+  }
   /* more cases for other operators */
   default:
     assert(false);
