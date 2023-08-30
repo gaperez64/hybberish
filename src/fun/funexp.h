@@ -2,6 +2,7 @@
 #define FUNEXP_H
 
 #include <stdio.h>
+#include <math.h>
 
 /* Function expression trees */
 typedef enum ExpType {
