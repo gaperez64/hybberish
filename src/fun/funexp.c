@@ -238,6 +238,7 @@ ExpTree *derivative(ExpTree *expr, char *var) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
 
+      /* Derivative of sine */
       ExpTree *cos_func =
           newExpTree(EXP_FUN, strdup("cos"), cpyExpTree(arg), NULL);
       ExpTree *derivative_result = newExpOp(EXP_MUL_OP, cpyExpTree(cos_func),
@@ -274,30 +275,60 @@ ExpTree *integral(ExpTree *expr, char *var) {
   case EXP_ADD_OP:
     return newExpOp(EXP_ADD_OP, integral(expr->left, var),
                     integral(expr->right, var));
+
   case EXP_SUB_OP: {
     ExpTree *left_integral = integral(expr->left, var);
     ExpTree *right_integral = integral(expr->right, var);
     return newExpOp(EXP_SUB_OP, left_integral, right_integral);
   }
+
   case EXP_MUL_OP: {
     ExpTree *left_integral = integral(expr->left, var);
     ExpTree *right = integral(expr->right, var);
     return newExpOp(EXP_MUL_OP, left_integral, right);
   }
+
   case EXP_EXP_OP: {
-    if (strcmp(expr->right->data, "1") == 0) {
-      return integral(expr->left, var);
-    } else {
-      ExpTree *left = cpyExpTree(expr->left);
-      ExpTree *right = cpyExpTree(expr->right);
-      ExpTree *new_right =
-          newExpOp(EXP_ADD_OP, right, newExpLeaf(EXP_NUM, "1"));
-      ExpTree *power_rule = newExpOp(
-          EXP_MUL_OP, newExpOp(EXP_DIV_OP, newExpLeaf(EXP_NUM, "1"), new_right),
-          newExpOp(EXP_EXP_OP, left, new_right));
-      return power_rule;
+    ExpTree *base = expr->left;
+    ExpTree *exponent = expr->right;
+
+    /* Convert exponent from string to number */
+    double exponent_val = atof(exponent->data);
+
+    /* Integral of exponent */
+    ExpTree *exponent_plus_one =
+        newExpOp(EXP_ADD_OP, exponent, newExpLeaf(EXP_NUM, "1"));
+    ExpTree *exponent_integral =
+        newExpOp(EXP_DIV_OP, newExpLeaf(EXP_NUM, "1"), exponent_plus_one);
+    ExpTree *exponent_term = newExpOp(EXP_EXP_OP, base, exponent_plus_one);
+
+    /* Convert (number + 1) back to a string */
+    char exponent_str[50];
+    snprintf(exponent_str, sizeof(exponent_str), "%.15g", exponent_val + 1);
+
+    /* Replace original exponent with new string exponent */
+    exponent_term->right = newExpLeaf(EXP_NUM, exponent_str);
+
+    /* Final integral result */
+    ExpTree *final_integral =
+        newExpOp(EXP_MUL_OP, exponent_integral, exponent_term);
+
+    return final_integral;
+  }
+
+  case EXP_FUN: {
+    if (strcmp(expr->data, "sin") == 0) {
+      ExpTree *arg = expr->left;
+
+      /* Integral of sine */
+      ExpTree *integral_result =
+          newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
+                   newExpTree(EXP_FUN, strdup("cos"), cpyExpTree(arg), NULL));
+
+      return integral_result;
     }
   }
+
   default:
     assert(false);
     return NULL;
