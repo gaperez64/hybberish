@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
   {
     ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
     test_integral(newExpOp(EXP_EXP_OP, x, newExpLeaf(EXP_NUM, "2")), "x",
-                  "((1 / (2 + 1)) * (x^(2 + 1)))");
+                  "((1 / (2 + 1)) * (x^3))");
     delExpTree(x);
   }
 
@@ -80,15 +80,23 @@ int main(int argc, char *argv[]) {
     printf("\n");
 
     /* Test integral of the polynomial */
-    test_integral(
-        polynomial, "x",
-        "(((((1 / (3 + 1)) * (x^(3 + 1))) + ((42 * x) * ((1 / (2 + 1)) * (x^(2 "
-        "+ 1))))) + ((10 * x) * (0.5 * (x^2)))) - (y * x))");
+    test_integral(polynomial, "x",
+                  "(((((1 / (3 + 1)) * (x^4)) + ((42 * x) * ((1 / (2 + 1)) * "
+                  "(x^3)))) + ((10 * x) * (0.5 * (x^2)))) - (y * x))");
 
     /* clean */
     delExpTree(x);
     delExpTree(y);
     delExpTree(polynomial);
+  }
+
+  /* integral of a sin(x) */
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *sin_x = newExpTree(EXP_FUN, strdup("sin"), cpyExpTree(x), NULL);
+    test_integral(sin_x, "x", "(-1 * cos(x))");
+    delExpTree(x);
+    delExpTree(sin_x);
   }
 
   return 0;
