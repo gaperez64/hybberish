@@ -21,6 +21,7 @@ void test_integral(ExpTree *expr, char *var, const char *expected_msg) {
   printf("Got: %s\n", buffer);
   printf("!strcmp = %i\n", !strcmp(buffer, expected_msg));
   assert(!strcmp(buffer, expected_msg));
+  fflush(stdout); // Flush stdout
 
   /* clean */
   free(buffer);
@@ -90,14 +91,23 @@ int main(int argc, char *argv[]) {
     delExpTree(polynomial);
   }
 
-  /* integral of a sin(x) */
+  /* Test integral of sin(x) */
   {
     ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
-    ExpTree *sin_x = newExpTree(EXP_FUN, strdup("sin"), cpyExpTree(x), NULL);
+    ExpTree *sin_x = newExpTree(EXP_FUN, strdup("sin(x)"), cpyExpTree(x), NULL);
     test_integral(sin_x, "x", "(-1 * cos(x))");
     delExpTree(x);
     delExpTree(sin_x);
   }
 
+  /* Test integral of sin(2x) */
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *sin_2x =
+        newExpTree(EXP_FUN, strdup("sin(2x)"), cpyExpTree(x), NULL);
+    test_integral(sin_2x, "x", "(-1/2.0)*cos(2.0)(x)");
+    delExpTree(x);
+    delExpTree(sin_2x);
+  }
   return 0;
 }
