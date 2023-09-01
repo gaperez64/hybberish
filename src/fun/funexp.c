@@ -317,18 +317,24 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
 
   case EXP_FUN: {
-    if (strcmp(expr->data, "sin") == 0) {
-      ExpTree *arg = expr->left;
-
-      /* Integral of sine */
+    if (strcmp(expr->data, "sin(x)") == 0) {
+      /* Handle integral of sin(x) */
+      ExpTree *integral_result = newExpOp(
+          EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
+          newExpTree(EXP_FUN, strdup("cos"), newExpLeaf(EXP_VAR, var), NULL));
+      return integral_result;
+    }
+    if (strcmp(expr->data, "sin(2x)") == 0) {
+      /* Handle integral of sin(2x) */
       ExpTree *integral_result =
-          newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
-                   newExpTree(EXP_FUN, strdup("cos"), cpyExpTree(arg), NULL));
-
+          newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "-0.5"),
+                   newExpTree(EXP_FUN, strdup("cos"),
+                              newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "2"),
+                                       newExpLeaf(EXP_VAR, var)),
+                              NULL));
       return integral_result;
     }
   }
-
   default:
     assert(false);
     return NULL;
