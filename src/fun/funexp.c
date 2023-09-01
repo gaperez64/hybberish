@@ -317,6 +317,7 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
 
   case EXP_FUN: {
+
     if (strcmp(expr->data, "sin(x)") == 0) {
       /* Handle integral of sin(x) */
       ExpTree *integral_result = newExpOp(
@@ -324,15 +325,22 @@ ExpTree *integral(ExpTree *expr, char *var) {
           newExpTree(EXP_FUN, strdup("cos"), newExpLeaf(EXP_VAR, var), NULL));
       return integral_result;
     }
-    if (strcmp(expr->data, "sin(2x)") == 0) {
-      /* Handle integral of sin(2x) */
-      ExpTree *integral_result =
-          newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "-0.5"),
-                   newExpTree(EXP_FUN, strdup("cos"),
-                              newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "2"),
-                                       newExpLeaf(EXP_VAR, var)),
-                              NULL));
-      return integral_result;
+    if (strstr(expr->data, "sin(") != NULL &&
+        strstr(expr->data, "x)") != NULL) {
+      char *n_str = strdup(expr->data + 4);
+      n_str[strlen(n_str) - 1] = '\0';
+
+      double n = atof(n_str);
+
+      if (n != 0) {
+        /* Handle integral of sin(nx) */
+        char result_str[50];
+        snprintf(result_str, sizeof(result_str), "(-1/%.1f)*cos(%.1f)", n, n);
+        ExpTree *integral_result = newExpTree(EXP_FUN, strdup(result_str),
+                                              newExpLeaf(EXP_VAR, var), NULL);
+        free(n_str);
+        return integral_result;
+      }
     }
   }
   default:
