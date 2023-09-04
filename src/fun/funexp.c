@@ -1,5 +1,6 @@
 #include "funexp.h"
 #include <assert.h>
+#include <ctype.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -234,7 +235,12 @@ ExpTree *derivative(ExpTree *expr, char *var) {
   }
 
   case EXP_FUN: {
-    if (strcmp(expr->data, "sin") == 0) {
+    char *function_name = strdup(expr->data);
+    for (int i = 0; function_name[i]; i++) {
+      function_name[i] = tolower(function_name[i]);
+    }
+
+    if (strcmp(function_name, "sin") == 0) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
 
@@ -245,7 +251,7 @@ ExpTree *derivative(ExpTree *expr, char *var) {
                                             cpyExpTree(arg_derivative));
 
       return derivative_result;
-    } else if (strcmp(expr->data, "cos") == 0) {
+    } else if (strcmp(function_name, "cos") == 0) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
 
@@ -257,7 +263,7 @@ ExpTree *derivative(ExpTree *expr, char *var) {
                    newExpOp(EXP_MUL_OP, cpyExpTree(neg_sin_func),
                             cpyExpTree(arg_derivative)));
       return derivative_result;
-    } else if (strcmp(expr->data, "sqrt") == 0) {
+    } else if (strcmp(function_name, "sqrt") == 0) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
 
@@ -342,8 +348,12 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
 
   case EXP_FUN: {
+    char *function_name = strdup(expr->data);
+    for (int i = 0; function_name[i]; i++) {
+      function_name[i] = tolower(function_name[i]);
+    }
 
-    if (strcmp(expr->data, "sin(x)") == 0) {
+    if (strcmp(function_name, "sin(x)") == 0) {
       /* Handle integral of sin(x) */
       ExpTree *integral_result = newExpOp(
           EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
@@ -365,7 +375,7 @@ ExpTree *integral(ExpTree *expr, char *var) {
         free(n_str);
         return integral_result;
       }
-    } else if (strcmp(expr->data, "cos(x)") == 0) {
+    } else if (strcmp(function_name, "cos(x)") == 0) {
       /* Handle integral of cos(x) */
       ExpTree *integral_result = newExpOp(
           EXP_MUL_OP, newExpLeaf(EXP_NUM, "1"),
@@ -389,7 +399,7 @@ ExpTree *integral(ExpTree *expr, char *var) {
       }
     }
 
-    else if (strcmp(expr->data, "sqrt") == 0) {
+    else if (strcmp(function_name, "sqrt") == 0) {
       ExpTree *arg = expr->left;
 
       /* Compute the integral of sqrt(x) as (2/3) * x^(3/2) */
