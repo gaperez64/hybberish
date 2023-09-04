@@ -349,9 +349,8 @@ ExpTree *integral(ExpTree *expr, char *var) {
           EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
           newExpTree(EXP_FUN, strdup("cos"), newExpLeaf(EXP_VAR, var), NULL));
       return integral_result;
-    }
-    if (strstr(expr->data, "sin(") != NULL &&
-        strstr(expr->data, "x)") != NULL) {
+    } else if (strstr(expr->data, "sin(") != NULL &&
+               strstr(expr->data, "x)") != NULL) {
       char *n_str = strdup(expr->data + 4);
       n_str[strlen(n_str) - 1] = '\0';
 
@@ -366,10 +365,32 @@ ExpTree *integral(ExpTree *expr, char *var) {
         free(n_str);
         return integral_result;
       }
+    } else if (strcmp(expr->data, "cos(x)") == 0) {
+      /* Handle integral of cos(x) */
+      ExpTree *integral_result = newExpOp(
+          EXP_MUL_OP, newExpLeaf(EXP_NUM, "1"),
+          newExpTree(EXP_FUN, strdup("sin"), newExpLeaf(EXP_VAR, var), NULL));
+      return integral_result;
+    } else if (strstr(expr->data, "cos(") != NULL &&
+               strstr(expr->data, "x)") != NULL) {
+      char *n_str = strdup(expr->data + 4);
+      n_str[strlen(n_str) - 1] = '\0';
+
+      double n = atof(n_str);
+
+      if (n != 0) {
+        /* Handle integral of cos(nx) */
+        char result_str[50];
+        snprintf(result_str, sizeof(result_str), "(1/%.1f)*sin(%.1f)", n, n);
+        ExpTree *integral_result = newExpTree(EXP_FUN, strdup(result_str),
+                                              newExpLeaf(EXP_VAR, var), NULL);
+        free(n_str);
+        return integral_result;
+      }
     }
-  }
   default:
     assert(false);
     return NULL;
+  }
   }
 }
