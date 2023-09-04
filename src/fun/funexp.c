@@ -245,6 +245,18 @@ ExpTree *derivative(ExpTree *expr, char *var) {
                                             cpyExpTree(arg_derivative));
 
       return derivative_result;
+    } else if (strcmp(expr->data, "cos") == 0) {
+      ExpTree *arg = expr->left;
+      ExpTree *arg_derivative = derivative(arg, var);
+
+      /* Derivative of cosine */
+      ExpTree *neg_sin_func =
+          newExpTree(EXP_FUN, strdup("sin"), cpyExpTree(arg), NULL);
+      ExpTree *derivative_result =
+          newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(neg_sin_func),
+                            cpyExpTree(arg_derivative)));
+      return derivative_result;
     }
   }
   /* more cases for other operators */
