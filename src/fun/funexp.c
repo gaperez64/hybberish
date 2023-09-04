@@ -388,6 +388,18 @@ ExpTree *integral(ExpTree *expr, char *var) {
         return integral_result;
       }
     }
+
+    else if (strcmp(expr->data, "sqrt") == 0) {
+      ExpTree *arg = expr->left;
+
+      /* Compute the integral of sqrt(x) as (2/3) * x^(3/2) */
+      ExpTree *integral_result = newExpOp(
+          EXP_MUL_OP, newExpLeaf(EXP_NUM, "(2/3)"),
+          newExpOp(EXP_EXP_OP, cpyExpTree(arg), newExpLeaf(EXP_NUM, "(3/2)")));
+
+      return integral_result;
+    }
+
   default:
     assert(false);
     return NULL;
