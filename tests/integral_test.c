@@ -109,5 +109,24 @@ int main(int argc, char *argv[]) {
     delExpTree(x);
     delExpTree(sin_2x);
   }
+
+  /* Test integral of cos(x) */
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *cos_x = newExpTree(EXP_FUN, strdup("cos(x)"), cpyExpTree(x), NULL);
+    test_integral(cos_x, "x", "(1 * sin(x))");
+    delExpTree(x);
+    delExpTree(cos_x);
+  }
+
+  /* Test integral of cos(nx) */
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *cos_2x =
+        newExpTree(EXP_FUN, strdup("cos(2x)"), cpyExpTree(x), NULL);
+    test_integral(cos_2x, "x", "(1/2.0)*sin(2.0)(x)");
+    delExpTree(x);
+    delExpTree(cos_2x);
+  }
   return 0;
 }
