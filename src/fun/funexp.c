@@ -257,12 +257,25 @@ ExpTree *derivative(ExpTree *expr, char *var) {
                    newExpOp(EXP_MUL_OP, cpyExpTree(neg_sin_func),
                             cpyExpTree(arg_derivative)));
       return derivative_result;
+    } else if (strcmp(expr->data, "sqrt") == 0) {
+      ExpTree *arg = expr->left;
+      ExpTree *arg_derivative = derivative(arg, var);
+
+      /* Derivative of sqrt */
+      ExpTree *half = newExpLeaf(EXP_NUM, "0.5");
+      ExpTree *sqrt_derivative = newExpOp(
+          EXP_MUL_OP, half,
+          newExpOp(EXP_DIV_OP, cpyExpTree(arg_derivative),
+                   newExpTree(EXP_FUN, strdup("sqrt"), cpyExpTree(arg), NULL)));
+
+      return sqrt_derivative;
     }
-  }
+
   /* more cases for other operators */
   default:
     assert(false);
     return NULL;
+  }
   }
 }
 
