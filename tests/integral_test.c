@@ -128,5 +128,15 @@ int main(int argc, char *argv[]) {
     delExpTree(x);
     delExpTree(cos_2x);
   }
+
+  /* Test integral of sqrt(x) */
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *sqrt_x = newExpTree(EXP_FUN, strdup("sqrt"), cpyExpTree(x), NULL);
+    test_integral(sqrt_x, "x", "((2/3) * (x^(3/2)))");
+    delExpTree(x);
+    delExpTree(sqrt_x);
+  }
+
   return 0;
 }
