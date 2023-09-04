@@ -188,5 +188,28 @@ int main(int argc, char *argv[]) {
     delExpTree(cosine_polynomial);
   }
 
+  /* Test derivative of sqrt(x) */
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *sqrt_x = newExpTree(EXP_FUN, strdup("sqrt"), cpyExpTree(x), NULL);
+    test_derivative(sqrt_x, "x", "(0.5 * (1 / sqrt(x)))");
+    delExpTree(x);
+    delExpTree(sqrt_x);
+  }
+
+  /* Test derivative of sqrt(x^3) */
+  {
+    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
+    ExpTree *x_cubed =
+        newExpOp(EXP_EXP_OP, cpyExpTree(x), newExpLeaf(EXP_NUM, "3"));
+    ExpTree *sqrt_x_cubed =
+        newExpTree(EXP_FUN, strdup("sqrt"), cpyExpTree(x_cubed), NULL);
+    test_derivative(sqrt_x_cubed, "x",
+                    "(0.5 * (((3 * 1) * (x^2)) / sqrt((x^3))))");
+    delExpTree(x);
+    delExpTree(x_cubed);
+    delExpTree(sqrt_x_cubed);
+  }
+
   return 0;
 }
