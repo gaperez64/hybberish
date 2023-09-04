@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
   /* derivative of cos(x) */
   {
     ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
-    ExpTree *cos_x = newExpTree(EXP_FUN, strdup("cos"), cpyExpTree(x), NULL);
+    ExpTree *cos_x = newExpTree(EXP_FUN, strdup("Cos"), cpyExpTree(x), NULL);
     test_derivative(cos_x, "x", "(-1 * (sin(x) * 1))");
     delExpTree(x);
     delExpTree(cos_x);
