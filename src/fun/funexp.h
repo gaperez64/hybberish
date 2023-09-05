@@ -1,6 +1,7 @@
 #ifndef FUNEXP_H
 #define FUNEXP_H
 
+#include <math.h>
 #include <stdio.h>
 
 /* Function expression trees */
