@@ -167,6 +167,41 @@ ExpTree *cpyExpTree(ExpTree *src) {
   return copy;
 }
 
+bool isLinear(ExpTree *expr) {
+  if (expr == NULL) {
+    return false;
+  }
+
+  switch (expr->type) {
+  case EXP_VAR:
+    return true;
+
+  case EXP_MUL_OP:
+    /* Check if it's of the form 'n * x' where n is a constant */
+    if (expr->left != NULL && expr->left->type == EXP_NUM &&
+        expr->right != NULL && expr->right->type == EXP_VAR) {
+      return true;
+    }
+    break;
+
+  case EXP_ADD_OP:
+    /* Check if both sides of the addition are linear expressions */
+    return isLinear(expr->left) && isLinear(expr->right);
+
+  case EXP_FUN:
+    /* Check for sin and cos functions */
+    if (strcmp(expr->data, "sin") == 0 || strcmp(expr->data, "cos") == 0) {
+      return isLinear(expr->left);
+    }
+    break;
+
+  default:
+    break;
+  }
+
+  return false;
+}
+
 ExpTree *derivative(ExpTree *expr, char *var) {
   if (expr == NULL) {
     return NULL;

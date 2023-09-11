@@ -2,6 +2,7 @@
 #define FUNEXP_H
 
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 /* Function expression trees */
@@ -32,5 +33,6 @@ void printExpTree(ExpTree *, FILE *);
 ExpTree *derivative(ExpTree *, char *);
 ExpTree *integral(ExpTree *expr, char *var);
 ExpTree *cpyExpTree(ExpTree *src);
+bool isLinear(ExpTree *expr);
 
 #endif
