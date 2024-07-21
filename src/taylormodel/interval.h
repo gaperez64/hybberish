@@ -1,3 +1,7 @@
+#ifndef INTERVAL_H
+#define INTERVAL_H
+
+
 #include <math.h>
 #include <stdio.h>
 #include <assert.h>
@@ -44,3 +48,6 @@ float intervalMagnitude(Interval *source);
 /* Interval I is degenerate if a = b.
   Due to precision concerns, an epsilon must be specified. */
 bool intervalIsDegenerate(Interval *source, float epsilon);
+
+
+#endif
