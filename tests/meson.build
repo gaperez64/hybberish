@@ -23,3 +23,13 @@ t = executable('integral_test', 'integral_test.c',
                link_with : fun_lib,
                include_directories : fun_inc)
 test('test integral', t)
+
+t = executable('interval_test', 'interval_test.c',
+               link_with : taylormodel_lib,
+               include_directories : taylormodel_inc,
+               # IMPORTANT: math functions (floor, ceil, ...)
+               # may require explicit linkage to the C math
+               # library via the '-lm' gcc flag
+               link_args : ['-lm'],
+               )
+test('test interval', t)
