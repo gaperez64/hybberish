@@ -30,12 +30,6 @@ ExpTree* truncate(ExpTree *source, unsigned int k, char *variable);
     Helper methods.
 */
 
-/* Simplify away the neutral terms within the given expression tree. */
-ExpTree *simplifyNeutralTerms(ExpTree *source);
-
-/* Simplify a given expression by applying absorbing terms to prune operators. */
-ExpTree *simplifyAbsorbingTerms(ExpTree *source);
-
 /* Simplify a given expression by applying any found absorbing and neutral elements to their operators. */
 ExpTree *simplifyOperators(ExpTree *source);
 
