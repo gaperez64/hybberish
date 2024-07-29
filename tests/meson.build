@@ -33,3 +33,10 @@ t = executable('interval_test', 'interval_test.c',
                link_args : ['-lm'],
                )
 test('test interval', t)
+
+
+t = executable('transformations_test', 'transformations_test.c',
+               link_with : fun_lib,
+               include_directories : fun_inc,
+               )
+test('test expression tree transformations', t)
