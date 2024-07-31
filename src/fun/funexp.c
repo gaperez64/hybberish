@@ -451,3 +451,30 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
   }
 }
+
+
+bool isEqual(ExpTree *tree1, ExpTree *tree2) {
+  /* Base case: empty trees are equal. */
+  if (tree1 == NULL && tree2 == NULL)
+    return true;
+
+  /* Guard statements: trees not equal if current nodes not exactly equal. */
+  // Both trees are (non-)empty
+  if ((tree1 == NULL) != (tree2 == NULL))
+    return false;
+  if (tree1->type != tree2->type)
+    return false;
+  // Fail fast tactic: (not-)NULL-ness of left & right subtrees must match,
+  //    though this is eventually caught by the base case as well
+  if (((tree1->left == NULL) != (tree2->left == NULL)) ||
+      ((tree1->right == NULL) != (tree2->right == NULL)))
+    return false;
+  if ((tree1->data == NULL) != (tree2->data == NULL))
+    return false;
+  else if (tree1->data != NULL && strcmp(tree1->data, tree2->data) != 0)
+    return false;
+
+  /* Recursive case: left & right subtrees respectively must be equal */
+  return isEqual(tree1->left, tree2->left) &&
+         isEqual(tree1->right, tree2->right);
+}

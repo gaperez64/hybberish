@@ -35,4 +35,8 @@ ExpTree *integral(ExpTree *expr, char *var);
 ExpTree *cpyExpTree(ExpTree *src);
 bool isLinear(ExpTree *expr);
 
+/* Verify the exact equality of the given trees.
+  Both structure and content must match exactly. */
+bool isEqual(ExpTree *tree1, ExpTree *tree2);
+
 #endif
