@@ -40,3 +40,9 @@ t = executable('transformations_test', 'transformations_test.c',
                include_directories : fun_inc,
                )
 test('test expression tree transformations', t)
+
+t = executable('fun_exp_equivalence_test', 'fun_exp_equivalence_test.c',
+               link_with : fun_lib,
+               include_directories : fun_inc,
+               )
+test('test expression tree equivalence functions', t)
