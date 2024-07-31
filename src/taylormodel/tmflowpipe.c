@@ -9,6 +9,9 @@ TPList *computeTaylorPolynomial(ODEList *system,
   assert(system != NULL);
   assert(order > 0);
   assert(k > 0);
+  /* All the polynomial terms exceeding the truncation order
+    would just get truncated anyways, so impose an explicit limit. */
+  assert(order <= k);
 
   /* The functions to seed each Lie derivation with. */
   TPList *lieDerivativeSeed = initTPList(system);
