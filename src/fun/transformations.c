@@ -9,6 +9,81 @@ ExpTree* simplify(ExpTree *source) {
 }
 
 
+ExpTree* toSumOfProducts(ExpTree *source) {
+  assert(source != NULL);
+
+  /* Base case: retain leaves. */
+  if (source->left == NULL && source->right == NULL)
+    return cpyExpTree(source);
+
+
+  switch (source->type) {
+
+  case EXP_MUL_OP: {
+    assert(source->left != NULL);
+    assert(source->right != NULL);
+
+    ExpTree *leftSumOfProd = toSumOfProducts(source->left);
+    ExpTree *rightSumOfProd = toSumOfProducts(source->right);
+
+    bool leftIsDistributive = leftSumOfProd->type == EXP_ADD_OP || leftSumOfProd->type == EXP_SUB_OP;
+    bool rightIsDistributive = rightSumOfProd->type == EXP_ADD_OP || rightSumOfProd->type == EXP_SUB_OP;
+
+    /* Neither modified subtree is distributive, so simply retain them. */
+    if (!leftIsDistributive && !rightIsDistributive)
+      return newExpOp(source->type, leftSumOfProd, rightSumOfProd);
+
+    /* Both are distributive, so distribute all elements of one across the other. */
+    if (leftIsDistributive && rightIsDistributive) {
+      ExpTree *res = distributeLeftDistributive(leftSumOfProd, rightSumOfProd);
+      delExpTree(leftSumOfProd);
+      delExpTree(rightSumOfProd);
+      return res;
+    }
+
+    /* Only the left is distributive, so distribute the right across the left. */
+    if (leftIsDistributive) {
+      ExpTree *res = distributeLeft(rightSumOfProd, leftSumOfProd);
+      delExpTree(leftSumOfProd);
+      delExpTree(rightSumOfProd);
+      return res;
+    }
+
+    /* Only the right is distributive, so distribute the left across the right. */
+    ExpTree *res = distributeLeft(leftSumOfProd, rightSumOfProd);
+    delExpTree(leftSumOfProd);
+    delExpTree(rightSumOfProd);
+    return res;
+  }
+
+
+  case EXP_DIV_OP:
+  case EXP_ADD_OP:
+  case EXP_SUB_OP:
+  case EXP_EXP_OP:
+  case EXP_FUN:
+  case EXP_NEG: {
+    ExpTree *leftSumOfProd = (source->left != NULL) ? toSumOfProducts(source->left) : NULL;
+    ExpTree *rightSumOfProd = (source->right != NULL) ? toSumOfProducts(source->right) : NULL;
+    char *dataCpy = (source->data != NULL) ? strdup(source->data) : NULL;
+    return newExpTree(source->type, dataCpy, leftSumOfProd, rightSumOfProd);
+  }
+
+
+  default:
+    assert(false);
+    break;
+  }
+
+  return NULL;
+}
+
+
+
+/*
+    Simplification Helper methods.
+*/
+
 ExpTree *simplifyOperators(ExpTree *source) {
   assert(source != NULL);
 
@@ -223,4 +298,70 @@ bool isOneExpTree(ExpTree *source) {
 
 ExpTree *newOneExpTree() {
   return newExpLeaf(EXP_NUM, "1");
+}
+
+
+
+/*
+    Sum of Products Helper methods.
+*/
+
+ExpTree *distributeLeft(ExpTree *left, ExpTree *right) {
+  /* Enforce preconditions */
+  assert(left != NULL);
+  assert(right != NULL);
+  /* Right MUST be distributive. */
+  assert(right->type == EXP_ADD_OP || right->type == EXP_SUB_OP);
+  /* Left must NOT be distributive. */
+  assert(!(left->type == EXP_ADD_OP || left->type == EXP_SUB_OP));
+
+
+  ExpTree *leftSubDistributed;
+  ExpTree *rightSubDistributed;
+
+  /*   left * ((x + y) + ...) = left * (x + y) + ...   */
+  if (right->left->type == EXP_ADD_OP || right->left->type == EXP_SUB_OP)
+    leftSubDistributed = distributeLeft(left, right->left);
+  else
+    leftSubDistributed = newExpOp(EXP_MUL_OP, cpyExpTree(left), cpyExpTree(right->left));
+
+  /*   left * (... + (y + z)) = left * ... + left * (y + z)   */
+  if (right->right->type == EXP_ADD_OP || right->right->type == EXP_SUB_OP)
+    rightSubDistributed = distributeLeft(left, right->right);
+  else
+    rightSubDistributed = newExpOp(EXP_MUL_OP, cpyExpTree(left), cpyExpTree(right->right));
+
+  return newExpOp(right->type, leftSubDistributed, rightSubDistributed);
+}
+
+
+ExpTree *distributeLeftDistributive(ExpTree *left, ExpTree *right) {
+  /* Enforce preconditions */
+  assert(left != NULL);
+  assert(right != NULL);
+  /* Right MUST be distributive. */
+  assert(right->type == EXP_ADD_OP || right->type == EXP_SUB_OP);
+  /* Left MUST be distributive. */
+  assert(left->type == EXP_ADD_OP || left->type == EXP_SUB_OP);
+
+
+  ExpTree *leftDistributed;
+  ExpTree *rightDistributed;
+
+  /* The left->left subtree contains more terms to distribute over right. */
+  if (left->left->type == EXP_ADD_OP || left->left->type == EXP_SUB_OP)
+    leftDistributed = distributeLeftDistributive(left->left, right);
+  /* Base case: distribute a non-distributive term across right. */
+  else
+    leftDistributed = distributeLeft(left->left, right);
+
+  /* The left->right subtree contains more terms to distribute over right. */
+  if (left->right->type == EXP_ADD_OP || left->right->type == EXP_SUB_OP)
+    rightDistributed = distributeLeftDistributive(left->right, right);
+  /* Base case: distribute a non-distributive term across right. */
+  else
+    rightDistributed = distributeLeft(left->right, right);
+
+  /* Compose the distributions of all non-distributive subtrees. */
+  return newExpOp(left->type, leftDistributed, rightDistributed);
 }

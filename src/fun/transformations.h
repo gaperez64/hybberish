@@ -27,7 +27,7 @@ ExpTree* truncate(ExpTree *source, unsigned int k, char *variable);
 
 
 /*
-    Helper methods.
+    Simplification Helper methods.
 */
 
 /* Simplify a given expression by applying any found absorbing and neutral elements to their operators. */
@@ -44,6 +44,43 @@ bool isOneExpTree(ExpTree* source);
 
 /* Create a number leaf with data equivalent to '1'. */
 ExpTree *newOneExpTree();
+
+
+
+/*
+    Sum of Products Helper methods.
+*/
+
+/* Apply the distributive property of multiplication w.r.t addition and subtraction. */
+ExpTree *distributeMul(ExpTree *mult);
+
+/* Apply the left-distributive property of multiplication (*) w.r.t.
+  addition (+) and subtraction (-), recursively distributing the
+  non-distributive left tree across the top-most, n-ary addition
+  or subtraction that roots right.
+
+  Note, right MUST be rooted by an addition or subtraction.
+  Note, left must NOT be rooted by an addition or subtraction.
+
+  Also, note that copies of left, not the original left object,
+  are inserted into the result.
+*/
+ExpTree *distributeLeft(ExpTree *left, ExpTree *right);
+
+/* Apply the left-distributive property of multiplication (*) w.r.t.
+  addition (+) and subtraction (-). distributing each non-distributive
+  subtree of the distributive left tree across the top-most, n-ary addition
+  or subtraction that roots right, recursively.
+
+  Note, right MUST be rooted by an addition or subtraction.
+  Note, left MUST be rooted by an addition or subtraction.
+
+  In other words, recurse down the subtrees of left to find
+  all non-distributive subtrees, and distribute those subtrees
+  across right.
+*/
+ExpTree *distributeLeftDistributive(ExpTree *left, ExpTree *right);
+
 
 
 #endif
