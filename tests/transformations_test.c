@@ -404,9 +404,7 @@ int main(int argc, char *argv[]) {
   /* Compose common subtrees. */
   ExpTree *xTy = newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(y));
   ExpTree *xTz = newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(z));
-  ExpTree *yTx = newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(x));
   ExpTree *yTz = newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(z));
-  ExpTree *zTx = newExpOp(EXP_MUL_OP, cpyExpTree(z), cpyExpTree(x));
   ExpTree *xTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x));
   ExpTree *yTy = newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(y));
 
