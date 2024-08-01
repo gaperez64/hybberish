@@ -33,7 +33,17 @@ int main(int argc, char *argv[]) {
 
   ExpTree *a = newExpLeaf(EXP_VAR, "a");
   ExpTree *b = newExpLeaf(EXP_VAR, "b");
+  ExpTree *c = newExpLeaf(EXP_VAR, "c");
+  ExpTree *x = newExpLeaf(EXP_VAR, "x");
+  ExpTree *y = newExpLeaf(EXP_VAR, "y");
+  ExpTree *z = newExpLeaf(EXP_VAR, "z");
 
+
+  /*
+    Test Operator Simplification
+  */
+  printf("### Operator Simplification ###\n");
+  fflush(stdout);
 
   /* Test binary ADD (+) simplification */
   {
@@ -382,5 +392,178 @@ int main(int argc, char *argv[]) {
     exp = newExpOp(EXP_NEG, newExpOp(EXP_NEG, newExpOp(EXP_NEG, newExpOp(EXP_MUL_OP, newOneExpTree(), newExpOp(EXP_NEG, newExpOp(EXP_ADD_OP, newZeroExpTree(), newZeroExpTree()), NULL)), NULL), NULL), NULL);
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+  }
+
+
+  /*
+    Test Sum of Products transformation
+  */
+  printf("### To Sum of Products ###\n");
+  fflush(stdout);
+
+  /* Compose common subtrees. */
+  ExpTree *xTy = newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(y));
+  ExpTree *xTz = newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(z));
+  ExpTree *yTx = newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(x));
+  ExpTree *yTz = newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(z));
+  ExpTree *zTx = newExpOp(EXP_MUL_OP, cpyExpTree(z), cpyExpTree(x));
+  ExpTree *xTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x));
+  ExpTree *yTy = newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(y));
+
+
+  /* Test single term distribution:
+    x * (y1 + ... + yn)
+    = x*y1 + ... + x*yn
+  */
+  {
+    printf("=== Single term distribution ===\n\n");
+    fflush(stdout);
+
+    /* Compose expected results */
+    ExpTree *zTzPz = newExpOp(EXP_MUL_OP, cpyExpTree(z), newExpOp(EXP_ADD_OP, cpyExpTree(z), cpyExpTree(z)));
+    ExpTree *xTzTz = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(z), cpyExpTree(z)));
+    ExpTree *rightBranch = newExpOp(EXP_ADD_OP, cpyExpTree(xTy), cpyExpTree(xTz));
+    ExpTree *rightBranchLong = newExpOp(EXP_ADD_OP, cpyExpTree(xTy), newExpOp(EXP_SUB_OP, cpyExpTree(xTz), newExpOp(EXP_ADD_OP, cpyExpTree(xTy), newExpOp(EXP_ADD_OP, cpyExpTree(xTz), newExpOp(EXP_SUB_OP, cpyExpTree(xTy), cpyExpTree(xTz))))));
+    ExpTree *rightNoRecurse = newExpOp(EXP_ADD_OP, cpyExpTree(xTy), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(zTzPz)));
+    ExpTree *rightYesRecurse = newExpOp(EXP_ADD_OP, cpyExpTree(xTy), newExpOp(EXP_ADD_OP, cpyExpTree(xTzTz), cpyExpTree(xTzTz)));
+    ExpTree *balanced = newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, cpyExpTree(xTx), newExpOp(EXP_SUB_OP, cpyExpTree(xTy), cpyExpTree(xTy))), newExpOp(EXP_SUB_OP, newExpOp(EXP_ADD_OP, cpyExpTree(xTy), cpyExpTree(xTy)), cpyExpTree(xTz)));
+
+    /* (x * (y + z))  =>  ((x * y) + (x * z)) */
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(z)));
+    simpl = distributeLeft(exp->left, exp->right);
+    testSimplified(exp, simpl, rightBranch);
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, rightBranch);
+
+    /* (x * (y + (z * (z + z))))  =>  ((x * y) + (x * (z * (z + z))))
+      ==> The * operator in (z * (z + z)) blocks the singular distribution
+          pass from distributing x into (z + z) */
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(zTzPz)));
+    simpl = distributeLeft(exp->left, exp->right);
+    testSimplified(exp, simpl, rightNoRecurse);
+    /* (x * (y + (z * (z + z))))  =>  ((x * y) + ((x * (z * z)) + (x * (z * z)))) 
+      ==> The * operator in (z * (z + z)) does NOT block the recursive distribution
+          passes from distributing x into (z + z) */
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, rightYesRecurse);
+
+    /* (x * (y + (z - (y + (z + (y - z))))))  =>  ((x * y) + ((x * z) - ((x * y) + ((x * z) + ((x * y) - (x * z)))))) */
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_ADD_OP, cpyExpTree(y), newExpOp(EXP_SUB_OP, cpyExpTree(z), newExpOp(EXP_ADD_OP, cpyExpTree(y), newExpOp(EXP_ADD_OP, cpyExpTree(z), newExpOp(EXP_SUB_OP, cpyExpTree(y), cpyExpTree(z)))))));
+    simpl = distributeLeft(exp->left, exp->right);
+    testSimplified(exp, simpl, rightBranchLong);
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, rightBranchLong);
+
+    /* ((y + z) * x)  =>  ((x * y) + (x * z)) */
+    exp = newExpOp(EXP_MUL_OP, newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(z)), cpyExpTree(x));
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, rightBranch);
+
+    /* (x * ((x + (y - y)) + ((y + y) - z)))  =>  (((x * x) + ((x * y) - (x * y))) + (((x * y) + (x * y)) - (x * z))) */
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, cpyExpTree(x), newExpOp(EXP_SUB_OP, cpyExpTree(y), cpyExpTree(y))), newExpOp(EXP_SUB_OP, newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(y)), cpyExpTree(z)) ));
+    simpl = distributeLeft(exp->left, exp->right);
+    testSimplified(exp, simpl, balanced);
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, balanced);
+  }
+
+
+  /* Test recursive term distribution:
+    (x1 + ... + xn) * (y1 + ... + ym)
+    = x1*y1 + ... + xn*ym + ... + xn*y1 + ... + xn*ym
+  */
+  {
+    printf("=== Distributive term distribution ===\n\n");
+    fflush(stdout);
+
+    /* Compose expected results */
+    ExpTree *subRight = newExpOp(EXP_ADD_OP, newExpOp(EXP_SUB_OP, cpyExpTree(xTy), cpyExpTree(xTz)), newExpOp(EXP_SUB_OP, cpyExpTree(yTy), cpyExpTree(yTz)));
+    ExpTree *subLeft = newExpOp(EXP_SUB_OP, newExpOp(EXP_ADD_OP, cpyExpTree(xTy), cpyExpTree(xTz)), newExpOp(EXP_ADD_OP, cpyExpTree(yTy), cpyExpTree(yTz)));
+
+
+    /* ((x + y) * (y - z))  =>  (((x * y) - (x * z)) + ((y * y) - (y * z))) */
+    exp = newExpOp(EXP_MUL_OP, newExpOp(EXP_ADD_OP, cpyExpTree(x), cpyExpTree(y)), newExpOp(EXP_SUB_OP, cpyExpTree(y), cpyExpTree(z)));
+    simpl = distributeLeftDistributive(exp->left, exp->right);
+    testSimplified(exp, simpl, subRight);
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, subRight);
+
+    /* ((x - y) * (y + z))  =>  (((x * y) + (x * z)) - ((y * y) + (y * z))) */
+    exp = newExpOp(EXP_MUL_OP, newExpOp(EXP_SUB_OP, cpyExpTree(x), cpyExpTree(y)), newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(z)));
+    simpl = distributeLeftDistributive(exp->left, exp->right);
+    testSimplified(exp, simpl, subLeft);
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, subLeft);
+  }
+
+
+  {
+    printf("=== Complex distribution ===\n\n");
+    fflush(stdout);
+
+    ExpTree *aTbTx = newExpOp(EXP_MUL_OP, cpyExpTree(a), newExpOp(EXP_MUL_OP, cpyExpTree(b), cpyExpTree(x)));
+    ExpTree *aTbTy = newExpOp(EXP_MUL_OP, cpyExpTree(a), newExpOp(EXP_MUL_OP, cpyExpTree(b), cpyExpTree(y)));
+    ExpTree *aTbTz = newExpOp(EXP_MUL_OP, cpyExpTree(a), newExpOp(EXP_MUL_OP, cpyExpTree(b), cpyExpTree(z)));
+
+    /* Compose expected results */
+    ExpTree *twiceSingleTerms = newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, cpyExpTree(aTbTx), newExpOp(EXP_SUB_OP, cpyExpTree(aTbTy), cpyExpTree(aTbTy))), newExpOp(EXP_SUB_OP, newExpOp(EXP_ADD_OP, cpyExpTree(aTbTy), cpyExpTree(aTbTy)), cpyExpTree(aTbTz)));
+
+    /* Watch out when deleting this mess of subtrees, some are copied and some are not! */
+    ExpTree *abx = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b)), cpyExpTree(x));
+    ExpTree *aby = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b)), cpyExpTree(y));
+    ExpTree *abya = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b)), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(a)));
+    ExpTree *abyb = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b)), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(b)));
+    ExpTree *abyc = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b)), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(c)));
+    ExpTree *abza = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b)), newExpOp(EXP_MUL_OP, cpyExpTree(z), cpyExpTree(a)));
+    ExpTree *abzb = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b)), newExpOp(EXP_MUL_OP, cpyExpTree(z), cpyExpTree(b)));
+    ExpTree *abzc = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b)), newExpOp(EXP_MUL_OP, cpyExpTree(z), cpyExpTree(c)));
+    ExpTree *innerLSum1 = newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, abya, cpyExpTree(abyb)), newExpOp(EXP_ADD_OP, cpyExpTree(abyb), abyc));
+    ExpTree *innerLSum2 = newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, abza, cpyExpTree(abzb)), newExpOp(EXP_ADD_OP, cpyExpTree(abzb), abzc));
+    ExpTree *innerLSum = newExpOp(EXP_SUB_OP, innerLSum1, innerLSum2);
+    ExpTree *leftLongTerm = newExpOp(EXP_SUB_OP, abx, newExpOp(EXP_ADD_OP, aby, innerLSum));
+    ExpTree *acx = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(c)), cpyExpTree(x));
+    ExpTree *acy = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(c)), cpyExpTree(y));
+    ExpTree *acya = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(c)), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(a)));
+    ExpTree *acyb = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(c)), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(b)));
+    ExpTree *acyc = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(c)), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(c)));
+    ExpTree *acza = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(c)), newExpOp(EXP_MUL_OP, cpyExpTree(z), cpyExpTree(a)));
+    ExpTree *aczb = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(c)), newExpOp(EXP_MUL_OP, cpyExpTree(z), cpyExpTree(b)));
+    ExpTree *aczc = newExpOp(EXP_MUL_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(c)), newExpOp(EXP_MUL_OP, cpyExpTree(z), cpyExpTree(c)));
+    ExpTree *innerRSum1 = newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, acya, cpyExpTree(acyb)), newExpOp(EXP_ADD_OP, cpyExpTree(acyb), acyc));
+    ExpTree *innerRSum2 = newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, acza, cpyExpTree(aczb)), newExpOp(EXP_ADD_OP, cpyExpTree(aczb), aczc));
+    ExpTree *innerRSum = newExpOp(EXP_SUB_OP, innerRSum1, innerRSum2);
+    ExpTree *rightLongTerm = newExpOp(EXP_SUB_OP, acx, newExpOp(EXP_ADD_OP, acy, innerRSum));
+    ExpTree *combinedLongTerm = newExpOp(EXP_ADD_OP, leftLongTerm, rightLongTerm);
+
+    ExpTree *fSubexp = newExpOp(EXP_ADD_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(y)), newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(z)));
+    ExpTree *fDistributed = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpTree(EXP_FUN, "sin", fSubexp, NULL));
+
+    /* (a * (EXP * b))
+     = (a * (((x + (y - y)) + ((y + y) - z)) * b))
+    => (((a * (b * x)) + ((a * (b * y)) - (a * (b * y)))) + (((a * (b * y)) + (a * (b * y))) - (a * (b * z)))) */
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(a), newExpOp(EXP_MUL_OP, newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, cpyExpTree(x), newExpOp(EXP_SUB_OP, cpyExpTree(y), cpyExpTree(y))), newExpOp(EXP_SUB_OP, newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(y)), cpyExpTree(z)) ), cpyExpTree(b)));
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, twiceSingleTerms);
+
+    /* OUTER = (a * (b + c))
+       INNER = ((a + b) + (b + c))
+       OUTER * (x - (y + ((y - z) * INNER)))
+    */
+    ExpTree *outerTerm = newExpOp(EXP_MUL_OP, cpyExpTree(a), newExpOp(EXP_ADD_OP, cpyExpTree(b), cpyExpTree(c)));
+    ExpTree *innerTerm = newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, cpyExpTree(a), cpyExpTree(b)), newExpOp(EXP_ADD_OP, cpyExpTree(b), cpyExpTree(c)));
+    ExpTree *inner1 = newExpOp(EXP_SUB_OP, cpyExpTree(y), cpyExpTree(z));
+    ExpTree *inner2 = newExpOp(EXP_MUL_OP, inner1, innerTerm);
+    ExpTree *inner3 = newExpOp(EXP_ADD_OP, cpyExpTree(y), inner2);
+    ExpTree *rightTerm = newExpOp(EXP_SUB_OP, cpyExpTree(x), inner3);
+    exp = newExpOp(EXP_MUL_OP, outerTerm, rightTerm);
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, combinedLongTerm);
+
+    /* (x * sin((a * (y + z))))  =>  (x * sin(((a * y) + (a * z)))) */
+    ExpTree *distSubexp = newExpOp(EXP_MUL_OP, cpyExpTree(a), newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(z)));
+    ExpTree *f = newExpTree(EXP_FUN, "sin", distSubexp, NULL);
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(x), f);
+    simpl = toSumOfProducts(exp);
+    testSimplified(exp, simpl, fDistributed);
   }
 }
