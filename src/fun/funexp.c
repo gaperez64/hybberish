@@ -478,3 +478,51 @@ bool isEqual(ExpTree *expr1, ExpTree *expr2) {
   return isEqual(expr1->left, expr2->left) &&
          isEqual(expr1->right, expr2->right);
 }
+
+
+unsigned int degreeMonomial(ExpTree *expr) {
+  /* Enforce pre-conditions */
+  assert(expr != NULL);
+
+  switch (expr->type) {
+  case EXP_NUM:
+    return 0;
+
+  case EXP_VAR:
+    return 1;
+
+  case EXP_NEG:
+    assert(expr->left != NULL);
+    assert(expr->right == NULL);
+    return degreeMonomial(expr->left);
+
+  case EXP_MUL_OP:
+    assert(expr->left != NULL);
+    assert(expr->right != NULL);
+    return degreeMonomial(expr->left) + degreeMonomial(expr->right);
+
+  case EXP_EXP_OP:
+    assert(expr->left != NULL);
+    assert(expr->right != NULL);
+    /* Restrict exponents to non-negative integers. */
+    assert(expr->right->type == EXP_NUM);
+    assert(expr->left->type == EXP_VAR);
+
+    const char *pattern = "^[0-9]*(\\.0*)?$";
+    regex_t regex;
+    assert(!regcomp(&regex, pattern, REG_EXTENDED));
+    assert(!regexec(&regex, expr->right->data, 0, NULL, 0));
+    regfree(&regex);
+
+    /* Do rounding to avoid floating point errors, only integer degrees are wanted. */
+    double exponent = round(atof(expr->right->data));
+    assert(exponent >= 0);
+
+    return (unsigned int) exponent;
+
+  /* Invalid subexpression for a monomial. */
+  default:
+    assert(false);
+    break;
+  }
+}
