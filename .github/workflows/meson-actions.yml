@@ -1,6 +1,8 @@
 name: ci_meson
 
 on:
+  # Allow manual workflow triggering
+  workflow_dispatch:
   push:
     paths:
       - "**.c"
