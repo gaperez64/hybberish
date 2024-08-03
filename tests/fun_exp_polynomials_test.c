@@ -1,10 +1,8 @@
 #include "funexp.h"
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-
 
 void testDegree(ExpTree *expression, unsigned int expectedDegree) {
   unsigned int degree = degreeMonomial(expression);
@@ -18,8 +16,6 @@ void testDegree(ExpTree *expression, unsigned int expectedDegree) {
 
   assert(degree == expectedDegree);
 }
-
-
 
 int main(int argc, char *argv[]) {
   /* to avoid silly warnings about unused parameters */
@@ -36,7 +32,6 @@ int main(int argc, char *argv[]) {
   ExpTree *num1Dot = newExpLeaf(EXP_NUM, "1.");
   ExpTree *num1DotZero = newExpLeaf(EXP_NUM, "1.000");
   ExpTree *numDotZero = newExpLeaf(EXP_NUM, ".000");
-
 
   /* Constants */
   {
@@ -91,7 +86,8 @@ int main(int argc, char *argv[]) {
   /* ((2 * x^3) * y^1.000) */
   {
     ExpTree *pow3 = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(num3));
-    ExpTree *pow1DotZero = newExpOp(EXP_EXP_OP, cpyExpTree(y), cpyExpTree(num1DotZero));
+    ExpTree *pow1DotZero =
+        newExpOp(EXP_EXP_OP, cpyExpTree(y), cpyExpTree(num1DotZero));
     ExpTree *multLeft = newExpOp(EXP_MUL_OP, cpyExpTree(num2), pow3);
     ExpTree *expr = newExpOp(EXP_MUL_OP, multLeft, pow1DotZero);
     testDegree(expr, 4);
@@ -106,9 +102,13 @@ int main(int argc, char *argv[]) {
 
     /* -(-(2 * x^3) * -(y^1.000)) */
     ExpTree *pow3 = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(num3));
-    ExpTree *pow1DotZero = newExpOp(EXP_NEG, newExpOp(EXP_EXP_OP, cpyExpTree(y), cpyExpTree(num1DotZero)), NULL);
-    ExpTree *multLeft = newExpOp(EXP_NEG, newExpOp(EXP_MUL_OP, cpyExpTree(num2), pow3), NULL);
-    ExpTree *negExp = newExpOp(EXP_NEG, newExpOp(EXP_MUL_OP, multLeft, pow1DotZero), NULL);
+    ExpTree *pow1DotZero = newExpOp(
+        EXP_NEG, newExpOp(EXP_EXP_OP, cpyExpTree(y), cpyExpTree(num1DotZero)),
+        NULL);
+    ExpTree *multLeft =
+        newExpOp(EXP_NEG, newExpOp(EXP_MUL_OP, cpyExpTree(num2), pow3), NULL);
+    ExpTree *negExp =
+        newExpOp(EXP_NEG, newExpOp(EXP_MUL_OP, multLeft, pow1DotZero), NULL);
 
     testDegree(negNum, 0);
     testDegree(negVar, 1);

@@ -1,6 +1,8 @@
 name: ci_meson
 
 on:
+  # Allow manual workflow triggering
+  workflow_dispatch:
   push:
     paths:
       - "**.c"
@@ -38,14 +40,14 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
     - run: |
         brew install gcc clang-format
         brew install flex bison
-        echo "/usr/local/opt/flex/bin" >> $GITHUB_PATH
-        echo "/usr/local/opt/bison/bin" >> $GITHUB_PATH
+        echo "/opt/homebrew/opt/bison/bin" >> $GITHUB_PATH
+        echo "/opt/homebrew/opt/flex/bin" >> $GITHUB_PATH
     - run: pip install meson ninja
     - run: meson setup builddir/
       env:

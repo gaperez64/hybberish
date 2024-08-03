@@ -1,19 +1,18 @@
 #include "interval.h"
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
-#include <assert.h>
-#include <string.h>
 #include <stdlib.h>
-
+#include <string.h>
 
 bool approx(float got, float expected, float epsilon) {
   return fabs(got - expected) < epsilon;
 }
 
-
 /* Test if got = [a, b] = [expectedLeft, expectedRight]
   up to precision epsilon. and print out the results. */
-void testInterval(Interval *got, float expectedLeft, float expectedRight, float epsilon) {
+void testInterval(Interval *got, float expectedLeft, float expectedRight,
+                  float epsilon) {
   assert(got != NULL);
 
   /* printing and comparison */
@@ -27,7 +26,6 @@ void testInterval(Interval *got, float expectedLeft, float expectedRight, float 
   assert(compare);
 }
 
-
 /* Test if got = expected, and print out the results. */
 void testBool(bool got, bool expected) {
   /* printing and comparison */
@@ -37,7 +35,6 @@ void testBool(bool got, bool expected) {
   assert(got == expected);
 }
 
-
 /* Test if got = expected up to precision epsilon, and print out the results. */
 void testFloat(float got, float expected, float epsilon) {
   /* printing and comparison */
@@ -46,7 +43,6 @@ void testFloat(float got, float expected, float epsilon) {
   fflush(stdout); // Flush stdout
   assert(fabs(expected - got) < epsilon);
 }
-
 
 /* Test if got is printed to the expected string, and print out the results. */
 void testString(Interval *got, const char *expectedMsg) {
@@ -68,8 +64,6 @@ void testString(Interval *got, const char *expectedMsg) {
   free(buffer);
 }
 
-
-
 int main(int argc, char *argv[]) {
   /* to avoid silly warnings about unused parameters */
   (void)argc;
@@ -77,9 +71,9 @@ int main(int argc, char *argv[]) {
 
   /* Setup */
   float eps = 0.0001;
-  Interval iNeg   = newInterval(-2, -1);
-  Interval iOrig  = newInterval(-1, 1);
-  Interval iPos   = newInterval(1, 2);
+  Interval iNeg = newInterval(-2, -1);
+  Interval iOrig = newInterval(-1, 1);
+  Interval iPos = newInterval(1, 2);
   Interval iDegen = newInterval(12, 12);
 
   /* Enforce relationships within the test data,
@@ -87,7 +81,6 @@ int main(int argc, char *argv[]) {
   assert(iNeg.right <= iOrig.left);
   assert(iOrig.right <= iPos.left);
   assert(iDegen.left == iDegen.right);
-
 
   /* Test binary addition. */
   {
@@ -151,23 +144,23 @@ int main(int argc, char *argv[]) {
 
   /* Test binary interval equality. */
   {
-    testBool(eqInterval(&iNeg, &iNeg, eps),   true);
+    testBool(eqInterval(&iNeg, &iNeg, eps), true);
     testBool(eqInterval(&iOrig, &iOrig, eps), true);
-    testBool(eqInterval(&iPos, &iPos, eps),   true);
+    testBool(eqInterval(&iPos, &iPos, eps), true);
 
     /* Test inequality in a transitive fashion,
       instead of enumerating all possible options. */
     testBool(eqInterval(&iNeg, &iOrig, eps), false);
     testBool(eqInterval(&iOrig, &iPos, eps), false);
-    testBool(eqInterval(&iPos, &iNeg, eps),  false);
+    testBool(eqInterval(&iPos, &iNeg, eps), false);
   }
 
   /* Test binary interval membership. */
   {
     /* All intervals are closed, so should be contained in themselves. */
-    testBool(inInterval(&iNeg, &iNeg),   true);
+    testBool(inInterval(&iNeg, &iNeg), true);
     testBool(inInterval(&iOrig, &iOrig), true);
-    testBool(inInterval(&iPos, &iPos),   true);
+    testBool(inInterval(&iPos, &iPos), true);
 
     /*
         iNeg  = [a, b]
@@ -177,12 +170,12 @@ int main(int argc, char *argv[]) {
         where a <= b,c,d,e <= f
     */
     Interval encompassing = newInterval(iNeg.left, iPos.right);
-    testBool(inInterval(&iNeg, &encompassing),  true);
+    testBool(inInterval(&iNeg, &encompassing), true);
     testBool(inInterval(&iOrig, &encompassing), true);
-    testBool(inInterval(&iPos, &encompassing),  true);
-    testBool(inInterval(&encompassing, &iNeg),  false);
+    testBool(inInterval(&iPos, &encompassing), true);
+    testBool(inInterval(&encompassing, &iNeg), false);
     testBool(inInterval(&encompassing, &iOrig), false);
-    testBool(inInterval(&encompassing, &iPos),  false);
+    testBool(inInterval(&encompassing, &iPos), false);
 
     /*
         iNeg  = [a, b]
@@ -192,52 +185,54 @@ int main(int argc, char *argv[]) {
         so that d < a < c < b < e
     */
     float offset = 1.;
-    Interval leftEncompassing = newInterval(
-        iNeg.left - offset,
-        (iNeg.left + iNeg.right) / 2.);
-    Interval rightEncompassing = newInterval(
-        (iNeg.left + iNeg.right) / 2.,
-        iNeg.right + offset);
-    testBool(inInterval(&iNeg, &leftEncompassing),  false);
+    Interval leftEncompassing =
+        newInterval(iNeg.left - offset, (iNeg.left + iNeg.right) / 2.);
+    Interval rightEncompassing =
+        newInterval((iNeg.left + iNeg.right) / 2., iNeg.right + offset);
+    testBool(inInterval(&iNeg, &leftEncompassing), false);
     testBool(inInterval(&iNeg, &rightEncompassing), false);
   }
 
   /* Test interval properties. */
   {
     /* Width(I) */
-    testFloat(intervalWidth(&iNeg),   (iNeg.right - iNeg.left)    , eps);
-    testFloat(intervalWidth(&iOrig),  (iOrig.right - iOrig.left)  , eps);
-    testFloat(intervalWidth(&iPos),   (iPos.right - iPos.left)    , eps);
+    testFloat(intervalWidth(&iNeg), (iNeg.right - iNeg.left), eps);
+    testFloat(intervalWidth(&iOrig), (iOrig.right - iOrig.left), eps);
+    testFloat(intervalWidth(&iPos), (iPos.right - iPos.left), eps);
     testFloat(intervalWidth(&iDegen), (iDegen.right - iDegen.left), eps);
-    testFloat(intervalWidth(&iDegen), 0.                          , eps);
+    testFloat(intervalWidth(&iDegen), 0., eps);
 
     /* Mid(I) */
-    testFloat(intervalMidpoint(&iNeg),   (iNeg.left + iNeg.right) / 2.    , eps);
-    testFloat(intervalMidpoint(&iOrig),  (iOrig.left + iOrig.right) / 2.  , eps);
-    testFloat(intervalMidpoint(&iPos) ,  (iPos.left + iPos.right) / 2.    , eps);
-    testFloat(intervalMidpoint(&iDegen), (iDegen.left + iDegen.right) / 2., eps);
-    testFloat(intervalMidpoint(&iDegen), iDegen.left                      , eps);
+    testFloat(intervalMidpoint(&iNeg), (iNeg.left + iNeg.right) / 2., eps);
+    testFloat(intervalMidpoint(&iOrig), (iOrig.left + iOrig.right) / 2., eps);
+    testFloat(intervalMidpoint(&iPos), (iPos.left + iPos.right) / 2., eps);
+    testFloat(intervalMidpoint(&iDegen), (iDegen.left + iDegen.right) / 2.,
+              eps);
+    testFloat(intervalMidpoint(&iDegen), iDegen.left, eps);
 
     /* Mag(I) */
-    testFloat(intervalMagnitude(&iNeg),   fmax(fabs(iNeg.left), fabs(iNeg.right))    , eps);
-    testFloat(intervalMagnitude(&iOrig),  fmax(fabs(iOrig.left), fabs(iOrig.right))  , eps);
-    testFloat(intervalMagnitude(&iPos),   fmax(fabs(iPos.left), fabs(iPos.right))    , eps);
-    testFloat(intervalMagnitude(&iDegen), fmax(fabs(iDegen.left), fabs(iDegen.right)), eps);
-    testFloat(intervalMagnitude(&iDegen), fabs(iDegen.left)                          , eps);
+    testFloat(intervalMagnitude(&iNeg), fmax(fabs(iNeg.left), fabs(iNeg.right)),
+              eps);
+    testFloat(intervalMagnitude(&iOrig),
+              fmax(fabs(iOrig.left), fabs(iOrig.right)), eps);
+    testFloat(intervalMagnitude(&iPos), fmax(fabs(iPos.left), fabs(iPos.right)),
+              eps);
+    testFloat(intervalMagnitude(&iDegen),
+              fmax(fabs(iDegen.left), fabs(iDegen.right)), eps);
+    testFloat(intervalMagnitude(&iDegen), fabs(iDegen.left), eps);
 
     /* Test interval degeneracy: I = [a, a] */
-    testBool(intervalIsDegenerate(&iNeg, eps),   false);
-    testBool(intervalIsDegenerate(&iOrig, eps),  false);
-    testBool(intervalIsDegenerate(&iPos, eps),   false);
+    testBool(intervalIsDegenerate(&iNeg, eps), false);
+    testBool(intervalIsDegenerate(&iOrig, eps), false);
+    testBool(intervalIsDegenerate(&iPos, eps), false);
     testBool(intervalIsDegenerate(&iDegen, eps), true);
   }
 
-
   /* Test printing. */
   {
-    testString(&iNeg,   strdup("[-2.000000, -1.000000]"));
-    testString(&iOrig,  strdup("[-1.000000, 1.000000]"));
-    testString(&iPos,   strdup("[1.000000, 2.000000]"));
+    testString(&iNeg, strdup("[-2.000000, -1.000000]"));
+    testString(&iOrig, strdup("[-1.000000, 1.000000]"));
+    testString(&iPos, strdup("[1.000000, 2.000000]"));
     testString(&iDegen, strdup("[12.000000, 12.000000]"));
   }
 }

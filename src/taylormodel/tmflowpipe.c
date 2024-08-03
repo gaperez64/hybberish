@@ -1,9 +1,6 @@
 #include "tmflowpipe.h"
 
-
-
-TPList *computeTaylorPolynomial(ODEList *system,
-                                unsigned int order,
+TPList *computeTaylorPolynomial(ODEList *system, unsigned int order,
                                 unsigned int k) {
   /* Enforce preconditions */
   assert(system != NULL);
@@ -34,7 +31,8 @@ TPList *computeTaylorPolynomial(ODEList *system,
         ordering in the lists was messed up somehow. */
       assert(strcmp(poly->fun, deriv->fun) == 0);
 
-      /* Make a copy to ensure the tree is decoupled from the derivative list object. */
+      /* Make a copy to ensure the tree is decoupled from the derivative list
+       * object. */
       ExpTree *derivExp = cpyExpTree(deriv->exp);
 
       /* fac(i) = gamma(i+1) */
@@ -45,11 +43,16 @@ TPList *computeTaylorPolynomial(ODEList *system,
       snprintf(indexStr, sizeof(indexStr), "%u", index);
 
       /* 1/i! */
-      ExpTree *fac = newExpOp(EXP_DIV_OP, newExpLeaf(EXP_NUM, "1"), newExpLeaf(EXP_NUM, factorialStr));
+      ExpTree *fac = newExpOp(EXP_DIV_OP, newExpLeaf(EXP_NUM, "1"),
+                              newExpLeaf(EXP_NUM, factorialStr));
       /* t^i */
-      ExpTree *tPow = newExpOp(EXP_EXP_OP, newExpLeaf(EXP_VAR, strdup(VAR_TIME)), newExpLeaf(EXP_NUM, indexStr));
-      /* 1/i! * L^i(g) * t^i   where L^i(g) is the order i Lie derivative of function g. */
-      ExpTree *polyElement = newExpOp(EXP_MUL_OP, fac, newExpOp(EXP_MUL_OP, derivExp, tPow));
+      ExpTree *tPow =
+          newExpOp(EXP_EXP_OP, newExpLeaf(EXP_VAR, strdup(VAR_TIME)),
+                   newExpLeaf(EXP_NUM, indexStr));
+      /* 1/i! * L^i(g) * t^i   where L^i(g) is the order i Lie derivative of
+       * function g. */
+      ExpTree *polyElement =
+          newExpOp(EXP_MUL_OP, fac, newExpOp(EXP_MUL_OP, derivExp, tPow));
 
       /* Extend the polynomial by adding the next element. */
       poly->exp = newExpOp(EXP_ADD_OP, poly->exp, polyElement);
@@ -68,13 +71,13 @@ TPList *computeTaylorPolynomial(ODEList *system,
   return polynomials;
 }
 
-
 TPList *lieDerivativeK(ODEList *system, TPList *functions, unsigned int order) {
   /* Enforce preconditions */
   assert(system != NULL);
   assert(functions != NULL);
 
-  /* Copy so that the returned list's lifetime is always the caller's responsibility. */
+  /* Copy so that the returned list's lifetime is always the caller's
+   * responsibility. */
   if (order == 0)
     return cpyTPList(functions);
 
@@ -95,7 +98,6 @@ TPList *lieDerivativeK(ODEList *system, TPList *functions, unsigned int order) {
   return ithLieDerivative;
 }
 
-
 TPList *lieDerivativeTPList(ODEList *system, TPList *functions) {
   /* Enforce preconditions */
   assert(system != NULL);
@@ -107,9 +109,10 @@ TPList *lieDerivativeTPList(ODEList *system, TPList *functions) {
 
   /* Derive each of the functions individually w.r.t. the same ODe system. */
   while (!(ode == NULL || function == NULL)) {
-    /* If only one (XOR) is NULL but not the other, then there is a list length mismatch.
-      Theoretically, they could have different lengths, but in our case their lengths are
-      always the same. This assertion safeguards that loose assumption. */
+    /* If only one (XOR) is NULL but not the other, then there is a list length
+      mismatch. Theoretically, they could have different lengths, but in our
+      case their lengths are always the same. This assertion safeguards that
+      loose assumption. */
     assert((ode != NULL) == (function != NULL));
 
     char *fun = strdup(function->fun);
@@ -119,7 +122,8 @@ TPList *lieDerivativeTPList(ODEList *system, TPList *functions) {
     ExpTree *simplified = simplify(lieDeriv);
     delExpTree(lieDeriv);
 
-    /* The initial tail should be NULL, since the list is extended head-first. */
+    /* The initial tail should be NULL, since the list is extended head-first.
+     */
     derived = newTPElem(derived, fun, simplified);
 
     ode = ode->next;
@@ -130,7 +134,6 @@ TPList *lieDerivativeTPList(ODEList *system, TPList *functions) {
     ordered the same as the input functions. */
   return reverseTPList(derived);
 }
-
 
 ExpTree *lieDerivative(ODEList *vectorField, ExpTree *function) {
   /* Enforce preconditions */
@@ -159,19 +162,16 @@ ExpTree *lieDerivative(ODEList *vectorField, ExpTree *function) {
   return lieDeriv;
 }
 
-
 TPList *initTPList(ODEList *system) {
   /* Base case: The tail/next of the last element is NULL. */
   if (system == NULL)
     return NULL;
 
-  /* Recursive case: The tail of the new element is everything built until now. */
+  /* Recursive case: The tail of the new element is everything built until now.
+   */
   char *fun = strdup(system->fun);
   ExpTree *exp = newExpLeaf(EXP_VAR, strdup(system->fun));
   return newTPElem(initTPList(system->next), fun, exp);
 }
 
-
-Interval computeSafeRemainder(TPList *polynomials) {
-  return (Interval){ 0, 0 };
-}
+Interval computeSafeRemainder(TPList *polynomials) { return (Interval){0, 0}; }

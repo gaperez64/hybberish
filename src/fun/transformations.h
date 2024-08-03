@@ -3,49 +3,45 @@
 #ifndef TRANSFORMATIONS_H
 #define TRANSFORMATIONS_H
 
-
 #include "funexp.h"
-#include <stdlib.h>
 #include <assert.h>
-#include <string.h>
 #include <stdbool.h>
-
-
+#include <stdlib.h>
+#include <string.h>
 
 /* Simplify the expression through algebraic manipulations. */
-ExpTree* simplify(ExpTree *source);
+ExpTree *simplify(ExpTree *source);
 
 /* Convert the expression to a sum of products. */
-ExpTree* toSumOfProducts(ExpTree *source);
+ExpTree *toSumOfProducts(ExpTree *source);
 
 /* Convert the expression to Horner form. */
-ExpTree* toHornerForm(ExpTree *source);
+ExpTree *toHornerForm(ExpTree *source);
 
 /* Truncate all terms of order strictly greater than k. */
-ExpTree* truncate(ExpTree *source, unsigned int k, char *variable);
-
-
+ExpTree *truncate(ExpTree *source, unsigned int k, char *variable);
 
 /*
     Simplification Helper methods.
 */
 
-/* Simplify a given expression by applying any found absorbing and neutral elements to their operators. */
+/* Simplify a given expression by applying any found absorbing and neutral
+ * elements to their operators. */
 ExpTree *simplifyOperators(ExpTree *source);
 
-/* Check if the given expression is a number leaf with data equivalent to '0'. */
+/* Check if the given expression is a number leaf with data equivalent to '0'.
+ */
 bool isZeroExpTree(ExpTree *source);
 
 /* Create a number leaf with data equivalent to '0'. */
-ExpTree * newZeroExpTree(void);
+ExpTree *newZeroExpTree(void);
 
-/* Check if the given expression is a number leaf with data equivalent to '1'. */
-bool isOneExpTree(ExpTree* source);
+/* Check if the given expression is a number leaf with data equivalent to '1'.
+ */
+bool isOneExpTree(ExpTree *source);
 
 /* Create a number leaf with data equivalent to '1'. */
 ExpTree *newOneExpTree(void);
-
-
 
 /*
     Sum of Products Helper methods.
@@ -77,7 +73,5 @@ ExpTree *distributeLeft(ExpTree *left, ExpTree *right);
   across right.
 */
 ExpTree *distributeLeftDistributive(ExpTree *left, ExpTree *right);
-
-
 
 #endif
