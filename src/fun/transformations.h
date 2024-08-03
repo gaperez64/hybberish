@@ -51,9 +51,6 @@ ExpTree *newOneExpTree();
     Sum of Products Helper methods.
 */
 
-/* Apply the distributive property of multiplication w.r.t addition and subtraction. */
-ExpTree *distributeMul(ExpTree *mult);
-
 /* Apply the left-distributive property of multiplication (*) w.r.t.
   addition (+) and subtraction (-), recursively distributing the
   non-distributive left tree across the top-most, n-ary addition
