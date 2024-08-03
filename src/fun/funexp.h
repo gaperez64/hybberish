@@ -2,8 +2,8 @@
 #define FUNEXP_H
 
 #include <math.h>
-#include <stdbool.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 /* Function expression trees */
 typedef enum ExpType {
@@ -37,6 +37,6 @@ bool isLinear(ExpTree *expr);
 
 /* Verify the exact equality of the given trees.
   Both structure and content must match exactly. */
-bool isEqual(ExpTree *tree1, ExpTree *tree2);
+bool isEqual(ExpTree *expr1, ExpTree *expr2);
 
 #endif
