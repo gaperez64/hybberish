@@ -26,6 +26,14 @@ jobs:
       with:
         python-version: '3.x'
     - run: pip install meson ninja
+    - name: Check toolchain versions
+      run: |
+        echo "GCC version:"
+        gcc --version
+        echo "Flex version:"
+        flex --version
+        echo "Bison version:"
+        bison --version
     - run: meson setup builddir/
       env:
         CC: gcc
@@ -49,6 +57,14 @@ jobs:
         echo "/usr/local/opt/flex/bin" >> $GITHUB_PATH
         echo "/usr/local/opt/bison/bin" >> $GITHUB_PATH
     - run: pip install meson ninja
+    - name: Check toolchain versions
+      run: |
+        echo "GCC version:"
+        gcc --version
+        echo "Flex version:"
+        flex --version
+        echo "Bison version:"
+        bison --version
     - run: meson setup builddir/
       env:
         CC: gcc
