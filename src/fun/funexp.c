@@ -452,7 +452,6 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
 }
 
-
 bool isEqual(ExpTree *expr1, ExpTree *expr2) {
   /* Base case: empty trees are equal. */
   if (expr1 == NULL && expr2 == NULL)
@@ -478,7 +477,6 @@ bool isEqual(ExpTree *expr1, ExpTree *expr2) {
   return isEqual(expr1->left, expr2->left) &&
          isEqual(expr1->right, expr2->right);
 }
-
 
 unsigned int degreeMonomial(ExpTree *expr) {
   /* Enforce pre-conditions */
@@ -514,11 +512,12 @@ unsigned int degreeMonomial(ExpTree *expr) {
     assert(!regexec(&regex, expr->right->data, 0, NULL, 0));
     regfree(&regex);
 
-    /* Do rounding to avoid floating point errors, only integer degrees are wanted. */
+    /* Do rounding to avoid floating point errors, only integer degrees are
+     * wanted. */
     double exponent = round(atof(expr->right->data));
     assert(exponent >= 0);
 
-    return (unsigned int) exponent;
+    return (unsigned int)exponent;
 
   /* Invalid subexpression for a monomial. */
   default:

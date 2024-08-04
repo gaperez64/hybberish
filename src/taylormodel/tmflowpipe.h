@@ -1,21 +1,18 @@
 #ifndef TM_FLOWPIPE_H
 #define TM_FLOWPIPE_H
 
-
 #include "funexp.h"
-#include "sysode.h"
 #include "interval.h"
 #include "polynomiallist.h"
+#include "sysode.h"
 #include "transformations.h"
 #include <assert.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
-
-/* The time variable, which is assumed to always exist in the context of TM flowpipes. */
+/* The time variable, which is assumed to always exist in the context of TM
+ * flowpipes. */
 #define VAR_TIME "t"
-
-
 
 /* Compute the Taylor polynomial approximating the given system of ODEs.
 
@@ -23,10 +20,8 @@
   order: The Taylor polynomial order
   k: The truncation order
 */
-TPList *computeTaylorPolynomial(ODEList *system,
-                                unsigned int order,
+TPList *computeTaylorPolynomial(ODEList *system, unsigned int order,
                                 unsigned int k);
-
 
 /* Compute the Lie derivative of the given function
   and specified order, w.r.t. the given system of ODEs.
@@ -36,11 +31,11 @@ TPList *computeTaylorPolynomial(ODEList *system,
   order: The order of the to compute Lie derivative
 */
 TPList *lieDerivativeK(ODEList *system, TPList *functions, unsigned int order);
-/* Compute the Lie derivative for a set of functions w.r.t. a vector field/ODE system. */
+/* Compute the Lie derivative for a set of functions w.r.t. a vector field/ODE
+ * system. */
 TPList *lieDerivativeTPList(ODEList *system, TPList *functions);
 /* Compute the Lie derivative of a function w.r.t. a vector field.  */
 ExpTree *lieDerivative(ODEList *vectorField, ExpTree *function);
-
 
 /* Construct the identity polynomial list.
 
@@ -52,13 +47,11 @@ ExpTree *lieDerivative(ODEList *vectorField, ExpTree *function);
 */
 TPList *initTPList(ODEList *system);
 
-
 /* Compute a safe remainder interval from the given polynomial,
   that contains the true solution to the system of ODEs.
 
   polynomial: The Taylor polynomial
 */
 Interval computeSafeRemainder(TPList *polynomials);
-
 
 #endif

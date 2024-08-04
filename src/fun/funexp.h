@@ -2,9 +2,9 @@
 #define FUNEXP_H
 
 #include <math.h>
-#include <stdio.h>
 #include <regex.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 /* Function expression trees */
 typedef enum ExpType {
@@ -48,7 +48,5 @@ bool isEqual(ExpTree *expr1, ExpTree *expr2);
   non-negative powers.
 */
 unsigned int degreeMonomial(ExpTree *expr);
-
-
 
 #endif

@@ -1,13 +1,10 @@
 #ifndef FUNEXP_LIST_H
 #define FUNEXP_LIST_H
 
-
 #include "funexp.h"
 #include "sysode.h"
 #include <stdio.h>
 #include <string.h>
-
-
 
 /* Lists of Taylor polynomials derived from a system of ODEs */
 typedef struct TPList {
@@ -15,8 +12,6 @@ typedef struct TPList {
   ExpTree *exp;
   struct TPList *next;
 } TPList;
-
-
 
 /* Create a new, single element list. */
 TPList *newTPList(char *fun, ExpTree *exp);
@@ -35,6 +30,5 @@ TPList *reverseTPList(TPList *list);
 void delTPList(TPList *list);
 /* Print a representation of the given list to the specified stream. */
 void printTPList(TPList *, FILE *list);
-
 
 #endif
