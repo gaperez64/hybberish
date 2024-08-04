@@ -286,7 +286,7 @@ bool isZeroExpTree(ExpTree *source) {
   return source != NULL && source->type == EXP_NUM && atof(source->data) == 0.0;
 }
 
-ExpTree * newZeroExpTree() {
+ExpTree * newZeroExpTree(void) {
   return newExpLeaf(EXP_NUM, "0");
 }
 
@@ -296,7 +296,7 @@ bool isOneExpTree(ExpTree *source) {
 }
 
 
-ExpTree *newOneExpTree() {
+ExpTree *newOneExpTree(void) {
   return newExpLeaf(EXP_NUM, "1");
 }
 

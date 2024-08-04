@@ -37,13 +37,13 @@ ExpTree *simplifyOperators(ExpTree *source);
 bool isZeroExpTree(ExpTree *source);
 
 /* Create a number leaf with data equivalent to '0'. */
-ExpTree * newZeroExpTree();
+ExpTree * newZeroExpTree(void);
 
 /* Check if the given expression is a number leaf with data equivalent to '1'. */
 bool isOneExpTree(ExpTree* source);
 
 /* Create a number leaf with data equivalent to '1'. */
-ExpTree *newOneExpTree();
+ExpTree *newOneExpTree(void);
 
 
 
