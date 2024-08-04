@@ -26,14 +26,6 @@ jobs:
       with:
         python-version: '3.x'
     - run: pip install meson ninja
-    - name: Check toolchain versions
-      run: |
-        echo "GCC version:"
-        gcc --version
-        echo "Flex version:"
-        flex --version
-        echo "Bison version:"
-        bison --version
     - run: meson setup builddir/
       env:
         CC: gcc
@@ -56,15 +48,11 @@ jobs:
         brew install flex bison
         echo "/usr/local/opt/flex/bin" >> $GITHUB_PATH
         echo "/usr/local/opt/bison/bin" >> $GITHUB_PATH
+        echo 'export PATH="/opt/homebrew/opt/flex/bin:$PATH"' >> $GITHUB_ENV
+        echo 'export PATH="/opt/homebrew/opt/bison/bin:$PATH"' >> $GITHUB_ENV
+        echo 'export LDFLAGS="-L/opt/homebrew/opt/flex/lib -L/opt/homebrew/opt/bison/lib"' >> $GITHUB_ENV
+        echo 'export CPPFLAGS="-I/opt/homebrew/opt/flex/include -I/opt/homebrew/opt/bison/include"' >> $GITHUB_ENV
     - run: pip install meson ninja
-    - name: Check toolchain versions
-      run: |
-        echo "GCC version:"
-        gcc --version
-        echo "Flex version:"
-        flex --version
-        echo "Bison version:"
-        bison --version
     - run: meson setup builddir/
       env:
         CC: gcc
