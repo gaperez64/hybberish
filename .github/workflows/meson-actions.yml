@@ -49,9 +49,8 @@ jobs:
         echo "/usr/local/opt/flex/bin" >> $GITHUB_PATH
         echo "/usr/local/opt/bison/bin" >> $GITHUB_PATH
 
-        echo 'export PATH="/opt/homebrew/opt/bison/bin:$PATH"' >> /Users/runner/.bash_profile
-        echo 'export PATH="/opt/homebrew/opt/flex/bin:$PATH"' >> /Users/runner/.bash_profile
-        source ~/.bash_profile
+        echo 'export PATH="/opt/homebrew/opt/bison/bin:$PATH"' >> $GITHUB_ENV
+        echo 'export PATH="/opt/homebrew/opt/flex/bin:$PATH"' >> $GITHUB_ENV
 
         export LDFLAGS="-L/opt/homebrew/opt/bison/lib"
         export LDFLAGS="-L/opt/homebrew/opt/flex/lib"
