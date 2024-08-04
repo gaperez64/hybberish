@@ -52,6 +52,14 @@ jobs:
         echo 'export PATH="/opt/homebrew/opt/bison/bin:$PATH"' >> $GITHUB_ENV
         echo 'export LDFLAGS="-L/opt/homebrew/opt/flex/lib -L/opt/homebrew/opt/bison/lib"' >> $GITHUB_ENV
         echo 'export CPPFLAGS="-I/opt/homebrew/opt/flex/include -I/opt/homebrew/opt/bison/include"' >> $GITHUB_ENV
+    - name: Check toolchain versions
+      run: |
+        echo "GCC version:"
+        gcc --version
+        echo "Flex version:"
+        flex --version
+        echo "Bison version:"
+        bison --version
     - run: pip install meson ninja
     - run: meson setup builddir/
       env:
