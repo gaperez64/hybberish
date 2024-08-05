@@ -57,16 +57,34 @@ ExpTree *toSumOfProducts(ExpTree *source) {
     return res;
   }
 
+  case EXP_NEG: {
+    assert(source->left != NULL);
+    assert(source->right == NULL);
+
+    ExpTree *leftSumOfProd = toSumOfProducts(source->left);
+    ExpTree *negDistributed = distributeNeg(leftSumOfProd, true);
+
+    delExpTree(leftSumOfProd);
+    return negDistributed;
+  }
+
+
   case EXP_DIV_OP:
   case EXP_ADD_OP:
   case EXP_SUB_OP:
   case EXP_EXP_OP:
-  case EXP_FUN:
-  case EXP_NEG: {
+    assert(source->left != NULL);
+    assert(source->right != NULL);
+  case EXP_FUN: {
+    if (source->type == EXP_FUN) {
+      assert(source->left != NULL);
+      assert(source->right == NULL);
+    }
+
     ExpTree *leftSumOfProd =
-        (source->left != NULL) ? toSumOfProducts(source->left) : NULL;
+        source->left ? toSumOfProducts(source->left) : NULL;
     ExpTree *rightSumOfProd =
-        (source->right != NULL) ? toSumOfProducts(source->right) : NULL;
+        source->right ? toSumOfProducts(source->right) : NULL;
     char *dataCpy = (source->data != NULL) ? strdup(source->data) : NULL;
     return newExpTree(source->type, dataCpy, leftSumOfProd, rightSumOfProd);
   }
@@ -347,4 +365,80 @@ ExpTree *distributeLeftDistributive(ExpTree *left, ExpTree *right) {
 
   /* Compose the distributions of all non-distributive subtrees. */
   return newExpOp(left->type, leftDistributed, rightDistributed);
+}
+
+ExpTree *distributeNeg(ExpTree *source, bool unevenNegsFound) {
+  /* Enforce preconditions */
+  assert(source != NULL);
+
+  /* Base case: apply unary negative to leaves. */
+  if (source->left == NULL && source->right == NULL) {
+    if (unevenNegsFound)
+      return newExpOp(EXP_NEG, cpyExpTree(source), NULL);
+    else
+      return cpyExpTree(source);
+  }
+
+
+  switch (source->type) {
+  case EXP_ADD_OP:
+  case EXP_SUB_OP: {
+    /* -(a + b) = ((-a) - b)   OR   -(a - b) = ((-a) + b)
+     * Any NEG turns the ADD (SUB) to a SUB (ADD), so never apply NEG to the right subtree. */
+    ExpType opType;
+    if (!unevenNegsFound)
+      opType = source->type;
+    else if (source->type == EXP_ADD_OP)
+      opType = EXP_SUB_OP;
+    else
+      opType = EXP_ADD_OP;
+
+    ExpTree *leftDistributed = distributeNeg(source->left, unevenNegsFound);
+    ExpTree *rightDistributed = distributeNeg(source->right, false);
+    return newExpOp(opType, leftDistributed, rightDistributed);
+  }
+
+
+  case EXP_NEG:
+    /* -(-a) = a  ELSE  (-a) = (-a) */
+    return distributeNeg(source->left, !unevenNegsFound);
+
+
+  case EXP_MUL_OP:
+  case EXP_DIV_OP:
+  case EXP_EXP_OP:
+  case EXP_FUN: {
+    /* -(a * b) = -(a * b)   OR
+       -(a / b) = -(a / b)   OR
+       -f(a) = -f(a)   OR
+       -(a^b) != ((-a)^b) in many cases
+
+      For the sake of simplicity, and correctness, just start fresh
+      inside of the operands, and process the operands separately
+      from the containing equation/operator.
+    */
+    ExpTree *leftDistributed =
+      source->left ? distributeNeg(source->left, false) : NULL;
+    ExpTree *rightDistributed =
+      source->right ? distributeNeg(source->right, false) : NULL;
+    char *fun = source->data ? strdup(source->data) : NULL;
+
+    ExpTree *distributed =
+      newExpTree(source->type, fun, leftDistributed, rightDistributed);
+
+    /* Since we start fresh, the recursive result is an atom/leaf
+      in the eyes of the progress up until this point. If required,
+      wrap the resursive result in a unary negative operator. */
+    if (unevenNegsFound)
+      return newExpOp(EXP_NEG, distributed, NULL);
+    return distributed;
+  }
+
+
+  default:
+    assert(false);
+    break;
+  }
+
+  return NULL;
 }

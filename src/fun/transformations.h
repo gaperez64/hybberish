@@ -74,4 +74,18 @@ ExpTree *distributeLeft(ExpTree *left, ExpTree *right);
 */
 ExpTree *distributeLeftDistributive(ExpTree *left, ExpTree *right);
 
+/* Distribute each encountered unary negative operator in the given expression tree.
+
+  Suppose the given tree is "--x". Then passing true for the second argument, "adds"
+  an implicit, new unary negative: input "--x" is interpreted as "---x" and returns "-x".
+  Passing false simply distributes all existing unary negative operators: input "--x" is
+  interpreted as "--x" and returns "x".
+
+  unevenNegsFound: If true, then assume an uneven number of unary negative operators were encountered until now.
+  In other words, distribute the unary negative. Else, assume an even number of unary negatives were encountered
+  and consequently do NOT apply the operator.
+  source: The tree to distribute over.
+*/
+ExpTree *distributeNeg(ExpTree *source, bool unevenNegsFound);
+
 #endif
