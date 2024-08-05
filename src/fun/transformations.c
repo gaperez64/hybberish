@@ -68,7 +68,6 @@ ExpTree *toSumOfProducts(ExpTree *source) {
     return negDistributed;
   }
 
-
   case EXP_DIV_OP:
   case EXP_ADD_OP:
   case EXP_SUB_OP:
@@ -379,12 +378,12 @@ ExpTree *distributeNeg(ExpTree *source, bool unevenNegsFound) {
       return cpyExpTree(source);
   }
 
-
   switch (source->type) {
   case EXP_ADD_OP:
   case EXP_SUB_OP: {
     /* -(a + b) = ((-a) - b)   OR   -(a - b) = ((-a) + b)
-     * Any NEG turns the ADD (SUB) to a SUB (ADD), so never apply NEG to the right subtree. */
+     * Any NEG turns the ADD (SUB) to a SUB (ADD), so never apply NEG to the
+     * right subtree. */
     ExpType opType;
     if (!unevenNegsFound)
       opType = source->type;
@@ -398,11 +397,9 @@ ExpTree *distributeNeg(ExpTree *source, bool unevenNegsFound) {
     return newExpOp(opType, leftDistributed, rightDistributed);
   }
 
-
   case EXP_NEG:
     /* -(-a) = a  ELSE  (-a) = (-a) */
     return distributeNeg(source->left, !unevenNegsFound);
-
 
   case EXP_MUL_OP:
   case EXP_DIV_OP:
@@ -418,13 +415,13 @@ ExpTree *distributeNeg(ExpTree *source, bool unevenNegsFound) {
       from the containing equation/operator.
     */
     ExpTree *leftDistributed =
-      source->left ? distributeNeg(source->left, false) : NULL;
+        source->left ? distributeNeg(source->left, false) : NULL;
     ExpTree *rightDistributed =
-      source->right ? distributeNeg(source->right, false) : NULL;
+        source->right ? distributeNeg(source->right, false) : NULL;
     char *fun = source->data ? strdup(source->data) : NULL;
 
     ExpTree *distributed =
-      newExpTree(source->type, fun, leftDistributed, rightDistributed);
+        newExpTree(source->type, fun, leftDistributed, rightDistributed);
 
     /* Since we start fresh, the recursive result is an atom/leaf
       in the eyes of the progress up until this point. If required,
@@ -433,7 +430,6 @@ ExpTree *distributeNeg(ExpTree *source, bool unevenNegsFound) {
       return newExpOp(EXP_NEG, distributed, NULL);
     return distributed;
   }
-
 
   default:
     assert(false);
