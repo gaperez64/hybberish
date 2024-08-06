@@ -56,3 +56,8 @@ t = executable('fun_exp_polynomials_test', 'fun_exp_polynomials_test.c',
                link_args : ['-lm'],
                )
 test('test fun exp functions that operate on polynomials', t)
+
+t = executable('definite_integral_test', 'definite_integral_test.c',
+               link_with : fun_lib,
+               include_directories : fun_inc)
+test('test definite integral', t)
