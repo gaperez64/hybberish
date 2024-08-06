@@ -18,8 +18,8 @@ ExpTree *toSumOfProducts(ExpTree *source);
 /* Convert the expression to Horner form. */
 ExpTree *toHornerForm(ExpTree *source);
 
-/* Truncate all terms of order strictly greater than k. */
-ExpTree *truncate(ExpTree *source, unsigned int k, char *variable);
+/* Truncate all terms of degree i, where i > k with k given. */
+ExpTree *truncate(ExpTree *source, unsigned int k);
 
 /* Substitute all variables with the given name inside a copy of the source tree
   by the target tree.

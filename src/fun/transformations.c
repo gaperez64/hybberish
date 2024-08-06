@@ -96,6 +96,39 @@ ExpTree *toSumOfProducts(ExpTree *source) {
   return NULL;
 }
 
+ExpTree *truncate(ExpTree *source, unsigned int k) {
+  /* Enforce preconditions */
+  assert(source != NULL);
+  assert(k > 0);
+
+  switch (source->type) {
+  case EXP_ADD_OP:
+  case EXP_SUB_OP: {
+    assert(source->left != NULL);
+    assert(source->right != NULL);
+    ExpTree *leftTruncated = truncate(source->left, k);
+    ExpTree *rightTruncated = truncate(source->right, k);
+    return newExpOp(source->type, leftTruncated, rightTruncated);
+  }
+
+  case EXP_NEG: {
+    assert(source->left != NULL);
+    assert(source->right == NULL);
+    ExpTree *leftTruncated = truncate(source->left, k);
+    return newExpOp(source->type, leftTruncated, NULL);
+  }
+
+  /* Remaining operators and leaves are seen as atoms,
+    for which to compute a degree and optionally prune. */
+  default: {
+    /* Pruning is equivalent with replacing by 0. */
+    if (degreeMonomial(source) > k)
+      return newExpLeaf(EXP_NUM, strdup("0"));
+    return cpyExpTree(source);
+  }
+  }
+}
+
 ExpTree *substitute(ExpTree *source, char *var, ExpTree *target) {
   /* Enforce preconditions */
   assert(source != NULL);
