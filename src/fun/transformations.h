@@ -21,6 +21,14 @@ ExpTree *toHornerForm(ExpTree *source);
 /* Truncate all terms of order strictly greater than k. */
 ExpTree *truncate(ExpTree *source, unsigned int k, char *variable);
 
+/* Substitute all variables with the given name inside a copy of the source tree
+  by the target tree.
+
+  Note, the lifetimes of all input instances are still the responsibility of the
+  caller; copies are always used and or returned.
+*/
+ExpTree *substitute(ExpTree *source, char *var, ExpTree *target);
+
 /*
     Simplification Helper methods.
 */

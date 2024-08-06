@@ -96,6 +96,34 @@ ExpTree *toSumOfProducts(ExpTree *source) {
   return NULL;
 }
 
+ExpTree *substitute(ExpTree *source, char *var, ExpTree *target) {
+  /* Enforce preconditions */
+  assert(source != NULL);
+  assert(var != NULL);
+  assert(target != NULL);
+
+  /* Base case: leaf */
+  if (source->left == NULL && source->right == NULL) {
+    /* Current subtree is a to-replace variable. */
+    if (source->type == EXP_VAR && source->data != NULL &&
+        (strcmp(source->data, var) == 0))
+      return cpyExpTree(target);
+    /* Else, end of recursion, retain the leaf. */
+    else
+      return cpyExpTree(source);
+  }
+
+  /* Recursive case: apply substitutions to both subtrees if they exist. */
+  ExpTree *leftSubstituted =
+      source->left ? substitute(source->left, var, target) : NULL;
+  ExpTree *rightSubstituted =
+      source->right ? substitute(source->right, var, target) : NULL;
+  char *data = source->data ? strdup(source->data) : NULL;
+
+  /* Retain all nodes except the to-replace variables. */
+  return newExpTree(source->type, data, leftSubstituted, rightSubstituted);
+}
+
 /*
     Simplification Helper methods.
 */
