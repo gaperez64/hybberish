@@ -931,4 +931,73 @@ int main(int argc, char *argv[]) {
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, fDistributed);
   }
+
+  /*
+    Test variable substitution transformation
+  */
+  printf("### Variable substitution ###\n");
+  fflush(stdout);
+
+  {
+    /* Compose expected results */
+    ExpTree *addyz = newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(z));
+
+    ExpTree *twoTz =
+        newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, strdup("2")), cpyExpTree(z));
+    ExpTree *pow = newExpOp(EXP_EXP_OP, cpyExpTree(twoTz), cpyExpTree(twoTz));
+    ExpTree *sub = newExpOp(EXP_SUB_OP, pow, cpyExpTree(twoTz));
+    ExpTree *mul = newExpOp(EXP_MUL_OP, cpyExpTree(a), sub);
+    ExpTree *negsin =
+        newExpOp(EXP_NEG,
+                 newExpTree(EXP_FUN, strdup("sin"),
+                            newExpOp(EXP_NEG, cpyExpTree(twoTz), NULL), NULL),
+                 NULL);
+    ExpTree *negDiv =
+        newExpOp(EXP_NEG, newExpOp(EXP_DIV_OP, mul, negsin), NULL);
+
+    /* The following notation is used for expressing the substitution of
+      variable X by expression TARGET in expression SOURCE: (SOURCE)[x :=
+      TARGET] */
+
+    /* (x)[x := y]  =>  y */
+    exp = cpyExpTree(x);
+    simpl = substitute(exp, x->data, y);
+    testSimplified(exp, simpl, y);
+    delExpTree(simpl);
+    delExpTree(exp);
+
+    /* (3)[x := y]  =>  3 */
+    exp = newExpLeaf(EXP_NUM, strdup("3"));
+    simpl = substitute(exp, x->data, y);
+    testSimplified(exp, simpl, exp);
+    delExpTree(simpl);
+    delExpTree(exp);
+
+    /* ((x + z))[x := y]  =>  (y + z) */
+    exp = newExpOp(EXP_ADD_OP, cpyExpTree(x), cpyExpTree(z));
+    simpl = substitute(exp, x->data, y);
+    testSimplified(exp, simpl, addyz);
+    delExpTree(simpl);
+    delExpTree(exp);
+
+    /* (-((a * ((x^x) - x)) / -(sin(-x))))[x := (2 * z)]
+    =>  -((a * (((2 * z)^(2 * z)) - (2 * z))) / -(sin(-(2 * z)))) */
+    ExpTree *powX = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(x));
+    ExpTree *subX = newExpOp(EXP_SUB_OP, powX, cpyExpTree(x));
+    ExpTree *mulX = newExpOp(EXP_MUL_OP, cpyExpTree(a), subX);
+    ExpTree *negsinX =
+        newExpOp(EXP_NEG,
+                 newExpTree(EXP_FUN, strdup("sin"),
+                            newExpOp(EXP_NEG, cpyExpTree(x), NULL), NULL),
+                 NULL);
+    exp = newExpOp(EXP_NEG, newExpOp(EXP_DIV_OP, mulX, negsinX), NULL);
+    simpl = substitute(exp, x->data, twoTz);
+    testSimplified(exp, simpl, negDiv);
+    delExpTree(simpl);
+    delExpTree(exp);
+
+    delExpTree(addyz);
+    delExpTree(twoTz);
+    delExpTree(negDiv);
+  }
 }
