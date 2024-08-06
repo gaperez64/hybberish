@@ -1000,4 +1000,57 @@ int main(int argc, char *argv[]) {
     delExpTree(twoTz);
     delExpTree(negDiv);
   }
+
+  /*
+    Test truncation transformation
+  */
+  {
+    printf("### Truncation ###\n");
+    fflush(stdout);
+
+    /* Compose expected results */
+    ExpTree *zero = newExpLeaf(EXP_NUM, strdup("0"));
+    ExpTree *one = newExpLeaf(EXP_NUM, strdup("1"));
+    ExpTree *two = newExpLeaf(EXP_NUM, strdup("2"));
+
+    /* ((a + 0) + ((x * -y) - 0)) */
+    ExpTree *aP0 = newExpOp(EXP_ADD_OP, cpyExpTree(a), cpyExpTree(zero));
+    ExpTree *xTnegy = newExpOp(EXP_MUL_OP, cpyExpTree(x),
+                               newExpOp(EXP_NEG, cpyExpTree(y), NULL));
+    ExpTree *sub1 = newExpOp(EXP_SUB_OP, cpyExpTree(xTnegy), cpyExpTree(zero));
+    ExpTree *add1 = newExpOp(EXP_ADD_OP, newExpOp(EXP_NEG, aP0, NULL), sub1);
+
+    /* k=1  &  x^1  =>  x^1 */
+    exp = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(one));
+    simpl = truncate(exp, 1);
+    testSimplified(exp, simpl, exp);
+    delExpTree(simpl);
+    delExpTree(exp);
+
+    /* k=1  &  x^2  =>  0 */
+    exp = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(two));
+    simpl = truncate(exp, 1);
+    testSimplified(exp, simpl, zero);
+    delExpTree(simpl);
+    delExpTree(exp);
+
+    /* k=2  &  ((a + -(a * b^2)) + ((x * -y) - ((x * -y) * z)))  =>  ((a + b) +
+     * ((x * -y) - 0)) */
+    ExpTree *powb2 = newExpOp(EXP_EXP_OP, cpyExpTree(b), cpyExpTree(two));
+    ExpTree *powMul = newExpOp(EXP_MUL_OP, cpyExpTree(a), powb2);
+    ExpTree *aPmul = newExpOp(EXP_ADD_OP, cpyExpTree(a), powMul);
+    ExpTree *mul1 = newExpOp(EXP_MUL_OP, cpyExpTree(xTnegy), cpyExpTree(z));
+    exp = newExpOp(EXP_ADD_OP, newExpOp(EXP_NEG, aPmul, NULL),
+                   newExpOp(EXP_SUB_OP, cpyExpTree(xTnegy), mul1));
+    simpl = truncate(exp, 2);
+    testSimplified(exp, simpl, add1);
+    delExpTree(simpl);
+    delExpTree(exp);
+
+    delExpTree(zero);
+    delExpTree(one);
+    delExpTree(two);
+    delExpTree(xTnegy);
+    delExpTree(add1);
+  }
 }
