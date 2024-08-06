@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-void test_integral(ExpTree *expr, char *var, ExpTree *expected, ExpTree *lowerBound, ExpTree *upperBound) {
+void test_integral(ExpTree *expr, char *var, ExpTree *expected,
+                   ExpTree *lowerBound, ExpTree *upperBound) {
   /* evaluate integral */
   ExpTree *integral_expr = definiteIntegral(expr, var, lowerBound, upperBound);
   assert(integral_expr != NULL);
   bool compare = isEqual(expected, integral_expr);
-
 
   /* printing and comparison */
   printf("From:   ");
@@ -67,7 +67,8 @@ int main(int argc, char *argv[]) {
 
   /* integral of x w.r.t another variable */
   {
-    // TODO: "xNum"; The variables that are not integrated towards are converted from EXP_VAR to EXP_NUM???
+    // TODO: "xNum"; The variables that are not integrated towards are converted
+    // from EXP_VAR to EXP_NUM???
     ExpTree *xNum = newExpLeaf(EXP_NUM, strdup("x"));
 
     ExpTree *mula = newExpOp(EXP_MUL_OP, cpyExpTree(xNum), cpyExpTree(a));
@@ -98,7 +99,8 @@ int main(int argc, char *argv[]) {
 
   /* integral of the polynomial: x^3 + 42x^2 + 10x - y */
   {
-    // TODO: "yNum"; The variables that are not integrated towards are converted from EXP_VAR to EXP_NUM???
+    // TODO: "yNum"; The variables that are not integrated towards are converted
+    // from EXP_VAR to EXP_NUM???
     ExpTree *yNum = newExpLeaf(EXP_NUM, "y");
     ExpTree *num42 = newExpLeaf(EXP_NUM, "42");
     ExpTree *num10 = newExpLeaf(EXP_NUM, "10");
@@ -110,11 +112,9 @@ int main(int argc, char *argv[]) {
                 EXP_ADD_OP,
                 newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(three)),
                 newExpOp(EXP_MUL_OP, cpyExpTree(num42),
-                         newExpOp(EXP_EXP_OP, cpyExpTree(x),
-                                  cpyExpTree(two)))),
+                         newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(two)))),
             newExpOp(EXP_MUL_OP, cpyExpTree(num10), cpyExpTree(x))),
         cpyExpTree(y));
-
 
     ExpTree *numExp1 = newExpOp(EXP_ADD_OP, cpyExpTree(three), cpyExpTree(one));
     numExp1 = newExpOp(EXP_DIV_OP, cpyExpTree(one), numExp1);
@@ -151,7 +151,6 @@ int main(int argc, char *argv[]) {
     ExpTree *res = newExpOp(EXP_SUB_OP, subb, suba);
     test_integral(polynomial, "x", res, a, b);
 
-
     /* clean */
     delExpTree(polynomial);
     delExpTree(num10);
@@ -161,7 +160,6 @@ int main(int argc, char *argv[]) {
     delExpTree(res);
     delExpTree(yNum);
   }
-
 
   delExpTree(x);
   delExpTree(y);
