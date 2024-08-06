@@ -355,8 +355,8 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
 
   case EXP_EXP_OP: {
-    ExpTree *base = expr->left;
-    ExpTree *exponent = expr->right;
+    ExpTree *base = cpyExpTree(expr->left);
+    ExpTree *exponent = cpyExpTree(expr->right);
 
     /* Convert exponent from string to number */
     double exponent_val = atof(exponent->data);
