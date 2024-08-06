@@ -452,6 +452,27 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
 }
 
+ExpTree *definiteIntegral(ExpTree *expr, char *var, ExpTree *lowerBound,
+                          ExpTree *upperBound) {
+  /* Enforce preconditions */
+  assert(expr != NULL);
+  assert(var != NULL);
+  assert(lowerBound != NULL);
+  assert(upperBound != NULL);
+  assert(lowerBound->type == EXP_NUM || lowerBound->type == EXP_VAR);
+  assert(upperBound->type == EXP_NUM || upperBound->type == EXP_VAR);
+
+  ExpTree *integrated = integral(expr, var);
+  ExpTree *lowerSubstituted = substitute(integrated, var, lowerBound);
+  ExpTree *upperSubstituted = substitute(integrated, var, upperBound);
+  ExpTree *definite = newExpOp(EXP_SUB_OP, upperSubstituted, lowerSubstituted);
+
+  /* Clean */
+  delExpTree(integrated);
+
+  return definite;
+}
+
 bool isEqual(ExpTree *expr1, ExpTree *expr2) {
   /* Base case: empty trees are equal. */
   if (expr1 == NULL && expr2 == NULL)

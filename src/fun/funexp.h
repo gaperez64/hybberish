@@ -33,6 +33,8 @@ void delExpTree(ExpTree *);
 void printExpTree(ExpTree *, FILE *);
 ExpTree *derivative(ExpTree *, char *);
 ExpTree *integral(ExpTree *expr, char *var);
+ExpTree *definiteIntegral(ExpTree *expr, char *var, ExpTree *lowerBound,
+                          ExpTree *upperBound);
 ExpTree *cpyExpTree(ExpTree *src);
 bool isLinear(ExpTree *expr);
 
@@ -48,5 +50,8 @@ bool isEqual(ExpTree *expr1, ExpTree *expr2);
   non-negative powers.
 */
 unsigned int degreeMonomial(ExpTree *expr);
+
+/* A forward declaration of the substitute tree transformation. */
+ExpTree *substitute(ExpTree *source, char *var, ExpTree *target);
 
 #endif
