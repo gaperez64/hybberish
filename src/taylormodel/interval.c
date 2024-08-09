@@ -54,6 +54,19 @@ Interval divInterval(const Interval * const left, const Interval * const right) 
   return mulInterval(left, &invertedRight);
 }
 
+Interval negInterval(const Interval * const source) {
+  /* -[a, b] = [-b, -a] */
+  assert(source != NULL);
+  return (Interval){ -source->right, -source->left };
+}
+
+Interval sqrtInterval(const Interval * const source) {
+  /* sqrt([a, b]) = [sqrt(a), sqrt(b)] */
+  assert(source != NULL);
+  assert(0 <= source->left && source->left <= source->right);
+  return (Interval){ sqrtl(source->left), sqrtl(source->right) };
+}
+
 bool eqInterval(const Interval * const left, const Interval * const right, const double epsilon) {
   /* [a, b] = [c, d] iff. a=c and b=d */
   assert(left != NULL);

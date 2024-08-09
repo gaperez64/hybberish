@@ -6,6 +6,7 @@
 #include <string.h>
 
 bool approx(float got, float expected, float epsilon) {
+  assert(epsilon >= 0);
   return fabs(got - expected) < epsilon;
 }
 
@@ -14,6 +15,7 @@ bool approx(float got, float expected, float epsilon) {
 void testInterval(Interval *got, float expectedLeft, float expectedRight,
                   float epsilon) {
   assert(got != NULL);
+  assert(epsilon >= 0);
 
   /* printing and comparison */
   bool compare = approx(got->left, expectedLeft, epsilon) &&
@@ -141,6 +143,30 @@ int main(int argc, char *argv[]) {
 
     res = divInterval(&iDegen, &iNeg);
     testInterval(&res, -12, -6, eps);
+  }
+
+  /* Test (unary) additive inverse. */
+  {
+    Interval res = negInterval(&iNeg);
+    testInterval(&res, -iNeg.right, -iNeg.left, eps);
+
+    res = negInterval(&iOrig);
+    testInterval(&res, -iOrig.right, -iOrig.left, eps);
+
+    res = negInterval(&iPos);
+    testInterval(&res, -iPos.right, -iPos.left, eps);
+
+    res = negInterval(&iDegen);
+    testInterval(&res, -iDegen.right, -iDegen.left, eps);
+  }
+
+  /* Test (unary) square root function. */
+  {
+    Interval res = sqrtInterval(&iPos);
+    testInterval(&res, sqrtl(iPos.left), sqrtl(iPos.right), eps);
+
+    res = sqrtInterval(&iDegen);
+    testInterval(&res, sqrtl(iDegen.left), sqrtl(iDegen.right), eps);
   }
 
   /* Test binary interval equality. */

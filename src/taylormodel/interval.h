@@ -24,6 +24,8 @@ Interval addInterval(const Interval * const left, const Interval * const right);
 Interval subInterval(const Interval * const left, const Interval * const right);
 Interval mulInterval(const Interval * const left, const Interval * const right);
 Interval divInterval(const Interval * const left, const Interval * const right);
+Interval negInterval(const Interval * const source);
+Interval sqrtInterval(const Interval * const source);
 bool eqInterval(const Interval * const left, const Interval * const right, const double epsilon);
 bool inInterval(const Interval * const left, const Interval * const right);
 
