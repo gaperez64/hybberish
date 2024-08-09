@@ -132,8 +132,9 @@ int main(int argc, char *argv[]) {
     Interval res = divInterval(&iNeg, &iNeg);
     testInterval(&res, 0.5, 2, eps);
 
-    res = divInterval(&iOrig, &iOrig);
-    testInterval(&res, -1, 1, eps);
+    /* The divisor may not contain: [a, b] / [c, d]  =>  0 not in [c, d] */
+    // res = divInterval(&iOrig, &iOrig);
+    // testInterval(&res, -1, 1, eps);
 
     res = divInterval(&iPos, &iPos);
     testInterval(&res, 0.5, 2, eps);
