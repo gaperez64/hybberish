@@ -8,37 +8,37 @@
 
 /* A closed interval I = [a, b], so that a <= b. */
 typedef struct Interval {
-  float left;
-  float right;
+  double left;
+  double right;
 } Interval;
 
 /* Create a new interval that satisfies its definition. */
-Interval newInterval(float left, float right);
+Interval newInterval(const double left, const double right);
 
-void printInterval(Interval *source, FILE *where);
+void printInterval(const Interval * const source, FILE *where);
 
 /*
   Interval operations.
 */
-Interval addInterval(Interval *left, Interval *right);
-Interval subInterval(Interval *left, Interval *right);
-Interval mulInterval(Interval *left, Interval *right);
-Interval divInterval(Interval *left, Interval *right);
-bool eqInterval(Interval *left, Interval *right, float epsilon);
-bool inInterval(Interval *left, Interval *right);
+Interval addInterval(const Interval * const left, const Interval * const right);
+Interval subInterval(const Interval * const left, const Interval * const right);
+Interval mulInterval(const Interval * const left, const Interval * const right);
+Interval divInterval(const Interval * const left, const Interval * const right);
+bool eqInterval(const Interval * const left, const Interval * const right, const double epsilon);
+bool inInterval(const Interval * const left, const Interval * const right);
 
 /*
   Properties of an Interval I = [a, b].
 */
 /* W(I) = b - a */
-float intervalWidth(Interval *source);
+double intervalWidth(const Interval * const source);
 /* Mid(I) = (a + b) / 2 */
-float intervalMidpoint(Interval *source);
+double intervalMidpoint(const Interval * const source);
 /* Mag(I) = max{|a|, |b|} */
-float intervalMagnitude(Interval *source);
+double intervalMagnitude(const Interval * const source);
 
 /* Interval I is degenerate if a = b.
   Due to precision concerns, an epsilon must be specified. */
-bool intervalIsDegenerate(Interval *source, float epsilon);
+bool intervalIsDegenerate(const Interval * const source, const double epsilon);
 
 #endif
