@@ -6,6 +6,9 @@
 #include <stdlib.h>
 
 TPList *newTPList(char *fun, ExpTree *exp) {
+  assert(fun != NULL);
+  assert(exp != NULL);
+
   TPList *list = (TPList *)malloc(sizeof(TPList));
   list->fun = fun;
   list->exp = exp;
@@ -16,6 +19,7 @@ TPList *newTPList(char *fun, ExpTree *exp) {
 TPList *appTPElem(TPList *tail, TPList *head) {
   assert(head != NULL);
   assert(head->next == NULL);
+
   head->next = tail;
   return head;
 }
