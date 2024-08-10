@@ -1,7 +1,7 @@
 # Library: Taylor models and Taylor model flowpipes
 taylormodel_lib = library('taylormodel', files(
                             'interval.c',
-                            'polynomiallist.c',
+                            'taylormodel.c',
                             'tmflowpipe.c',
                           ),
                           link_with : [fun_lib, sysode_lib],
