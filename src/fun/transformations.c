@@ -97,6 +97,18 @@ ExpTree *toSumOfProducts(ExpTree *source) {
 }
 
 ExpTree *truncate(ExpTree *source, unsigned int k) {
+  return truncateTerms(source, k, NULL, false);
+}
+
+ExpTree *truncate2(ExpTree *source, unsigned int k, ExpTree **collectedTerms) {
+  /* Require the output ptr not contain any tree, to avoid unintended behavior.
+   */
+  assert((*collectedTerms) == NULL);
+  return truncateTerms(source, k, collectedTerms, true);
+}
+
+ExpTree *truncateTerms(ExpTree *source, unsigned int k,
+                       ExpTree **collectedTerms, const bool collect) {
   /* Enforce preconditions */
   assert(source != NULL);
   assert(k > 0);
@@ -106,24 +118,62 @@ ExpTree *truncate(ExpTree *source, unsigned int k) {
   case EXP_SUB_OP: {
     assert(source->left != NULL);
     assert(source->right != NULL);
-    ExpTree *leftTruncated = truncate(source->left, k);
-    ExpTree *rightTruncated = truncate(source->right, k);
+
+    ExpTree *leftCTerms = NULL;
+    ExpTree *rightCTerms = NULL;
+    ExpTree *leftTruncated =
+        truncateTerms(source->left, k, &leftCTerms, collect);
+    ExpTree *rightTruncated =
+        truncateTerms(source->right, k, &rightCTerms, collect);
+
+    if (leftCTerms != NULL) {
+      if ((*collectedTerms) == NULL)
+        *collectedTerms = leftCTerms;
+      else
+        *collectedTerms = newExpOp(EXP_ADD_OP, *collectedTerms, leftCTerms);
+    }
+
+    if (rightCTerms != NULL) {
+      if ((*collectedTerms) == NULL) {
+        if (source->type == EXP_SUB_OP)
+          *collectedTerms = newExpOp(EXP_NEG, rightCTerms, NULL);
+        else
+          *collectedTerms = rightCTerms;
+      } else
+        *collectedTerms = newExpOp(source->type, *collectedTerms, rightCTerms);
+    }
+
     return newExpOp(source->type, leftTruncated, rightTruncated);
   }
 
   case EXP_NEG: {
     assert(source->left != NULL);
     assert(source->right == NULL);
-    ExpTree *leftTruncated = truncate(source->left, k);
+
+    ExpTree *cTerms = NULL;
+    ExpTree *leftTruncated = truncateTerms(source->left, k, &cTerms, collect);
+
+    if (cTerms != NULL) {
+      ExpTree *truncated = newExpOp(EXP_NEG, cTerms, NULL);
+      if ((*collectedTerms) == NULL)
+        *collectedTerms = truncated;
+      else
+        *collectedTerms = newExpOp(EXP_ADD_OP, *collectedTerms, truncated);
+    }
+
     return newExpOp(source->type, leftTruncated, NULL);
   }
 
   /* Remaining operators and leaves are seen as atoms,
     for which to compute a degree and optionally prune. */
   default: {
-    /* Pruning is equivalent with replacing by 0. */
-    if (degreeMonomial(source) > k)
+    if (degreeMonomial(source) > k) {
+      /* If required, push up the pruned term. */
+      if (collect)
+        *collectedTerms = cpyExpTree(source);
+      /* Pruning is equivalent with replacing by 0. */
       return newExpLeaf(EXP_NUM, strdup("0"));
+    }
     return cpyExpTree(source);
   }
   }

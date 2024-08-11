@@ -1008,6 +1008,8 @@ int main(int argc, char *argv[]) {
     printf("### Truncation ###\n");
     fflush(stdout);
 
+    ExpTree *collectedTerms = NULL;
+
     /* Compose expected results */
     ExpTree *zero = newExpLeaf(EXP_NUM, strdup("0"));
     ExpTree *one = newExpLeaf(EXP_NUM, strdup("1"));
@@ -1020,22 +1022,42 @@ int main(int argc, char *argv[]) {
     ExpTree *sub1 = newExpOp(EXP_SUB_OP, cpyExpTree(xTnegy), cpyExpTree(zero));
     ExpTree *add1 = newExpOp(EXP_ADD_OP, newExpOp(EXP_NEG, aP0, NULL), sub1);
 
+
     /* k=1  &  x^1  =>  x^1 */
     exp = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(one));
     simpl = truncate(exp, 1);
     testSimplified(exp, simpl, exp);
     delExpTree(simpl);
+
+    collectedTerms = NULL;
+    simpl = truncate2(exp, 1, &collectedTerms);
+    testSimplified(exp, simpl, exp);
+    testSimplified(exp, collectedTerms, NULL);
+    delExpTree(simpl);
+
     delExpTree(exp);
+
 
     /* k=1  &  x^2  =>  0 */
     exp = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(two));
     simpl = truncate(exp, 1);
     testSimplified(exp, simpl, zero);
     delExpTree(simpl);
+
+    collectedTerms = NULL;
+    simpl = truncate2(exp, 1, &collectedTerms);
+    testSimplified(exp, simpl, zero);
+    testSimplified(exp, collectedTerms, exp);
+    delExpTree(simpl);
+    delExpTree(collectedTerms);
+
     delExpTree(exp);
 
-    /* k=2  &  ((a + -(a * b^2)) + ((x * -y) - ((x * -y) * z)))  =>  ((a + b) +
-     * ((x * -y) - 0)) */
+
+    /* k=2
+       ((a + -(a * b^2)) + ((x * -y) - ((x * -y) * z)))
+    => ((a + b) + ((x * -y) - 0))
+    */
     ExpTree *powb2 = newExpOp(EXP_EXP_OP, cpyExpTree(b), cpyExpTree(two));
     ExpTree *powMul = newExpOp(EXP_MUL_OP, cpyExpTree(a), powb2);
     ExpTree *aPmul = newExpOp(EXP_ADD_OP, cpyExpTree(a), powMul);
@@ -1045,8 +1067,22 @@ int main(int argc, char *argv[]) {
     simpl = truncate(exp, 2);
     testSimplified(exp, simpl, add1);
     delExpTree(simpl);
-    delExpTree(exp);
 
+    ExpTree *negPowMul = newExpOp(EXP_NEG, cpyExpTree(powMul), NULL);
+    ExpTree *negMul1 = newExpOp(EXP_NEG, cpyExpTree(mul1), NULL);
+    ExpTree *collExp = newExpOp(EXP_ADD_OP, negPowMul, negMul1);
+    collectedTerms = NULL;
+    simpl = truncate2(exp, 2, &collectedTerms);
+    testSimplified(exp, simpl, add1);
+    testSimplified(exp, collectedTerms, collExp);
+    delExpTree(simpl);
+    delExpTree(collectedTerms);
+
+    delExpTree(exp);
+    delExpTree(collExp);
+
+
+    /* Cleanup */
     delExpTree(zero);
     delExpTree(one);
     delExpTree(two);

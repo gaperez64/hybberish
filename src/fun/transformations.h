@@ -20,6 +20,19 @@ ExpTree *toHornerForm(ExpTree *source);
 
 /* Truncate all terms of degree i, where i > k with k given. */
 ExpTree *truncate(ExpTree *source, unsigned int k);
+/* Truncate all terms of degree i, where i > k with k given.
+
+  Collects all truncated terms as a sum expression into the third arg,
+  which is required to be NULL at time of calling.
+*/
+ExpTree *truncate2(ExpTree *source, unsigned int k, ExpTree **collectedTerms);
+/* Truncate all terms of degree i, where i > k with k given.
+
+  If 'collect' is true, then collects all truncated terms as a sum expression
+  into the third arg.
+*/
+ExpTree *truncateTerms(ExpTree *source, unsigned int k,
+                       ExpTree **collectedTerms, const bool collect);
 
 /* Substitute all variables with the given name inside a copy of the source tree
   by the target tree.
