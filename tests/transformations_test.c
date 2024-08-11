@@ -1022,7 +1022,6 @@ int main(int argc, char *argv[]) {
     ExpTree *sub1 = newExpOp(EXP_SUB_OP, cpyExpTree(xTnegy), cpyExpTree(zero));
     ExpTree *add1 = newExpOp(EXP_ADD_OP, newExpOp(EXP_NEG, aP0, NULL), sub1);
 
-
     /* k=1  &  x^1  =>  x^1 */
     exp = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(one));
     simpl = truncate(exp, 1);
@@ -1036,7 +1035,6 @@ int main(int argc, char *argv[]) {
     delExpTree(simpl);
 
     delExpTree(exp);
-
 
     /* k=1  &  x^2  =>  0 */
     exp = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(two));
@@ -1052,7 +1050,6 @@ int main(int argc, char *argv[]) {
     delExpTree(collectedTerms);
 
     delExpTree(exp);
-
 
     /* k=2
        ((a + -(a * b^2)) + ((x * -y) - ((x * -y) * z)))
@@ -1080,7 +1077,6 @@ int main(int argc, char *argv[]) {
 
     delExpTree(exp);
     delExpTree(collExp);
-
 
     /* Cleanup */
     delExpTree(zero);
