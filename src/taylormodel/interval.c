@@ -67,6 +67,53 @@ Interval sqrtInterval(const Interval *const source) {
   return newInterval(sqrtl(source->left), sqrtl(source->right));
 }
 
+Interval powInterval(const Interval *const source,
+                     const unsigned int exponent) {
+  assert(source != NULL);
+
+  /* Edge case: [a, b]^0 = [1, 1] always. */
+  if (exponent == 0)
+    return newInterval(1, 1);
+
+  /* Note: this algorithm may produce more accurate results (more strict
+    bounds) than simply applying interval multiplication multiple times.
+    Note: finding [a, b]^n means computing x^n for all x in [a, b]. */
+  double an, bn;
+  an = pow(source->left, exponent);
+  bn = pow(source->right, exponent);
+
+  /* CASES: [a, b]^n for n is ODD, so for x in [a, b], x^n retains x's sign */
+  if ((exponent % 2) == 1)
+    return newInterval(an, bn);
+
+  /* CASES: [a, b]^n for n is EVEN, so for x in [a, b], x^n is positive */
+  /* 0 <= a <= b, so a^n <= b^n */
+  if (source->left >= 0)
+    return newInterval(an, bn);
+  /* a <= b < 0, so b^n <= a^n */
+  if (source->right < 0)
+    return newInterval(bn, an);
+  /* a < 0 <= b, so [a, 0]^n = [0, a^n] and [0, b]^n = [0, b^n].
+    Notice that the input negative sub-interval becomes positive,
+    hence the 0 lower bound in the output. */
+  return newInterval(0, fmax(an, bn));
+}
+
+Interval pow2Interval(const Interval *const source,
+                      const unsigned int exponent) {
+  assert(source != NULL);
+
+  if (exponent == 0)
+    return newInterval(1, 1);
+
+  Interval result = *source;
+  /* Multiplications only happen from exponent > 1 onwards. */
+  for (unsigned int it = 1; it < exponent; ++it) {
+    result = mulInterval(source, &result);
+  }
+  return result;
+}
+
 bool eqInterval(const Interval *const left, const Interval *const right,
                 const double epsilon) {
   /* [a, b] = [c, d] iff. a=c and b=d */

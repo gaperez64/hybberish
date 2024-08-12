@@ -26,6 +26,9 @@ Interval mulInterval(const Interval *const left, const Interval *const right);
 Interval divInterval(const Interval *const left, const Interval *const right);
 Interval negInterval(const Interval *const source);
 Interval sqrtInterval(const Interval *const source);
+Interval powInterval(const Interval *const source, const unsigned int exponent);
+Interval pow2Interval(const Interval *const source,
+                      const unsigned int exponent);
 bool eqInterval(const Interval *const left, const Interval *const right,
                 const double epsilon);
 bool inInterval(const Interval *const left, const Interval *const right);

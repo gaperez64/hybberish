@@ -86,6 +86,9 @@ int main(int argc, char *argv[]) {
 
   /* Test binary addition. */
   {
+    printf("\n=== binary ADD (+) ===\n");
+    fflush(stdout);
+
     Interval res = addInterval(&iNeg, &iNeg);
     testInterval(&res, -4, -2, eps);
 
@@ -101,6 +104,9 @@ int main(int argc, char *argv[]) {
 
   /* Test binary subtraction. */
   {
+    printf("\n=== binary SUB (-) ===\n");
+    fflush(stdout);
+
     Interval res = subInterval(&iNeg, &iNeg);
     testInterval(&res, -1, 1, eps);
 
@@ -116,6 +122,9 @@ int main(int argc, char *argv[]) {
 
   /* Test binary multiplication. */
   {
+    printf("\n=== binary MUL (*) ===\n");
+    fflush(stdout);
+
     Interval res = mulInterval(&iNeg, &iNeg);
     testInterval(&res, 1, 4, eps);
 
@@ -131,6 +140,9 @@ int main(int argc, char *argv[]) {
 
   /* Test binary division. */
   {
+    printf("\n=== binary DIV (/) ===\n");
+    fflush(stdout);
+
     Interval res = divInterval(&iNeg, &iNeg);
     testInterval(&res, 0.5, 2, eps);
 
@@ -147,6 +159,9 @@ int main(int argc, char *argv[]) {
 
   /* Test (unary) additive inverse. */
   {
+    printf("\n=== unary NEG (-) ===\n");
+    fflush(stdout);
+
     Interval res = negInterval(&iNeg);
     testInterval(&res, -iNeg.right, -iNeg.left, eps);
 
@@ -162,6 +177,9 @@ int main(int argc, char *argv[]) {
 
   /* Test (unary) square root function. */
   {
+    printf("\n=== fun sqrt ===\n");
+    fflush(stdout);
+
     Interval res = sqrtInterval(&iPos);
     testInterval(&res, sqrtl(iPos.left), sqrtl(iPos.right), eps);
 
@@ -169,8 +187,128 @@ int main(int argc, char *argv[]) {
     testInterval(&res, sqrtl(iDegen.left), sqrtl(iDegen.right), eps);
   }
 
+  /* Test (binary) exponentiation. */
+  {
+    printf("\n=== binary EXP (^) ===\n");
+    fflush(stdout);
+
+    Interval zero = newInterval(0, 0);
+    unsigned int exponent;
+
+    /* exponent = 0: special case */
+    exponent = 0;
+    Interval res = powInterval(&iNeg, exponent);
+    testInterval(&res, 1, 1, eps);
+    res = pow2Interval(&iNeg, exponent);
+    testInterval(&res, 1, 1, eps);
+
+    res = powInterval(&iOrig, exponent);
+    testInterval(&res, 1, 1, eps);
+    res = pow2Interval(&iOrig, exponent);
+    testInterval(&res, 1, 1, eps);
+
+    res = powInterval(&iPos, exponent);
+    testInterval(&res, 1, 1, eps);
+    res = pow2Interval(&iPos, exponent);
+    testInterval(&res, 1, 1, eps);
+
+    res = powInterval(&iDegen, exponent);
+    testInterval(&res, 1, 1, eps);
+    res = pow2Interval(&iDegen, exponent);
+    testInterval(&res, 1, 1, eps);
+
+    res = powInterval(&zero, exponent);
+    testInterval(&res, 1, 1, eps);
+    res = pow2Interval(&zero, exponent);
+    testInterval(&res, 1, 1, eps);
+
+    /* exponent = 1: ODD case */
+    exponent = 1;
+    res = powInterval(&iNeg, exponent);
+    testInterval(&res, -2, -1, eps);
+    res = pow2Interval(&iNeg, exponent);
+    testInterval(&res, -2, -1, eps);
+
+    res = powInterval(&iOrig, exponent);
+    testInterval(&res, -1, 1, eps);
+    res = pow2Interval(&iOrig, exponent);
+    testInterval(&res, -1, 1, eps);
+
+    res = powInterval(&iPos, exponent);
+    testInterval(&res, 1, 2, eps);
+    res = pow2Interval(&iPos, exponent);
+    testInterval(&res, 1, 2, eps);
+
+    res = powInterval(&iDegen, exponent);
+    testInterval(&res, 12, 12, eps);
+    res = pow2Interval(&iDegen, exponent);
+    testInterval(&res, 12, 12, eps);
+
+    res = powInterval(&zero, exponent);
+    testInterval(&res, 0, 0, eps);
+    res = pow2Interval(&zero, exponent);
+    testInterval(&res, 0, 0, eps);
+
+    /* exponent = 3: ODD case */
+    exponent = 3;
+    res = powInterval(&iNeg, exponent);
+    testInterval(&res, -8, -1, eps);
+    res = pow2Interval(&iNeg, exponent);
+    testInterval(&res, -8, -1, eps);
+
+    res = powInterval(&iOrig, exponent);
+    testInterval(&res, -1, 1, eps);
+    res = pow2Interval(&iOrig, exponent);
+    testInterval(&res, -1, 1, eps);
+
+    res = powInterval(&iPos, exponent);
+    testInterval(&res, 1, 8, eps);
+    res = pow2Interval(&iPos, exponent);
+    testInterval(&res, 1, 8, eps);
+
+    res = powInterval(&iDegen, exponent);
+    testInterval(&res, 1728, 1728, eps);
+    res = pow2Interval(&iDegen, exponent);
+    testInterval(&res, 1728, 1728, eps);
+
+    res = powInterval(&zero, exponent);
+    testInterval(&res, 0, 0, eps);
+    res = pow2Interval(&zero, exponent);
+    testInterval(&res, 0, 0, eps);
+
+    /* exponent = 2: EVEN case */
+    exponent = 2;
+    res = powInterval(&iNeg, exponent);
+    testInterval(&res, 1, 4, eps);
+    res = pow2Interval(&iNeg, exponent);
+    testInterval(&res, 1, 4, eps);
+
+    res = powInterval(&iOrig, exponent);
+    testInterval(&res, 0, 1, eps);
+    res = pow2Interval(&iOrig, exponent);
+    testInterval(&res, -1, 1, eps);
+
+    res = powInterval(&iPos, exponent);
+    testInterval(&res, 1, 4, eps);
+    res = pow2Interval(&iPos, exponent);
+    testInterval(&res, 1, 4, eps);
+
+    res = powInterval(&iDegen, exponent);
+    testInterval(&res, 144, 144, eps);
+    res = pow2Interval(&iDegen, exponent);
+    testInterval(&res, 144, 144, eps);
+
+    res = powInterval(&zero, exponent);
+    testInterval(&res, 0, 0, eps);
+    res = pow2Interval(&zero, exponent);
+    testInterval(&res, 0, 0, eps);
+  }
+
   /* Test binary interval equality. */
   {
+    printf("\n=== binary EQ (=) ===\n");
+    fflush(stdout);
+
     testBool(eqInterval(&iNeg, &iNeg, eps), true);
     testBool(eqInterval(&iOrig, &iOrig, eps), true);
     testBool(eqInterval(&iPos, &iPos, eps), true);
@@ -184,6 +322,9 @@ int main(int argc, char *argv[]) {
 
   /* Test binary interval membership. */
   {
+    printf("\n=== binary subset (subset) ===\n");
+    fflush(stdout);
+
     /* All intervals are closed, so should be contained in themselves. */
     testBool(inInterval(&iNeg, &iNeg), true);
     testBool(inInterval(&iOrig, &iOrig), true);
