@@ -19,14 +19,14 @@ Interval addInterval(const Interval *const left, const Interval *const right) {
   /* [a, b] + [c, d] = [a + c, b + d] */
   assert(left != NULL);
   assert(right != NULL);
-  return (Interval){left->left + right->left, left->right + right->right};
+  return newInterval(left->left + right->left, left->right + right->right);
 }
 
 Interval subInterval(const Interval *const left, const Interval *const right) {
   /* [a, b] - [c, d] = [a - d, b - c] */
   assert(left != NULL);
   assert(right != NULL);
-  return (Interval){left->left - right->right, left->right - right->left};
+  return newInterval(left->left - right->right, left->right - right->left);
 }
 
 Interval mulInterval(const Interval *const left, const Interval *const right) {
@@ -39,8 +39,8 @@ Interval mulInterval(const Interval *const left, const Interval *const right) {
   ad = left->left * right->right;
   bc = left->right * right->left;
   bd = left->right * right->right;
-  return (Interval){fmin(ac, fmin(ad, fmin(bc, bd))),
-                    fmax(ac, fmax(ad, fmax(bc, bd)))};
+  return newInterval(fmin(ac, fmin(ad, fmin(bc, bd))),
+                     fmax(ac, fmax(ad, fmax(bc, bd))));
 }
 
 Interval divInterval(const Interval *const left, const Interval *const right) {
@@ -49,7 +49,7 @@ Interval divInterval(const Interval *const left, const Interval *const right) {
   assert(right != NULL);
   /* not (c <= 0 <= d), i.e. 0 not in [c, d] */
   assert(!(right->left <= 0 && 0 <= right->right));
-  Interval invertedRight = {1. / right->right, 1. / right->left};
+  Interval invertedRight = newInterval(1. / right->right, 1. / right->left);
 
   return mulInterval(left, &invertedRight);
 }
@@ -57,14 +57,14 @@ Interval divInterval(const Interval *const left, const Interval *const right) {
 Interval negInterval(const Interval *const source) {
   /* -[a, b] = [-b, -a] */
   assert(source != NULL);
-  return (Interval){-source->right, -source->left};
+  return newInterval(-source->right, -source->left);
 }
 
 Interval sqrtInterval(const Interval *const source) {
   /* sqrt([a, b]) = [sqrt(a), sqrt(b)] */
   assert(source != NULL);
   assert(0 <= source->left && source->left <= source->right);
-  return (Interval){sqrtl(source->left), sqrtl(source->right)};
+  return newInterval(sqrtl(source->left), sqrtl(source->right));
 }
 
 bool eqInterval(const Interval *const left, const Interval *const right,
