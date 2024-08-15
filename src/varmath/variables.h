@@ -4,7 +4,8 @@
 #include "interval.h"
 #include <stdlib.h>
 
-/* A vector of variables, each restricted to their own domain, as a linked list. */
+/* A vector of variables, each restricted to their own domain, as a linked list.
+ */
 typedef struct Domain {
   char *var;
   Interval domain;
