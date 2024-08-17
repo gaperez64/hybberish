@@ -322,13 +322,13 @@ int main(int argc, char *argv[]) {
 
   /* Test binary interval membership. */
   {
-    printf("\n=== binary subset (subset) ===\n");
+    printf("\n=== binary subset (subseq) ===\n");
     fflush(stdout);
 
     /* All intervals are closed, so should be contained in themselves. */
-    testBool(inInterval(&iNeg, &iNeg), true);
-    testBool(inInterval(&iOrig, &iOrig), true);
-    testBool(inInterval(&iPos, &iPos), true);
+    testBool(subeqInterval(&iNeg, &iNeg), true);
+    testBool(subeqInterval(&iOrig, &iOrig), true);
+    testBool(subeqInterval(&iPos, &iPos), true);
 
     /*
         iNeg  = [a, b]
@@ -338,12 +338,12 @@ int main(int argc, char *argv[]) {
         where a <= b,c,d,e <= f
     */
     Interval encompassing = newInterval(iNeg.left, iPos.right);
-    testBool(inInterval(&iNeg, &encompassing), true);
-    testBool(inInterval(&iOrig, &encompassing), true);
-    testBool(inInterval(&iPos, &encompassing), true);
-    testBool(inInterval(&encompassing, &iNeg), false);
-    testBool(inInterval(&encompassing, &iOrig), false);
-    testBool(inInterval(&encompassing, &iPos), false);
+    testBool(subeqInterval(&iNeg, &encompassing), true);
+    testBool(subeqInterval(&iOrig, &encompassing), true);
+    testBool(subeqInterval(&iPos, &encompassing), true);
+    testBool(subeqInterval(&encompassing, &iNeg), false);
+    testBool(subeqInterval(&encompassing, &iOrig), false);
+    testBool(subeqInterval(&encompassing, &iPos), false);
 
     /*
         iNeg  = [a, b]
@@ -357,8 +357,24 @@ int main(int argc, char *argv[]) {
         newInterval(iNeg.left - offset, (iNeg.left + iNeg.right) / 2.);
     Interval rightEncompassing =
         newInterval((iNeg.left + iNeg.right) / 2., iNeg.right + offset);
-    testBool(inInterval(&iNeg, &leftEncompassing), false);
-    testBool(inInterval(&iNeg, &rightEncompassing), false);
+    testBool(subeqInterval(&iNeg, &leftEncompassing), false);
+    testBool(subeqInterval(&iNeg, &rightEncompassing), false);
+  }
+
+  /* Test binary interval membership. */
+  {
+    printf("\n=== binary membership (elem of) ===\n");
+    fflush(stdout);
+
+    Interval i = newInterval(-1, 1);
+
+    testBool(elemInterval(-30.0, &i), false);
+    testBool(elemInterval(-1.00001, &i), false);
+    testBool(elemInterval(-1, &i), true);
+    testBool(elemInterval(0, &i), true);
+    testBool(elemInterval(1, &i), true);
+    testBool(elemInterval(1.00001, &i), false);
+    testBool(elemInterval(30.0, &i), false);
   }
 
   /* Test interval properties. */

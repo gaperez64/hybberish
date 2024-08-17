@@ -124,12 +124,19 @@ bool eqInterval(const Interval *const left, const Interval *const right,
          fabs(left->right - right->right) < epsilon;
 }
 
-bool inInterval(const Interval *const left, const Interval *const right) {
-  /* [a, b] in [c, d] iff. c <= a <= b <= d
+bool subeqInterval(const Interval *const left, const Interval *const right) {
+  /* [a, b] subseteq [c, d] iff. c <= a <= b <= d
     where a <= b is assumed by construction. */
   assert(left != NULL);
   assert(right != NULL);
   return right->left <= left->left && left->right <= right->right;
+}
+
+bool elemInterval(const double elem, const Interval *const source) {
+  /* x in [a, b] iff. a <= x <= b
+    where a <= b is assumed by construction. */
+  assert(source != NULL);
+  return source->left <= elem && elem <= source->right;
 }
 
 double intervalWidth(const Interval *const source) {

@@ -31,7 +31,8 @@ Interval pow2Interval(const Interval *const source,
                       const unsigned int exponent);
 bool eqInterval(const Interval *const left, const Interval *const right,
                 const double epsilon);
-bool inInterval(const Interval *const left, const Interval *const right);
+bool subeqInterval(const Interval *const left, const Interval *const right);
+bool elemInterval(const double elem, const Interval *const source);
 
 /*
   Properties of an Interval I = [a, b].
