@@ -172,7 +172,7 @@ ExpTree *truncateTerms(ExpTree *source, unsigned int k,
       if (collect)
         *collectedTerms = cpyExpTree(source);
       /* Pruning is equivalent with replacing by 0. */
-      return newExpLeaf(EXP_NUM, strdup("0"));
+      return newExpLeaf(EXP_NUM, "0");
     }
     return cpyExpTree(source);
   }
