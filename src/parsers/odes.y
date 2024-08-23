@@ -25,9 +25,9 @@
 }
 %token SCOLON LPAR RPAR UNKNOWN
 %token ADD SUB MUL DIV EXP EQUAL PRIME
-%token <str> NUMBER IDENT
+%token <str> FLOAT INTEGER IDENT
 %type <list> odelist odedef
-%type <tree> sumofprods prod factor term
+%type <tree> sumofprods prod factor number term
 
 %%
 
@@ -51,17 +51,21 @@ prod: factor           { $$ = $1; }
     | prod DIV factor  { $$ = newExpOp(EXP_DIV_OP, $1, $3); }
     ;
 
-factor: term             { $$ = $1; }
-      | SUB term         { $$ = newExpOp(EXP_NEG, $2, NULL); }
-      | term EXP NUMBER  { ExpTree *n = newExpLeaf(EXP_NUM, $3); 
-                           $$ = newExpOp(EXP_EXP_OP, $1, n); }
+factor: term              { $$ = $1; }
+      | SUB term          { $$ = newExpOp(EXP_NEG, $2, NULL); }
+      | term EXP INTEGER  { ExpTree *n = newExpLeaf(EXP_NUM, $3);
+                            $$ = newExpOp(EXP_EXP_OP, $1, n); }
       ;
 
-term: NUMBER                      { $$ = newExpLeaf(EXP_NUM, $1); }
+term: number                      { $$ = $1; }
     | IDENT                       { $$ = newExpLeaf(EXP_VAR, $1); }
     | IDENT LPAR sumofprods RPAR  { $$ = newExpTree(EXP_FUN, $1, $3, NULL); }
     | LPAR sumofprods RPAR        { $$ = $2; }
     ;
+
+number: FLOAT    { $$ = newExpLeaf(EXP_NUM, $1); }
+      | INTEGER  { $$ = newExpLeaf(EXP_NUM, $1); }
+      ;
 
 %%
 
