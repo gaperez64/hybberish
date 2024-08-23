@@ -62,6 +62,12 @@ t = executable('definite_integral_test', 'definite_integral_test.c',
                include_directories : fun_inc)
 test('test definite integral', t)
 
+t = executable('taylormodel_test', 'taylormodel_test.c',
+               link_with : [fun_lib, varmath_lib, sysode_lib, taylormodel_lib],
+               include_directories : [fun_inc, varmath_inc, taylormodel_inc],
+               )
+test('test taylor model interface', t)
+
 t = executable('varparse_test', 'varparse_test.c',
                link_with : [fun_lib, varmath_lib, varparse_lib],
                include_directories : [fun_inc, varmath_inc, odeparse_inc])
