@@ -39,6 +39,23 @@ TaylorModel *lieDerivativeTaylorModel(ODEList *system, TaylorModel *functions);
 /* Compute the Lie derivative of a function w.r.t. a vector field.  */
 ExpTree *lieDerivative(ODEList *vectorField, ExpTree *function);
 
+/* Apply the picard operator to the given functions w.r.t. the given ODEs.
+
+  This approach strictly integrates w.r.t. the variable t and over interval [0,
+  t].
+*/
+TaylorModel *picardOperator(ODEList *vectorField, TaylorModel *functions);
+/* Apply the TM extension of the picard operator to the given Taylor models
+  w.r.t. the given ODEs.
+
+  This approach strictly integrates w.r.t. the variable t and over interval [0,
+  t].
+*/
+TaylorModel *picardOperatorTM(ODEList *vectorField, TaylorModel *functions);
+/* Substitute each of the functions, w.r.t. their assigned variable, into all
+ * of the ODEs. */
+TaylorModel *substituteTaylorModel(ODEList *system, TaylorModel *functions);
+
 /* Construct the identity polynomial list.
 
   The identity polynomial matches each variable

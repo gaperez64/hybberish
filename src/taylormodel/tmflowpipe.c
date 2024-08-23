@@ -160,6 +160,120 @@ ExpTree *lieDerivative(ODEList *vectorField, ExpTree *function) {
   return lieDeriv;
 }
 
+TaylorModel *picardOperator(ODEList *vectorField, TaylorModel *functions) {
+  assert(vectorField != NULL);
+  assert(functions != NULL);
+
+  /* Pf(g) = x0 + integral_0^t ( f(g(s), s) ds )
+    Initialize the result to x0. */
+  TaylorModel *picard = initTaylorModel(vectorField);
+  TaylorModel *substitutedField = substituteTaylorModel(vectorField, functions);
+  ExpTree *zero = newExpLeaf(EXP_NUM, "0");
+  ExpTree *t = newExpLeaf(EXP_VAR, VAR_TIME);
+
+  TaylorModel *function = picard;
+  TaylorModel *substituted = substitutedField;
+
+  /* Compute the complete Picard operator equation for each function. */
+  while (function != NULL || substituted != NULL) {
+    /* Enforce equal length lists. */
+    assert((function != NULL) == (substituted != NULL));
+    /* Ensure the function ordering was not messed up. */
+    assert(strcmp(function->fun, substituted->fun) == 0);
+
+    /* x0 + integral_0^t (f(g(t), t) dt) */
+    ExpTree *x0 = function->exp;
+    ExpTree *fg = cpyExpTree(substituted->exp);
+    ExpTree *add =
+        newExpOp(EXP_ADD_OP, x0, definiteIntegral(fg, VAR_TIME, zero, t));
+    function->exp = add;
+
+    function = function->next;
+    substituted = substituted->next;
+  }
+
+  /* Clean */
+  delTaylorModel(substitutedField);
+  delExpTree(zero);
+  delExpTree(t);
+  return picard;
+}
+
+TaylorModel *picardOperatorTM(ODEList *vectorField, TaylorModel *functions) {
+  assert(vectorField != NULL);
+  assert(functions != NULL);
+
+  // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED
+  // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED
+  // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED
+  // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED
+
+  /* Pf(g) = x0 + integral_0^t ( f(g(s), s) ds )
+    Initialize the result to x0. */
+  TaylorModel *picard = initTaylorModel(vectorField);
+  TaylorModel *substitutedField = substituteTaylorModel(vectorField, functions);
+  ExpTree *zero = newExpLeaf(EXP_NUM, "0");
+  ExpTree *t = newExpLeaf(EXP_VAR, VAR_TIME);
+
+  TaylorModel *function = picard;
+  TaylorModel *substituted = substitutedField;
+
+  /* Compute the complete Picard operator equation for each function. */
+  while (function != NULL || substituted != NULL) {
+    /* Enforce equal length lists. */
+    assert((function != NULL) == (substituted != NULL));
+    /* Ensure the function ordering was not messed up. */
+    assert(strcmp(function->fun, substituted->fun) == 0);
+
+    /* x0 + integral_0^t (f(g(t), t) dt) */
+    ExpTree *x0 = function->exp;
+    ExpTree *fg = cpyExpTree(substituted->exp);
+    ExpTree *add =
+        newExpOp(EXP_ADD_OP, x0, definiteIntegral(fg, VAR_TIME, zero, t));
+    function->exp = add;
+
+    function = function->next;
+    substituted = substituted->next;
+  }
+
+  /* Clean */
+  delTaylorModel(substitutedField);
+  delExpTree(zero);
+  delExpTree(t);
+  return picard;
+}
+
+TaylorModel *substituteTaylorModel(ODEList *system, TaylorModel *functions) {
+  assert(system != NULL);
+  assert(functions != NULL);
+
+  ExpTree *substituted = NULL;
+  TaylorModel *function = functions;
+  /* Substitute all functions into the current system. */
+  while (function != NULL) {
+    ExpTree *source = substituted ? substituted : system->exp;
+    substituted = substitute(source, function->fun, function->exp);
+
+    /* Delete the old/intermediate tree, which always exists after the first
+     * iteration. */
+    if (source != system->exp)
+      delExpTree(source);
+
+    function = function->next;
+  }
+
+  char *fun = strdup(system->fun);
+  Interval remainder = newInterval(0, 0);
+  /* Base case: The tail/next of the last element is NULL. */
+  if (system->next == NULL)
+    return newTMElem(NULL, fun, substituted, remainder);
+  /* Recursive case: The tail of the new element is everything built until now.
+   */
+  else
+    return newTMElem(substituteTaylorModel(system->next, functions), fun,
+                     substituted, remainder);
+}
+
 TaylorModel *initTaylorModel(ODEList *system) {
   /* Base case: The tail/next of the last element is NULL. */
   if (system == NULL)
@@ -168,7 +282,7 @@ TaylorModel *initTaylorModel(ODEList *system) {
   /* Recursive case: The tail of the new element is everything built until now.
    */
   char *fun = strdup(system->fun);
-  ExpTree *exp = newExpLeaf(EXP_VAR, strdup(system->fun));
+  ExpTree *exp = newExpLeaf(EXP_VAR, system->fun);
   Interval remainder = newInterval(0, 0);
   return newTMElem(initTaylorModel(system->next), fun, exp, remainder);
 }
