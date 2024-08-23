@@ -62,6 +62,16 @@ t = executable('definite_integral_test', 'definite_integral_test.c',
                include_directories : fun_inc)
 test('test definite integral', t)
 
+t = executable('tmflowpipe_test', 'tmflowpipe_test.c',
+               link_with : [fun_lib, varmath_lib, sysode_lib, taylormodel_lib],
+               include_directories : [fun_inc, varmath_inc, sysode_inc, taylormodel_inc],
+               # IMPORTANT: math functions (floor, ceil, ...)
+               # may require explicit linkage to the C math
+               # library via the '-lm' gcc flag
+               link_args : ['-lm'],
+               )
+test('test taylor model flowpipe overapprox computations', t)
+
 t = executable('taylormodel_test', 'taylormodel_test.c',
                link_with : [fun_lib, varmath_lib, sysode_lib, taylormodel_lib],
                include_directories : [fun_inc, varmath_inc, taylormodel_inc],
