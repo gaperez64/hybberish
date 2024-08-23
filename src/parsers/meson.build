@@ -20,3 +20,10 @@ odeparse_lib = library('odeparse',
                         pgen.process('odes.y')],
                        link_with : [fun_lib, sysode_lib],
                        include_directories : [fun_inc, sysode_inc])
+
+# variable valuation parsing library
+varparse_lib = library('varparse',
+                       [lgen.process('vars.l'),
+                        pgen.process('vars.y')],
+                       link_with : [fun_lib, varmath_lib],
+                       include_directories : [fun_inc, varmath_inc])
