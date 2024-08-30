@@ -668,34 +668,31 @@ TaylorModel *negTM(const TaylorModel *const list, const Domain *const variables,
 
 TaylorModel *powTM(const TaylorModel *const left, const unsigned int right,
                    const Domain *const variables, const unsigned int k) {
-  /* Base case: The tail/next of the last element is NULL. */
+  /* Consistency with other TM arithmetic: NULL^k = NULL. */
   if (left == NULL)
     return NULL;
 
-  assert(left->fun != NULL);
+  /* For simplicity, disallow 0 exponent. */
+  assert(right > 0);
 
-  /* Recursive case: The tail of the new element is everything built until now.
-    (p, I)^n = (p^n, Int(p) + I) */
-  char *fun = strdup(left->fun);
+  /* Unroll the integer exponent into successive multiplications.
+    (p, I)^n = (p, I) * ... * (p, I) */
+  TaylorModel *binaryOp = (TaylorModel *) left;
+  for (unsigned int it = 1; it < right; ++it) {
+    TaylorModel *intermediate = mulTM(left, binaryOp, variables, k);
 
-  // TODO: implement
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // TODO: implement
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ExpTree *exp;
-  Interval remainder;
-  // TODO: implement
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // TODO: implement
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    /* Clean: delete, except the first (input) and last (output) iteration. */
+    if (1 < it && it < (right - 1))
+      delTaylorModel(binaryOp);
 
-  TaylorModel *binaryOp = newTaylorModel(fun, exp, remainder);
+    binaryOp = intermediate;
+  }
   TaylorModel *truncated = truncateTM(binaryOp, variables, k);
 
   /* Clean */
   delTaylorModel(binaryOp);
 
-  return appTMElem(powTM(left->next, right, variables, k), truncated);
+  return truncated;
 }
 
 TaylorModel *intTM(const TaylorModel *const list,

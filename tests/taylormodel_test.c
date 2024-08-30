@@ -440,6 +440,87 @@ int main(int argc, char *argv[]) {
       delTaylorModel(expected);
     }
   }
+
+  {
+    const unsigned int tmOrder = 4;
+
+    printf("### Taylor model binary EXP (^); TM order k = %i ###\n", tmOrder);
+    fflush(stdout);
+
+    /* Test two cases:
+      1) Terms do NOT get truncated for the first TM element
+          (x + 1)^3
+      =>  (x*x*x + x*x + x*x + x) + (x^2 + x + x + 1)
+      2) Terms DO get truncated for the second TM element:
+          (x + y)^3
+      =>  (x + y)*(x + y)*(x + y)
+      =>  (x*x + x*y + y*x + y*y)*(x + y)
+      =>  (x*x*x + x*x*y + x*y*x + x*y*y) + (y*x*x + y*x*y + y*y*x + y*y*y)
+    */
+    {
+      /*  */
+      ExpTree *xP1 = newExpOp(EXP_ADD_OP, cpyExpTree(x), cpyExpTree(one));
+      ExpTree *xPy = newExpOp(EXP_ADD_OP, cpyExpTree(x), cpyExpTree(y));
+
+      TaylorModel *tmpow = newTMElem(NULL, strdup(y->data), xPy, I12);
+      tmpow = newTMElem(tmpow, strdup(x->data), xP1, I11);
+
+      /* ((((x * (x * x)) + (x * (x * 1))) + ((x * (1 * x)) + (x * (1 * 1)))) +
+        (((1 * (x * x)) + (1 * (x * 1))) + ((1 * (1 * x)) + (1 * (1 * 1))))) */
+      ExpTree *xTxTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x)));
+      ExpTree *xTxTo = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(one)));
+      ExpTree *xToTo = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one)));
+      ExpTree *oToTo = newExpOp(EXP_MUL_OP, cpyExpTree(one), newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one)));
+      ExpTree *oToTx = newExpOp(EXP_MUL_OP, cpyExpTree(one), newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(x)));
+      ExpTree *oTxTx = newExpOp(EXP_MUL_OP, cpyExpTree(one), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x)));
+      ExpTree *xToTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(x)));
+      ExpTree *oTxTo = newExpOp(EXP_MUL_OP, cpyExpTree(one), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(one)));
+      ExpTree *add1x = newExpOp(EXP_ADD_OP, xTxTx, xTxTo);
+      ExpTree *add2x = newExpOp(EXP_ADD_OP, xToTx, xToTo);
+      ExpTree *add3x = newExpOp(EXP_ADD_OP, add1x, add2x);
+      ExpTree *add4x = newExpOp(EXP_ADD_OP, oTxTx, oTxTo);
+      ExpTree *add5x = newExpOp(EXP_ADD_OP, oToTx, oToTo);
+      ExpTree *add6x = newExpOp(EXP_ADD_OP, add4x, add5x);
+      ExpTree *mulx = newExpOp(EXP_ADD_OP, add3x, add6x);
+
+      /* ((((x * (x * x)) + (x * (x * y))) + ((x * (y * x)) + (x * (y * y)))) +
+        (((y * (x * x)) + (y * (x * y))) + ((y * (y * x)) + (y * (y * y))))) */
+      ExpTree *xTxTy = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(y)));
+      ExpTree *xTyTy = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(y)));
+      ExpTree *yTyTy = newExpOp(EXP_MUL_OP, cpyExpTree(y), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(y)));
+      ExpTree *yTyTx = newExpOp(EXP_MUL_OP, cpyExpTree(y), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(x)));
+      ExpTree *yTxTx = newExpOp(EXP_MUL_OP, cpyExpTree(y), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x)));
+      ExpTree *xTyTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(x)));
+      ExpTree *yTxTy = newExpOp(EXP_MUL_OP, cpyExpTree(y), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(y)));
+      ExpTree *add1y = newExpOp(EXP_ADD_OP, cpyExpTree(xTxTx), xTxTy);
+      ExpTree *add2y = newExpOp(EXP_ADD_OP, xTyTx, xTyTy);
+      ExpTree *add3y = newExpOp(EXP_ADD_OP, add1y, add2y);
+      ExpTree *add4y = newExpOp(EXP_ADD_OP, yTxTx, yTxTy);
+      ExpTree *add5y = newExpOp(EXP_ADD_OP, yTyTx, yTyTy);
+      ExpTree *add6y = newExpOp(EXP_ADD_OP, add4y, add5y);
+      ExpTree *muly = newExpOp(EXP_ADD_OP, add3y, add6y);
+
+
+      Interval remx = newInterval(-2.791000, 2.791000);
+      Interval remy = newInterval(-10.981000, 10.981000);
+
+      /* Compose the Taylor model expected as output. */
+      TaylorModel *expected =
+          newTMElem(NULL, strdup(tm1->next->fun), muly, remy);
+      expected = newTMElem(expected, strdup(tm1->fun), mulx, remx);
+
+      /* Compute and test results. */
+      TaylorModel *binop = powTM(tmpow, 3, domains, tmOrder);
+      // printTaylorModel(tmpow, stdout); printf("\n"); fflush(stdout);
+      // printTaylorModel(binop, stdout); printf("\n"); fflush(stdout);
+      testTaylorModel(binop, expected, epsilon);
+
+      /* Clean */
+      delTaylorModel(binop);
+      delTaylorModel(expected);
+    }
+  }
+
   {
     const unsigned int tmOrder = 2;
 
