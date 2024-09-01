@@ -26,8 +26,27 @@ typedef struct ExpTree {
   struct ExpTree *right;
 } ExpTree;
 
-ExpTree *newExpLeaf(ExpType, char *);
+/* Construct a new leaf node.
+
+  Internally duplicate the given name/data.
+  Does NOT transfer ownership of any arguments to the newly created instance.
+  Leaves have functional use for their data. So moving the string duplication
+  to the 'constructor' internals simplifies most calls to this function.
+*/
+ExpTree *newExpLeaf(const ExpType, const char *const);
+
+/* Construct an internal, operator node.
+
+  All pointer arguments must be heap allocated or NULL.
+  Transfers ownership of all allocated arguments to the newly created instance.
+*/
 ExpTree *newExpOp(ExpType, ExpTree *, ExpTree *);
+
+/* Allocate and compose a new expression tree.
+
+  All pointer arguments must be heap allocated or NULL.
+  Transfers ownership of all allocated arguments to the newly created instance.
+*/
 ExpTree *newExpTree(ExpType, char *, ExpTree *, ExpTree *);
 void delExpTree(ExpTree *);
 void printExpTree(ExpTree *, FILE *);

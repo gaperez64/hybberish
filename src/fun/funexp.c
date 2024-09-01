@@ -7,10 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-ExpTree *newExpLeaf(ExpType type, char *name) {
+ExpTree *newExpLeaf(const ExpType type, const char *const name) {
+  /* Leaves are fully dependent on their data, so it must be specified. */
+  assert(name != NULL);
+
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
-  tree->data = name;
-  // test code
   tree->data = strdup(name);
   tree->type = type;
   switch (type) {
@@ -36,7 +37,6 @@ ExpTree *newExpOp(ExpType type, ExpTree *left, ExpTree *right) {
 ExpTree *newExpTree(ExpType type, char *name, ExpTree *left, ExpTree *right) {
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
   tree->data = name;
-  // tree->data = NULL;
   tree->type = type;
   switch (type) {
   /* binary operators */
