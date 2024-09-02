@@ -45,9 +45,8 @@ TaylorModel *computeTaylorPolynomial(ODEList *system, unsigned int order,
       ExpTree *fac = newExpOp(EXP_DIV_OP, newExpLeaf(EXP_NUM, "1"),
                               newExpLeaf(EXP_NUM, factorialStr));
       /* t^i */
-      ExpTree *tPow =
-          newExpOp(EXP_EXP_OP, newExpLeaf(EXP_VAR, strdup(VAR_TIME)),
-                   newExpLeaf(EXP_NUM, indexStr));
+      ExpTree *tPow = newExpOp(EXP_EXP_OP, newExpLeaf(EXP_VAR, VAR_TIME),
+                               newExpLeaf(EXP_NUM, indexStr));
       /* 1/i! * L^i(g) * t^i   where L^i(g) is the order i Lie derivative of
        * function g. */
       ExpTree *polyElement =
@@ -85,13 +84,9 @@ TaylorModel *lieDerivativeK(ODEList *system, TaylorModel *functions,
     TaylorModel *old = ithLieDerivative;
     ithLieDerivative = lieDerivativeTaylorModel(system, ithLieDerivative);
 
-    /* Cleanup: free intermediate derivative results;
-      do not free at idx=0 since that is the input,
-      and do not free at idx=order-1 since that is
-      the output. */
-    if (index > 0 && index < (order - 1)) {
+    /* Cleanup: idx = 0 is the input, other intermediates may be deleted. */
+    if (index > 0)
       delTaylorModel(old);
-    }
   }
 
   return ithLieDerivative;
@@ -183,7 +178,7 @@ TaylorModel *picardOperator(ODEList *vectorField, TaylorModel *functions) {
 
     /* x0 + integral_0^t (f(g(t), t) dt) */
     ExpTree *x0 = function->exp;
-    ExpTree *fg = cpyExpTree(substituted->exp);
+    ExpTree *fg = substituted->exp;
     ExpTree *add =
         newExpOp(EXP_ADD_OP, x0, definiteIntegral(fg, VAR_TIME, zero, t));
     function->exp = add;

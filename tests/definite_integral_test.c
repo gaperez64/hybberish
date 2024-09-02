@@ -24,6 +24,9 @@ void test_integral(ExpTree *expr, char *var, ExpTree *expected,
   printf("Equal:  %i\n\n", compare);
   fflush(stdout); // Flush stdout
   assert(compare);
+
+  /* Clean. */
+  delExpTree(integral_expr);
 }
 
 int main(int argc, char *argv[]) {
@@ -32,16 +35,16 @@ int main(int argc, char *argv[]) {
   (void)argv;
 
   /* Construct common leaves */
-  ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
-  ExpTree *y = newExpLeaf(EXP_VAR, strdup("y"));
-  ExpTree *a = newExpLeaf(EXP_VAR, strdup("a"));
-  ExpTree *b = newExpLeaf(EXP_VAR, strdup("b"));
-  ExpTree *half = newExpLeaf(EXP_NUM, strdup("0.5"));
-  ExpTree *one = newExpLeaf(EXP_NUM, strdup("1"));
-  ExpTree *two = newExpLeaf(EXP_NUM, strdup("2"));
-  ExpTree *three = newExpLeaf(EXP_NUM, strdup("3"));
-  ExpTree *four = newExpLeaf(EXP_NUM, strdup("4"));
-  ExpTree *five = newExpLeaf(EXP_NUM, strdup("5"));
+  ExpTree *x = newExpLeaf(EXP_VAR, "x");
+  ExpTree *y = newExpLeaf(EXP_VAR, "y");
+  ExpTree *a = newExpLeaf(EXP_VAR, "a");
+  ExpTree *b = newExpLeaf(EXP_VAR, "b");
+  ExpTree *half = newExpLeaf(EXP_NUM, "0.5");
+  ExpTree *one = newExpLeaf(EXP_NUM, "1");
+  ExpTree *two = newExpLeaf(EXP_NUM, "2");
+  ExpTree *three = newExpLeaf(EXP_NUM, "3");
+  ExpTree *four = newExpLeaf(EXP_NUM, "4");
+  ExpTree *five = newExpLeaf(EXP_NUM, "5");
 
   /* integral of a constant */
   {
@@ -69,7 +72,7 @@ int main(int argc, char *argv[]) {
   {
     // TODO: "xNum"; The variables that are not integrated towards are converted
     // from EXP_VAR to EXP_NUM???
-    ExpTree *xNum = newExpLeaf(EXP_NUM, strdup("x"));
+    ExpTree *xNum = newExpLeaf(EXP_NUM, "x");
 
     ExpTree *mula = newExpOp(EXP_MUL_OP, cpyExpTree(xNum), cpyExpTree(a));
     ExpTree *mulb = newExpOp(EXP_MUL_OP, cpyExpTree(xNum), cpyExpTree(b));

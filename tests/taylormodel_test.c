@@ -88,12 +88,12 @@ int main(int argc, char *argv[]) {
 
   const float epsilon = 0.0001;
 
-  ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
-  ExpTree *y = newExpLeaf(EXP_VAR, strdup("y"));
-  ExpTree *z = newExpLeaf(EXP_VAR, strdup("z"));
-  ExpTree *zero = newExpLeaf(EXP_NUM, strdup("0"));
-  ExpTree *one = newExpLeaf(EXP_NUM, strdup("1"));
-  ExpTree *two = newExpLeaf(EXP_NUM, strdup("2"));
+  ExpTree *x = newExpLeaf(EXP_VAR, "x");
+  ExpTree *y = newExpLeaf(EXP_VAR, "y");
+  ExpTree *z = newExpLeaf(EXP_VAR, "z");
+  ExpTree *zero = newExpLeaf(EXP_NUM, "0");
+  ExpTree *one = newExpLeaf(EXP_NUM, "1");
+  ExpTree *two = newExpLeaf(EXP_NUM, "2");
 
   const Interval I11 = newInterval(-0.1, 0.1);
   const Interval I12 = newInterval(-0.1, 0.1);
@@ -123,19 +123,19 @@ int main(int argc, char *argv[]) {
   Domain *domx = newDomainElem(domy, strdup("x"), newInterval(1, 2));
   Domain *domains = domx;
 
-  printf("\n=== Test values ===\n");
-  printf("TM1:   ");
-  printTaylorModel(tm1, stdout);
-  printf("\n");
-  fflush(stdout);
-  printf("TM2:   ");
-  printTaylorModel(tm2, stdout);
-  printf("\n");
-  fflush(stdout);
-  printf("vars:  ");
-  printDomain(domains, stdout);
-  printf("\n");
-  fflush(stdout);
+  // printf("\n=== Test values ===\n");
+  // printf("TM1:   ");
+  // printTaylorModel(tm1, stdout);
+  // printf("\n");
+  // fflush(stdout);
+  // printf("TM2:   ");
+  // printTaylorModel(tm2, stdout);
+  // printf("\n");
+  // fflush(stdout);
+  // printf("vars:  ");
+  // printDomain(domains, stdout);
+  // printf("\n");
+  // fflush(stdout);
 
   /* Test constructor and destructor. */
   {
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
 
     char *fun1 = "x";
-    ExpTree *exp1 = newExpLeaf(EXP_VAR, strdup(fun1));
+    ExpTree *exp1 = newExpLeaf(EXP_VAR, fun1);
     Interval remainder1 = newInterval(1, 2);
     TaylorModel *newTM1 = newTaylorModel(strdup(fun1), exp1, remainder1);
     assert(strcmp(fun1, newTM1->fun) == 0);
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
     assert(newTM1->next == NULL);
 
     char *fun2 = "y";
-    ExpTree *exp2 = newExpLeaf(EXP_VAR, strdup(fun2));
+    ExpTree *exp2 = newExpLeaf(EXP_VAR, fun2);
     Interval remainder2 = newInterval(2, 3);
     TaylorModel *newTM2 = newTMElem(newTM1, strdup(fun2), exp2, remainder2);
     assert(strcmp(fun2, newTM2->fun) == 0);
@@ -186,12 +186,12 @@ int main(int argc, char *argv[]) {
 
     /* Construct test values */
     char *fun1 = "x";
-    ExpTree *exp1 = newExpLeaf(EXP_VAR, strdup(fun1));
+    ExpTree *exp1 = newExpLeaf(EXP_VAR, fun1);
     Interval remainder1 = newInterval(1, 2);
     TaylorModel *newTM1 = newTaylorModel(strdup(fun1), exp1, remainder1);
 
     char *fun2 = "y";
-    ExpTree *exp2 = newExpLeaf(EXP_VAR, strdup(fun2));
+    ExpTree *exp2 = newExpLeaf(EXP_VAR, fun2);
     Interval remainder2 = newInterval(2, 3);
     TaylorModel *newTM2 = newTMElem(newTM1, strdup(fun2), exp2, remainder2);
 
@@ -467,14 +467,30 @@ int main(int argc, char *argv[]) {
 
       /* ((((x * (x * x)) + (x * (x * 1))) + ((x * (1 * x)) + (x * (1 * 1)))) +
         (((1 * (x * x)) + (1 * (x * 1))) + ((1 * (1 * x)) + (1 * (1 * 1))))) */
-      ExpTree *xTxTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x)));
-      ExpTree *xTxTo = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(one)));
-      ExpTree *xToTo = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one)));
-      ExpTree *oToTo = newExpOp(EXP_MUL_OP, cpyExpTree(one), newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one)));
-      ExpTree *oToTx = newExpOp(EXP_MUL_OP, cpyExpTree(one), newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(x)));
-      ExpTree *oTxTx = newExpOp(EXP_MUL_OP, cpyExpTree(one), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x)));
-      ExpTree *xToTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(x)));
-      ExpTree *oTxTo = newExpOp(EXP_MUL_OP, cpyExpTree(one), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(one)));
+      ExpTree *xTxTx =
+          newExpOp(EXP_MUL_OP, cpyExpTree(x),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x)));
+      ExpTree *xTxTo =
+          newExpOp(EXP_MUL_OP, cpyExpTree(x),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(one)));
+      ExpTree *xToTo =
+          newExpOp(EXP_MUL_OP, cpyExpTree(x),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one)));
+      ExpTree *oToTo =
+          newExpOp(EXP_MUL_OP, cpyExpTree(one),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one)));
+      ExpTree *oToTx =
+          newExpOp(EXP_MUL_OP, cpyExpTree(one),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(x)));
+      ExpTree *oTxTx =
+          newExpOp(EXP_MUL_OP, cpyExpTree(one),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x)));
+      ExpTree *xToTx =
+          newExpOp(EXP_MUL_OP, cpyExpTree(x),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(x)));
+      ExpTree *oTxTo =
+          newExpOp(EXP_MUL_OP, cpyExpTree(one),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(one)));
       ExpTree *add1x = newExpOp(EXP_ADD_OP, xTxTx, xTxTo);
       ExpTree *add2x = newExpOp(EXP_ADD_OP, xToTx, xToTo);
       ExpTree *add3x = newExpOp(EXP_ADD_OP, add1x, add2x);
@@ -485,13 +501,27 @@ int main(int argc, char *argv[]) {
 
       /* ((((x * (x * x)) + (x * (x * y))) + ((x * (y * x)) + (x * (y * y)))) +
         (((y * (x * x)) + (y * (x * y))) + ((y * (y * x)) + (y * (y * y))))) */
-      ExpTree *xTxTy = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(y)));
-      ExpTree *xTyTy = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(y)));
-      ExpTree *yTyTy = newExpOp(EXP_MUL_OP, cpyExpTree(y), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(y)));
-      ExpTree *yTyTx = newExpOp(EXP_MUL_OP, cpyExpTree(y), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(x)));
-      ExpTree *yTxTx = newExpOp(EXP_MUL_OP, cpyExpTree(y), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x)));
-      ExpTree *xTyTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(x)));
-      ExpTree *yTxTy = newExpOp(EXP_MUL_OP, cpyExpTree(y), newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(y)));
+      ExpTree *xTxTy =
+          newExpOp(EXP_MUL_OP, cpyExpTree(x),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(y)));
+      ExpTree *xTyTy =
+          newExpOp(EXP_MUL_OP, cpyExpTree(x),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(y)));
+      ExpTree *yTyTy =
+          newExpOp(EXP_MUL_OP, cpyExpTree(y),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(y)));
+      ExpTree *yTyTx =
+          newExpOp(EXP_MUL_OP, cpyExpTree(y),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(x)));
+      ExpTree *yTxTx =
+          newExpOp(EXP_MUL_OP, cpyExpTree(y),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x)));
+      ExpTree *xTyTx =
+          newExpOp(EXP_MUL_OP, cpyExpTree(x),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(x)));
+      ExpTree *yTxTy =
+          newExpOp(EXP_MUL_OP, cpyExpTree(y),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(y)));
       ExpTree *add1y = newExpOp(EXP_ADD_OP, cpyExpTree(xTxTx), xTxTy);
       ExpTree *add2y = newExpOp(EXP_ADD_OP, xTyTx, xTyTy);
       ExpTree *add3y = newExpOp(EXP_ADD_OP, add1y, add2y);
@@ -499,7 +529,6 @@ int main(int argc, char *argv[]) {
       ExpTree *add5y = newExpOp(EXP_ADD_OP, yTyTx, yTyTy);
       ExpTree *add6y = newExpOp(EXP_ADD_OP, add4y, add5y);
       ExpTree *muly = newExpOp(EXP_ADD_OP, add3y, add6y);
-
 
       Interval remx = newInterval(-2.791000, 2.791000);
       Interval remy = newInterval(-10.981000, 10.981000);
@@ -511,18 +540,17 @@ int main(int argc, char *argv[]) {
 
       /* Compute and test results. */
       TaylorModel *binop = powTM(tmpow, 3, domains, tmOrder);
-      // printTaylorModel(tmpow, stdout); printf("\n"); fflush(stdout);
-      // printTaylorModel(binop, stdout); printf("\n"); fflush(stdout);
       testTaylorModel(binop, expected, epsilon);
 
       /* Clean */
+      delTaylorModel(tmpow);
       delTaylorModel(binop);
       delTaylorModel(expected);
     }
   }
 
   {
-    const unsigned int tmOrder = 2;
+    const unsigned int tmOrder = 5;
 
     printf("### Taylor model binary DIV (/); TM order k = %i ###\n", tmOrder);
     fflush(stdout);
@@ -547,8 +575,11 @@ int main(int argc, char *argv[]) {
       // TODO: Implement test properly !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       /* Compute and test results. */
+      printf("@@@ B\n");
+      fflush(stdout);
       // TaylorModel *binop = divTM(tm1, tm2, domains, tmOrder);
-      // testTaylorModel(binop, expected, epsilon);
+      // printf("@@@ E "); printTaylorModel(binop, stdout); printf("\n");
+      // fflush(stdout); testTaylorModel(binop, expected, epsilon);
       // delTaylorModel(binop);
 
       /* Clean */
@@ -574,13 +605,19 @@ int main(int argc, char *argv[]) {
     TaylorModel *tms = tmx;
 
     /* -(((x + y) / (x * x)) - (z^2 + 1)) */
-    ExpTree *xPy = newExpOp(EXP_ADD_OP, cpyExpTree(x), cpyExpTree(y));
-    ExpTree *xTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x));
-    ExpTree *div = newExpOp(EXP_DIV_OP, xPy, xTx);
-    ExpTree *z2 = newExpOp(EXP_EXP_OP, cpyExpTree(z), cpyExpTree(two));
-    ExpTree *z2P1 = newExpOp(EXP_ADD_OP, z2, cpyExpTree(one));
-    ExpTree *sub = newExpOp(EXP_SUB_OP, div, z2P1);
-    ExpTree *exp = newExpOp(EXP_NEG, sub, NULL);
+    ExpTree *xPy;
+    ExpTree *xTx;
+    ExpTree *div;
+    ExpTree *z2P1;
+    ExpTree *sub;
+    ExpTree *exp;
+    // xPy = newExpOp(EXP_ADD_OP, cpyExpTree(x), cpyExpTree(y));
+    // xTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(x));
+    // div = newExpOp(EXP_DIV_OP, xPy, xTx);
+    // ExpTree *z2 = newExpOp(EXP_EXP_OP, cpyExpTree(z), cpyExpTree(two));
+    // z2P1 = newExpOp(EXP_ADD_OP, z2, cpyExpTree(one));
+    // sub = newExpOp(EXP_SUB_OP, div, z2P1);
+    // exp = newExpOp(EXP_NEG, sub, NULL);
 
     // TODO: \/\/\/ Use the previous, more complete expression once eval/TM
     // arithmetic is implemented more fully!!!!
@@ -667,6 +704,8 @@ int main(int argc, char *argv[]) {
     /* Clean */
     delExpTree(exp);
     delTaylorModel(res);
+    delTaylorModel(tms);
+    delTaylorModel(expected);
   }
 
   /* Clean */

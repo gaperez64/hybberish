@@ -112,6 +112,12 @@ ExpTree *truncateTerms(ExpTree *source, unsigned int k,
   /* Enforce preconditions */
   assert(source != NULL);
   assert(k > 0);
+  /* If truncated terms must be propagated up, then the destination must exist
+    AND be empty (NULL). */
+  if (collect) {
+    assert(collectedTerms != NULL);
+    assert((*collectedTerms) == NULL);
+  }
 
   switch (source->type) {
   case EXP_ADD_OP:
@@ -168,7 +174,8 @@ ExpTree *truncateTerms(ExpTree *source, unsigned int k,
     for which to compute a degree and optionally prune. */
   default: {
     if (degreeMonomial(source) > k) {
-      /* If required, push up the pruned term. */
+      /* If required, push up the pruned term.
+        Note: the output ptr is always NULL, so this must not be verified. */
       if (collect)
         *collectedTerms = cpyExpTree(source);
       /* Pruning is equivalent with replacing by 0. */

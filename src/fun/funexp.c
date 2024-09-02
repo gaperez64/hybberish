@@ -248,19 +248,15 @@ ExpTree *derivative(ExpTree *expr, char *var) {
     /* Convert exponent from string to number */
     double exponent_val = atof(exponent->data);
 
-    /* Derivative of exponent */
-    ExpTree *exponent_minus_one =
-        newExpOp(EXP_SUB_OP, exponent, newExpLeaf(EXP_NUM, "1"));
-    ExpTree *exponent_derivative =
-        newExpOp(EXP_MUL_OP, exponent, base_derivative);
-    ExpTree *exponent_term = newExpOp(EXP_EXP_OP, base, exponent_minus_one);
-
     /* Convert (number - 1) back to a string */
     char exponent_str[50];
     snprintf(exponent_str, sizeof(exponent_str), "%.15g", exponent_val - 1);
 
-    /* Replace original exponent with new string exponent */
-    exponent_term->right = newExpLeaf(EXP_NUM, exponent_str);
+    /* Derivative of exponent */
+    ExpTree *exponent_derivative =
+        newExpOp(EXP_MUL_OP, exponent, base_derivative);
+    ExpTree *exponent_term =
+        newExpOp(EXP_EXP_OP, base, newExpLeaf(EXP_NUM, exponent_str));
 
     /* Final derivative result */
     ExpTree *final_derivative =
@@ -275,6 +271,8 @@ ExpTree *derivative(ExpTree *expr, char *var) {
       function_name[i] = tolower(function_name[i]);
     }
 
+    ExpTree *derivative_result = NULL;
+
     if (strcmp(function_name, "sin") == 0) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
@@ -282,10 +280,7 @@ ExpTree *derivative(ExpTree *expr, char *var) {
       /* Derivative of sine */
       ExpTree *cos_func =
           newExpTree(EXP_FUN, strdup("cos"), cpyExpTree(arg), NULL);
-      ExpTree *derivative_result = newExpOp(EXP_MUL_OP, cpyExpTree(cos_func),
-                                            cpyExpTree(arg_derivative));
-
-      return derivative_result;
+      derivative_result = newExpOp(EXP_MUL_OP, cos_func, arg_derivative);
     } else if (strcmp(function_name, "cos") == 0) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
@@ -293,30 +288,33 @@ ExpTree *derivative(ExpTree *expr, char *var) {
       /* Derivative of cosine */
       ExpTree *neg_sin_func =
           newExpTree(EXP_FUN, strdup("sin"), cpyExpTree(arg), NULL);
-      ExpTree *derivative_result =
+      derivative_result =
           newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
-                   newExpOp(EXP_MUL_OP, cpyExpTree(neg_sin_func),
-                            cpyExpTree(arg_derivative)));
-      return derivative_result;
+                   newExpOp(EXP_MUL_OP, neg_sin_func, arg_derivative));
     } else if (strcmp(function_name, "sqrt") == 0) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
 
       /* Derivative of sqrt */
       ExpTree *half = newExpLeaf(EXP_NUM, "0.5");
-      ExpTree *sqrt_derivative = newExpOp(
+      derivative_result = newExpOp(
           EXP_MUL_OP, half,
-          newExpOp(EXP_DIV_OP, cpyExpTree(arg_derivative),
+          newExpOp(EXP_DIV_OP, arg_derivative,
                    newExpTree(EXP_FUN, strdup("sqrt"), cpyExpTree(arg), NULL)));
-
-      return sqrt_derivative;
     }
+
+    /* Clean. */
+    free(function_name);
+
+    return derivative_result;
+
+  }
+
 
   /* more cases for other operators */
   default:
     assert(false);
     return NULL;
-  }
   }
 }
 
@@ -388,12 +386,13 @@ ExpTree *integral(ExpTree *expr, char *var) {
       function_name[i] = tolower(function_name[i]);
     }
 
+    ExpTree *integral_result = NULL;
+
     if (strcmp(function_name, "sin(x)") == 0) {
       /* Handle integral of sin(x) */
-      ExpTree *integral_result = newExpOp(
+      integral_result = newExpOp(
           EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
           newExpTree(EXP_FUN, strdup("cos"), newExpLeaf(EXP_VAR, var), NULL));
-      return integral_result;
     } else if (strstr(expr->data, "sin(") != NULL &&
                strstr(expr->data, "x)") != NULL) {
       char *n_str = strdup(expr->data + 4);
@@ -405,17 +404,15 @@ ExpTree *integral(ExpTree *expr, char *var) {
         /* Handle integral of sin(nx) */
         char result_str[50];
         snprintf(result_str, sizeof(result_str), "(-1/%.1f)*cos(%.1f)", n, n);
-        ExpTree *integral_result = newExpTree(EXP_FUN, strdup(result_str),
-                                              newExpLeaf(EXP_VAR, var), NULL);
+        integral_result = newExpTree(EXP_FUN, strdup(result_str),
+                                     newExpLeaf(EXP_VAR, var), NULL);
         free(n_str);
-        return integral_result;
       }
     } else if (strcmp(function_name, "cos(x)") == 0) {
       /* Handle integral of cos(x) */
-      ExpTree *integral_result = newExpOp(
+      integral_result = newExpOp(
           EXP_MUL_OP, newExpLeaf(EXP_NUM, "1"),
           newExpTree(EXP_FUN, strdup("sin"), newExpLeaf(EXP_VAR, var), NULL));
-      return integral_result;
     } else if (strstr(expr->data, "cos(") != NULL &&
                strstr(expr->data, "x)") != NULL) {
       char *n_str = strdup(expr->data + 4);
@@ -427,10 +424,9 @@ ExpTree *integral(ExpTree *expr, char *var) {
         /* Handle integral of cos(nx) */
         char result_str[50];
         snprintf(result_str, sizeof(result_str), "(1/%.1f)*sin(%.1f)", n, n);
-        ExpTree *integral_result = newExpTree(EXP_FUN, strdup(result_str),
-                                              newExpLeaf(EXP_VAR, var), NULL);
+        integral_result = newExpTree(EXP_FUN, strdup(result_str),
+                                     newExpLeaf(EXP_VAR, var), NULL);
         free(n_str);
-        return integral_result;
       }
     }
 
@@ -438,17 +434,20 @@ ExpTree *integral(ExpTree *expr, char *var) {
       ExpTree *arg = expr->left;
 
       /* Compute the integral of sqrt(x) as (2/3) * x^(3/2) */
-      ExpTree *integral_result = newExpOp(
+      integral_result = newExpOp(
           EXP_MUL_OP, newExpLeaf(EXP_NUM, "(2/3)"),
           newExpOp(EXP_EXP_OP, cpyExpTree(arg), newExpLeaf(EXP_NUM, "(3/2)")));
-
-      return integral_result;
     }
+
+    /* Clean. */
+    free(function_name);
+
+    return integral_result;
+  }
 
   default:
     assert(false);
     return NULL;
-  }
   }
 }
 

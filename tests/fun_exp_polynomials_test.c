@@ -128,4 +128,5 @@ int main(int argc, char *argv[]) {
   delExpTree(num3);
   delExpTree(num1Dot);
   delExpTree(num1DotZero);
+  delExpTree(numDotZero);
 }

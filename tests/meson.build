@@ -63,8 +63,8 @@ t = executable('definite_integral_test', 'definite_integral_test.c',
 test('test definite integral', t)
 
 t = executable('tmflowpipe_test', 'tmflowpipe_test.c',
-               link_with : [fun_lib, varmath_lib, sysode_lib, taylormodel_lib],
-               include_directories : [fun_inc, varmath_inc, sysode_inc, taylormodel_inc],
+               link_with : [utils_lib, fun_lib, varmath_lib, sysode_lib, taylormodel_lib],
+               include_directories : [utils_inc, fun_inc, varmath_inc, sysode_inc, taylormodel_inc],
                # IMPORTANT: math functions (floor, ceil, ...)
                # may require explicit linkage to the C math
                # library via the '-lm' gcc flag
@@ -73,8 +73,8 @@ t = executable('tmflowpipe_test', 'tmflowpipe_test.c',
 test('test taylor model flowpipe overapprox computations', t)
 
 t = executable('taylormodel_test', 'taylormodel_test.c',
-               link_with : [fun_lib, varmath_lib, sysode_lib, taylormodel_lib],
-               include_directories : [fun_inc, varmath_inc, taylormodel_inc],
+               link_with : [utils_lib, fun_lib, varmath_lib, sysode_lib, taylormodel_lib],
+               include_directories : [utils_inc, fun_inc, varmath_inc, taylormodel_inc],
                )
 test('test taylor model interface', t)
 
@@ -84,8 +84,8 @@ t = executable('varparse_test', 'varparse_test.c',
 test('test var parser', t)
 
 t = executable('pipeline_test', 'pipeline_test.c',
-               link_with : [fun_lib, varmath_lib, sysode_lib, odeparse_lib, varparse_lib, taylormodel_lib],
-               include_directories : [fun_inc, varmath_inc, sysode_inc, odeparse_inc, taylormodel_inc],
+               link_with : [utils_lib, fun_lib, varmath_lib, sysode_lib, odeparse_lib, varparse_lib, taylormodel_lib],
+               include_directories : [utils_inc, fun_inc, varmath_inc, sysode_inc, odeparse_inc, taylormodel_inc],
                # IMPORTANT: math functions (floor, ceil, ...)
                # may require explicit linkage to the C math
                # library via the '-lm' gcc flag

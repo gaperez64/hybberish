@@ -49,9 +49,9 @@ int main(int argc, char *argv[]) {
 
   {
     /* Setup */
-    ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
-    ExpTree *y = newExpLeaf(EXP_VAR, strdup("y"));
-    ExpTree *z = newExpLeaf(EXP_VAR, strdup("z"));
+    ExpTree *x = newExpLeaf(EXP_VAR, "x");
+    ExpTree *y = newExpLeaf(EXP_VAR, "y");
+    ExpTree *z = newExpLeaf(EXP_VAR, "z");
     /* construct an ODE chain 'var3 <- var2 <- var1' */
     ODEList *sys = newOdeElem(NULL, strdup(z->data), z);
     sys = newOdeElem(sys, strdup(y->data), y);
@@ -71,11 +71,14 @@ int main(int argc, char *argv[]) {
     printTPTest(cpy);
     fflush(stdout);
 
-    delTaylorModel(list);
-    delTaylorModel(cpy);
-
     TaylorModel *poly = computeTaylorPolynomial(sys, 3, 3);
     printTPTest(poly);
+
+    /* Clean */
+    delOdeList(sys);
+    delTaylorModel(list);
+    delTaylorModel(cpy);
+    delTaylorModel(poly);
   }
 
   {
@@ -85,7 +88,9 @@ int main(int argc, char *argv[]) {
     ExpTree *t = newExpLeaf(EXP_VAR, "t");
 
     {
-      ExpTree *g = newExpOp(EXP_SUB_OP, newExpOp(EXP_ADD_OP, t, x), y);
+      ExpTree *g = newExpOp(EXP_SUB_OP,
+                            newExpOp(EXP_ADD_OP, cpyExpTree(t), cpyExpTree(x)),
+                            cpyExpTree(y));
       printf("\ng   = ");
       printExpTree(g, stdout);
       printf("\n");
@@ -120,11 +125,20 @@ int main(int argc, char *argv[]) {
       printf("\n");
       fflush(stdout);
 
-      lieDer = simplify(lieDerivative(sys, lieDer));
+      ExpTree *lieDer2nd = lieDerivative(sys, lieDer);
+      ExpTree *simplified = simplify(lieDer2nd);
       printf("L^2(g):  ");
-      printExpTree(lieDer, stdout);
+      printExpTree(simplified, stdout);
       printf("\n\n");
       fflush(stdout);
+
+      /* Clean */
+      delExpTree(g);
+      delExpTree(lieDer);
+      delExpTree(lieDer2nd);
+      delExpTree(simplified);
+      delOdeList(sys);
+      delTaylorModel(poly);
     }
 
     {
@@ -155,6 +169,12 @@ int main(int argc, char *argv[]) {
 
       TaylorModel *poly = computeTaylorPolynomial(sys, 3, 3);
       printTPTest(poly);
+
+      /* Clean */
+      delOdeList(sys);
+      delTaylorModel(functions);
+      delTaylorModel(derived);
+      delTaylorModel(poly);
     }
 
     /*
@@ -180,7 +200,7 @@ int main(int argc, char *argv[]) {
 
       /* x + s */
       ExpTree *funcX =
-          newExpOp(EXP_ADD_OP, cpyExpTree(x), newExpLeaf(EXP_VAR, strdup("t")));
+          newExpOp(EXP_ADD_OP, cpyExpTree(x), newExpLeaf(EXP_VAR, "t"));
       /* y */
       ExpTree *funcY = cpyExpTree(y);
       /* Construct a TaylorModel chain. */
@@ -216,7 +236,7 @@ int main(int argc, char *argv[]) {
 
       /* x + s */
       ExpTree *funcX =
-          newExpOp(EXP_ADD_OP, cpyExpTree(x), newExpLeaf(EXP_VAR, strdup("t")));
+          newExpOp(EXP_ADD_OP, cpyExpTree(x), newExpLeaf(EXP_VAR, "t"));
       /* y */
       ExpTree *funcY = cpyExpTree(y);
       /* Construct a TaylorModel chain. */
@@ -320,5 +340,9 @@ int main(int argc, char *argv[]) {
       delTaylorModel(functions);
       delOdeList(sys);
     }
+
+    delExpTree(x);
+    delExpTree(y);
+    delExpTree(t);
   }
 }

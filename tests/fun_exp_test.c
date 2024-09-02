@@ -10,14 +10,14 @@ int main(int argc, char *argv[]) {
   (void)argv;
 
   /* (-b + sqrt((b^2) - ((4a)c))) / (2a) */
-  ExpTree *b1 = newExpLeaf(EXP_VAR, strdup("b"));
-  ExpTree *b2 = newExpLeaf(EXP_VAR, strdup("b"));
-  ExpTree *n2 = newExpLeaf(EXP_NUM, strdup("2"));
-  ExpTree *n4 = newExpLeaf(EXP_NUM, strdup("4"));
-  ExpTree *a1 = newExpLeaf(EXP_VAR, strdup("a"));
-  ExpTree *c1 = newExpLeaf(EXP_VAR, strdup("c"));
-  ExpTree *m2 = newExpLeaf(EXP_NUM, strdup("2"));
-  ExpTree *a2 = newExpLeaf(EXP_VAR, strdup("a"));
+  ExpTree *b1 = newExpLeaf(EXP_VAR, "b");
+  ExpTree *b2 = newExpLeaf(EXP_VAR, "b");
+  ExpTree *n2 = newExpLeaf(EXP_NUM, "2");
+  ExpTree *n4 = newExpLeaf(EXP_NUM, "4");
+  ExpTree *a1 = newExpLeaf(EXP_VAR, "a");
+  ExpTree *c1 = newExpLeaf(EXP_VAR, "c");
+  ExpTree *m2 = newExpLeaf(EXP_NUM, "2");
+  ExpTree *a2 = newExpLeaf(EXP_VAR, "a");
 
   /* leaves ready, now build a tree */
   ExpTree *exp = newExpOp(EXP_EXP_OP, b2, n2);

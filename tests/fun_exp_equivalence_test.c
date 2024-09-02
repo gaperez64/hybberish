@@ -9,25 +9,25 @@ int main(int argc, char *argv[]) {
   (void)argv;
 
   /* Build leaves */
-  ExpTree *x = newExpLeaf(EXP_VAR, strdup("x"));
-  ExpTree *y = newExpLeaf(EXP_VAR, strdup("y"));
-  ExpTree *z = newExpLeaf(EXP_NUM, strdup("z"));
-  ExpTree *n1 = newExpLeaf(EXP_VAR, strdup("1"));
-  ExpTree *n2 = newExpLeaf(EXP_NUM, strdup("2"));
+  ExpTree *x = newExpLeaf(EXP_VAR, "x");
+  ExpTree *y = newExpLeaf(EXP_VAR, "y");
+  ExpTree *z = newExpLeaf(EXP_NUM, "z");
+  ExpTree *n1 = newExpLeaf(EXP_VAR, "1");
+  ExpTree *n2 = newExpLeaf(EXP_NUM, "2");
 
-  ExpTree *b1 = newExpLeaf(EXP_VAR, strdup("b"));
-  ExpTree *b2 = newExpLeaf(EXP_VAR, strdup("b"));
-  ExpTree *n4 = newExpLeaf(EXP_NUM, strdup("4"));
-  ExpTree *a1 = newExpLeaf(EXP_VAR, strdup("a"));
-  ExpTree *c1 = newExpLeaf(EXP_VAR, strdup("c"));
-  ExpTree *m2 = newExpLeaf(EXP_NUM, strdup("2"));
-  ExpTree *a2 = newExpLeaf(EXP_VAR, strdup("a"));
+  ExpTree *b1 = newExpLeaf(EXP_VAR, "b");
+  ExpTree *b2 = newExpLeaf(EXP_VAR, "b");
+  ExpTree *n4 = newExpLeaf(EXP_NUM, "4");
+  ExpTree *a1 = newExpLeaf(EXP_VAR, "a");
+  ExpTree *c1 = newExpLeaf(EXP_VAR, "c");
+  ExpTree *m2 = newExpLeaf(EXP_NUM, "2");
+  ExpTree *a2 = newExpLeaf(EXP_VAR, "a");
 
   /* (x + (y + (z + 1))) */
   ExpTree *sumLeft =
       newExpOp(EXP_ADD_OP, cpyExpTree(x),
                newExpOp(EXP_ADD_OP, cpyExpTree(y),
-                        newExpOp(EXP_ADD_OP, cpyExpTree(z), cpyExpTree(n1))));
+                        newExpOp(EXP_ADD_OP, cpyExpTree(z), n1)));
   /* ((x + y) + (z + 1)) */
   ExpTree *sumBalanced =
       newExpOp(EXP_ADD_OP, newExpOp(EXP_ADD_OP, cpyExpTree(x), cpyExpTree(y)),
@@ -63,4 +63,12 @@ int main(int argc, char *argv[]) {
     assert(!isEqual(sumLeft, tree));
     assert(!isEqual(sumBalanced, tree));
   }
+
+  /* Clean */
+  delExpTree(z);
+  delExpTree(y);
+  delExpTree(x);
+  delExpTree(sumLeft);
+  delExpTree(sumBalanced);
+  delExpTree(tree);
 }

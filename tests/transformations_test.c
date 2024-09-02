@@ -40,6 +40,9 @@ int main(int argc, char *argv[]) {
   ExpTree *y = newExpLeaf(EXP_VAR, "y");
   ExpTree *z = newExpLeaf(EXP_VAR, "z");
 
+  ExpTree *zero = newExpLeaf(EXP_NUM, "0");
+  ExpTree *one = newExpLeaf(EXP_NUM, "1");
+
   /*
     Test Operator Simplification
   */
@@ -49,8 +52,6 @@ int main(int argc, char *argv[]) {
   /* Test binary ADD (+) simplification */
   {
     /* Build expected results */
-    ExpTree *zero = newExpLeaf(EXP_NUM, "0");
-    ExpTree *one = newExpLeaf(EXP_NUM, "1");
     ExpTree *plus = newExpOp(EXP_ADD_OP, cpyExpTree(a), cpyExpTree(b));
     ExpTree *plusOne = newExpOp(EXP_ADD_OP, cpyExpTree(one), cpyExpTree(one));
 
@@ -61,43 +62,73 @@ int main(int argc, char *argv[]) {
     exp = newExpOp(EXP_ADD_OP, cpyExpTree(a), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, plus);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 + b)  =>  b */
-    exp = newExpOp(EXP_ADD_OP, newZeroExpTree(), cpyExpTree(b));
+    exp = newExpOp(EXP_ADD_OP, cpyExpTree(zero), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, b);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (a + 0)  =>  a */
-    exp = newExpOp(EXP_ADD_OP, cpyExpTree(a), newZeroExpTree());
+    exp = newExpOp(EXP_ADD_OP, cpyExpTree(a), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, a);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 + 0)  =>  0 */
-    exp = newExpOp(EXP_ADD_OP, newZeroExpTree(), newZeroExpTree());
+    exp = newExpOp(EXP_ADD_OP, cpyExpTree(zero), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 + 0)  =>  1 */
-    exp = newExpOp(EXP_ADD_OP, newOneExpTree(), newZeroExpTree());
+    exp = newExpOp(EXP_ADD_OP, cpyExpTree(one), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 + 1)  =>  1 */
-    exp = newExpOp(EXP_ADD_OP, newZeroExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_ADD_OP, cpyExpTree(zero), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 + 1)  =>  (1 + 1) */
-    exp = newExpOp(EXP_ADD_OP, newOneExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_ADD_OP, cpyExpTree(one), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, plusOne);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
+
+    /* Clean. */
+    delExpTree(plus);
+    delExpTree(plusOne);
   }
 
   /* Test binary SUB (-) simplification */
   {
     /* Compose expected results */
-    ExpTree *zero = newExpLeaf(EXP_NUM, "0");
-    ExpTree *one = newExpLeaf(EXP_NUM, "1");
     ExpTree *sub = newExpOp(EXP_SUB_OP, cpyExpTree(a), cpyExpTree(b));
     ExpTree *subOne = newExpOp(EXP_SUB_OP, cpyExpTree(one), cpyExpTree(one));
     ExpTree *neg = newExpOp(EXP_NEG, cpyExpTree(b), NULL);
@@ -109,43 +140,75 @@ int main(int argc, char *argv[]) {
     exp = newExpOp(EXP_SUB_OP, cpyExpTree(a), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, sub);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 - b)  =>  -b */
-    exp = newExpOp(EXP_SUB_OP, newZeroExpTree(), cpyExpTree(b));
+    exp = newExpOp(EXP_SUB_OP, cpyExpTree(zero), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, neg);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (a - 0)  =>  a */
-    exp = newExpOp(EXP_SUB_OP, cpyExpTree(a), newZeroExpTree());
+    exp = newExpOp(EXP_SUB_OP, cpyExpTree(a), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, a);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 - 0)  =>  0 */
-    exp = newExpOp(EXP_SUB_OP, newZeroExpTree(), newZeroExpTree());
+    exp = newExpOp(EXP_SUB_OP, cpyExpTree(zero), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 - 0)  =>  1 */
-    exp = newExpOp(EXP_SUB_OP, newOneExpTree(), newZeroExpTree());
+    exp = newExpOp(EXP_SUB_OP, cpyExpTree(one), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 - 1)  =>  -1 */
-    exp = newExpOp(EXP_SUB_OP, newZeroExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_SUB_OP, cpyExpTree(zero), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, negOne);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 - 1)  =>  (1 - 1) */
-    exp = newExpOp(EXP_SUB_OP, newOneExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_SUB_OP, cpyExpTree(one), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, subOne);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
+
+    /* Clean. */
+    delExpTree(sub);
+    delExpTree(subOne);
+    delExpTree(neg);
+    delExpTree(negOne);
   }
 
   /* Test binary MUL (*) simplification */
   {
     /* Compose expected results */
-    ExpTree *zero = newExpLeaf(EXP_NUM, "0");
-    ExpTree *one = newExpLeaf(EXP_NUM, "1");
     ExpTree *mul = newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b));
 
     printf("=== MUL (*) ===\n");
@@ -155,53 +218,90 @@ int main(int argc, char *argv[]) {
     exp = newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, mul);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 * b)  =>  0 */
-    exp = newExpOp(EXP_MUL_OP, newZeroExpTree(), cpyExpTree(b));
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(zero), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (a * 0)  =>  0 */
-    exp = newExpOp(EXP_MUL_OP, cpyExpTree(a), newZeroExpTree());
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 * b)  =>  b */
-    exp = newExpOp(EXP_MUL_OP, newOneExpTree(), cpyExpTree(b));
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, b);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (a * 1)  =>  a */
-    exp = newExpOp(EXP_MUL_OP, cpyExpTree(a), newOneExpTree());
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, a);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 * 1)  =>  1 */
-    exp = newExpOp(EXP_MUL_OP, newOneExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 * 0)  =>  0 */
-    exp = newExpOp(EXP_MUL_OP, newZeroExpTree(), newZeroExpTree());
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(zero), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 * 0)  =>  0 */
-    exp = newExpOp(EXP_MUL_OP, newOneExpTree(), newZeroExpTree());
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 * 1)  =>  0 */
-    exp = newExpOp(EXP_MUL_OP, newZeroExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_MUL_OP, cpyExpTree(zero), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
+
+    /* Clean. */
+    delExpTree(mul);
   }
 
   /* Test binary DIV (/) simplification */
   {
     /* Compose expected results */
-    ExpTree *zero = newExpLeaf(EXP_NUM, "0");
-    ExpTree *one = newExpLeaf(EXP_NUM, "1");
     ExpTree *div = newExpOp(EXP_DIV_OP, cpyExpTree(a), cpyExpTree(b));
     ExpTree *divOneL = newExpOp(EXP_DIV_OP, cpyExpTree(one), cpyExpTree(b));
 
@@ -212,53 +312,79 @@ int main(int argc, char *argv[]) {
     exp = newExpOp(EXP_DIV_OP, cpyExpTree(a), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, div);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 / b)  =>  0 */
-    exp = newExpOp(EXP_DIV_OP, newZeroExpTree(), cpyExpTree(b));
+    exp = newExpOp(EXP_DIV_OP, cpyExpTree(zero), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (a / 0)  =>  indeterminate! */
-    // exp = newExpOp(EXP_DIV_OP, cpyExpTree(a), newZeroExpTree());
+    // exp = newExpOp(EXP_DIV_OP, cpyExpTree(a), cpyExpTree(zero));
     // simpl = simplifyOperators(exp);
     // testSimplified(exp, simpl, divZeroR);
 
     /* (1 / b)  =>  1 / b */
-    exp = newExpOp(EXP_DIV_OP, newOneExpTree(), cpyExpTree(b));
+    exp = newExpOp(EXP_DIV_OP, cpyExpTree(one), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, divOneL);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (a / 1)  =>  a */
-    exp = newExpOp(EXP_DIV_OP, cpyExpTree(a), newOneExpTree());
+    exp = newExpOp(EXP_DIV_OP, cpyExpTree(a), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, a);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 / 1)  =>  1 */
-    exp = newExpOp(EXP_DIV_OP, newOneExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_DIV_OP, cpyExpTree(one), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 / 0)  =>  indeterminate! */
-    // exp = newExpOp(EXP_DIV_OP, newZeroExpTree(), newZeroExpTree());
+    // exp = newExpOp(EXP_DIV_OP, cpyExpTree(zero), cpyExpTree(zero));
     // simpl = simplifyOperators(exp);
     // testSimplified(exp, simpl, divZeroLR);
 
     /* (1 / 0)  =>  indeterminate! */
-    // exp = newExpOp(EXP_DIV_OP, newOneExpTree(), newZeroExpTree());
+    // exp = newExpOp(EXP_DIV_OP, cpyExpTree(one), cpyExpTree(zero));
     // simpl = simplifyOperators(exp);
     // testSimplified(exp, simpl, divOneZero);
 
     /* (0 / 1)  =>  0 */
-    exp = newExpOp(EXP_DIV_OP, newZeroExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_DIV_OP, cpyExpTree(zero), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
+
+    /* Clean. */
+    delExpTree(div);
+    delExpTree(divOneL);
   }
 
   /* Test binary EXP (^, exponent or power) simplification */
   {
     /* Compose expected results */
-    ExpTree *zero = newExpLeaf(EXP_NUM, "0");
-    ExpTree *one = newExpLeaf(EXP_NUM, "1");
     ExpTree *pow = newExpOp(EXP_EXP_OP, cpyExpTree(a), cpyExpTree(b));
 
     printf("=== EXP (^) ===\n");
@@ -268,52 +394,86 @@ int main(int argc, char *argv[]) {
     exp = newExpOp(EXP_EXP_OP, cpyExpTree(a), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, pow);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 ^ b)  => 0 */
-    exp = newExpOp(EXP_EXP_OP, newZeroExpTree(), cpyExpTree(b));
+    exp = newExpOp(EXP_EXP_OP, cpyExpTree(zero), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 ^ 0)  =>  indeterminate! */
-    // exp = newExpOp(EXP_EXP_OP, newZeroExpTree(), newZeroExpTree());
+    // exp = newExpOp(EXP_EXP_OP, cpyExpTree(zero), cpyExpTree(zero));
     // simpl = simplifyAbsorbingTerms(exp);
     // testSimplified(exp, simpl);
 
     /* (a ^ 0)  =>  1 */
-    exp = newExpOp(EXP_EXP_OP, cpyExpTree(a), newZeroExpTree());
+    exp = newExpOp(EXP_EXP_OP, cpyExpTree(a), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 ^ b)  =>  1 */
-    exp = newExpOp(EXP_EXP_OP, newOneExpTree(), cpyExpTree(b));
+    exp = newExpOp(EXP_EXP_OP, cpyExpTree(one), cpyExpTree(b));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (a ^ 1)  =>  a */
-    exp = newExpOp(EXP_EXP_OP, cpyExpTree(a), newOneExpTree());
+    exp = newExpOp(EXP_EXP_OP, cpyExpTree(a), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, a);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 ^ 1)  =>  1 */
-    exp = newExpOp(EXP_EXP_OP, newOneExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_EXP_OP, cpyExpTree(one), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (1 ^ 0)  =>  1 */
-    exp = newExpOp(EXP_EXP_OP, newOneExpTree(), newZeroExpTree());
+    exp = newExpOp(EXP_EXP_OP, cpyExpTree(one), cpyExpTree(zero));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (0 ^ 1)  =>  0 */
-    exp = newExpOp(EXP_EXP_OP, newZeroExpTree(), newOneExpTree());
+    exp = newExpOp(EXP_EXP_OP, cpyExpTree(zero), cpyExpTree(one));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
+
+    /* Clean. */
+    delExpTree(pow);
   }
 
   /* Test unary NEG (- or negation) simplification */
   {
     /* Compose expected results */
-    ExpTree *zero = newExpLeaf(EXP_NUM, "0");
     ExpTree *nega = newExpOp(EXP_NEG, cpyExpTree(a), NULL);
     ExpTree *negOne = newExpOp(EXP_NEG, newExpLeaf(EXP_NUM, "1"), NULL);
 
@@ -324,16 +484,32 @@ int main(int argc, char *argv[]) {
     exp = newExpOp(EXP_NEG, cpyExpTree(a), NULL);
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, nega);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -1  =>  -1 */
-    exp = newExpOp(EXP_NEG, newOneExpTree(), NULL);
+    exp = newExpOp(EXP_NEG, cpyExpTree(one), NULL);
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, negOne);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -0  =>  0 */
-    exp = newExpOp(EXP_NEG, newZeroExpTree(), NULL);
+    exp = newExpOp(EXP_NEG, cpyExpTree(zero), NULL);
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
+
+    /* Clean. */
+    delExpTree(nega);
+    delExpTree(negOne);
   }
 
   /* Test composite simplifications */
@@ -342,78 +518,100 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
 
     /* Compose expected results */
-    ExpTree *zero = newExpLeaf(EXP_NUM, "0");
-    ExpTree *one = newExpLeaf(EXP_NUM, "1");
     ExpTree *plusOne = newExpOp(EXP_ADD_OP, cpyExpTree(one), cpyExpTree(one));
     ExpTree *pow =
         newExpOp(EXP_EXP_OP, cpyExpTree(a),
                  newExpOp(EXP_ADD_OP,
-                          newExpOp(EXP_SUB_OP, cpyExpTree(b), newOneExpTree()),
+                          newExpOp(EXP_SUB_OP, cpyExpTree(b), cpyExpTree(one)),
                           cpyExpTree(b)));
     ExpTree *pow2 = newExpOp(EXP_EXP_OP, cpyExpTree(a), cpyExpTree(b));
 
     /* ((1 * 1) + (1 * 1))  =>  (1 + 1) */
-    ExpTree *mul = newExpOp(EXP_MUL_OP, newOneExpTree(), newOneExpTree());
+    ExpTree *mul = newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one));
     exp = newExpOp(EXP_ADD_OP, cpyExpTree(mul), cpyExpTree(mul));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, plusOne);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* ((0 + 0) + (0 + 0))  =>  0 */
     exp = newExpOp(EXP_ADD_OP,
-                   newExpOp(EXP_ADD_OP, newZeroExpTree(), newZeroExpTree()),
-                   newExpOp(EXP_ADD_OP, newZeroExpTree(), newZeroExpTree()));
+                   newExpOp(EXP_ADD_OP, cpyExpTree(zero), cpyExpTree(zero)),
+                   newExpOp(EXP_ADD_OP, cpyExpTree(zero), cpyExpTree(zero)));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* ((1 * 1) * (1 * 1))  =>  1 */
     exp = newExpOp(EXP_MUL_OP,
-                   newExpOp(EXP_MUL_OP, newOneExpTree(), newOneExpTree()),
-                   newExpOp(EXP_MUL_OP, newOneExpTree(), newOneExpTree()));
+                   newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one)),
+                   newExpOp(EXP_MUL_OP, cpyExpTree(one), cpyExpTree(one)));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, one);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (((0 + 1) + 0) * ((1 * 1) + (1 + (0 + 0))))  =>  ((1 + 0) * (1 + 1))  =>
      * (1 * (1 + 1))  => (1 + 1) */
     exp = newExpOp(
         EXP_MUL_OP,
         newExpOp(EXP_ADD_OP,
-                 newExpOp(EXP_ADD_OP, newZeroExpTree(), newOneExpTree()),
-                 newZeroExpTree()),
+                 newExpOp(EXP_ADD_OP, cpyExpTree(zero), cpyExpTree(one)),
+                 cpyExpTree(zero)),
         newExpOp(EXP_ADD_OP, cpyExpTree(mul),
-                 newExpOp(EXP_ADD_OP, newOneExpTree(),
-                          newExpOp(EXP_ADD_OP, newZeroExpTree(),
-                                   newZeroExpTree()))));
+                 newExpOp(EXP_ADD_OP, cpyExpTree(one),
+                          newExpOp(EXP_ADD_OP, cpyExpTree(zero),
+                                   cpyExpTree(zero)))));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, plusOne);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /*  (1 * ((b / 1) - (b^0))) */
     ExpTree *exponentLeft = newExpOp(
-        EXP_MUL_OP, newOneExpTree(),
+        EXP_MUL_OP, cpyExpTree(one),
         newExpOp(EXP_SUB_OP,
-                 newExpOp(EXP_DIV_OP, cpyExpTree(b), newOneExpTree()),
-                 newExpOp(EXP_EXP_OP, cpyExpTree(b), newZeroExpTree())));
+                 newExpOp(EXP_DIV_OP, cpyExpTree(b), cpyExpTree(one)),
+                 newExpOp(EXP_EXP_OP, cpyExpTree(b), cpyExpTree(zero))));
     /* (-(1 * (0 + 0)) + (b / 1)) */
     ExpTree *exponentRight =
         newExpOp(EXP_ADD_OP,
                  newExpOp(EXP_NEG,
-                          newExpOp(EXP_MUL_OP, newOneExpTree(),
-                                   newExpOp(EXP_ADD_OP, newZeroExpTree(),
-                                            newZeroExpTree())),
+                          newExpOp(EXP_MUL_OP, cpyExpTree(one),
+                                   newExpOp(EXP_ADD_OP, cpyExpTree(zero),
+                                            cpyExpTree(zero))),
                           NULL),
-                 newExpOp(EXP_DIV_OP, cpyExpTree(b), newOneExpTree()));
+                 newExpOp(EXP_DIV_OP, cpyExpTree(b), cpyExpTree(one)));
     /* a^(exponentLeft + exponentRight) = (a^((b - 1) + b)) */
     exp = newExpOp(EXP_EXP_OP, cpyExpTree(a),
                    newExpOp(EXP_ADD_OP, exponentLeft, exponentRight));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, pow);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (a^(b^(a^0)))  =>  (a^b) */
     exp = newExpOp(
         EXP_EXP_OP, cpyExpTree(a),
         newExpOp(EXP_EXP_OP, cpyExpTree(b),
-                 newExpOp(EXP_EXP_OP, cpyExpTree(a), newZeroExpTree())));
+                 newExpOp(EXP_EXP_OP, cpyExpTree(a), cpyExpTree(zero))));
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, pow2);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* ---(1 * -(0 + 0))  =>  ----0 */
     exp = newExpOp(
@@ -421,16 +619,26 @@ int main(int argc, char *argv[]) {
         newExpOp(
             EXP_NEG,
             newExpOp(EXP_NEG,
-                     newExpOp(EXP_MUL_OP, newOneExpTree(),
+                     newExpOp(EXP_MUL_OP, cpyExpTree(one),
                               newExpOp(EXP_NEG,
-                                       newExpOp(EXP_ADD_OP, newZeroExpTree(),
-                                                newZeroExpTree()),
+                                       newExpOp(EXP_ADD_OP, cpyExpTree(zero),
+                                                cpyExpTree(zero)),
                                        NULL)),
                      NULL),
             NULL),
         NULL);
     simpl = simplifyOperators(exp);
     testSimplified(exp, simpl, zero);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
+
+    /* Clean. */
+    delExpTree(mul);
+    delExpTree(plusOne);
+    delExpTree(pow);
+    delExpTree(pow2);
   }
 
   /*
@@ -454,7 +662,6 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
 
     /* Compose expected results */
-    ExpTree *zero = newExpLeaf(EXP_NUM, strdup("0"));
     ExpTree *powab = newExpOp(EXP_EXP_OP, cpyExpTree(a), cpyExpTree(b));
     ExpTree *sina = newExpTree(EXP_FUN, strdup("sin"), cpyExpTree(a), NULL);
 
@@ -512,52 +719,101 @@ int main(int argc, char *argv[]) {
     exp = newExpOp(EXP_NEG, newExpOp(EXP_NEG, cpyExpTree(x), NULL), NULL);
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, x);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, x);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -x  =>  -x */
     exp = newExpOp(EXP_NEG, cpyExpTree(x), NULL);
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, exp);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, exp);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -0  =>  -0 */
     exp = newExpOp(EXP_NEG, cpyExpTree(zero), NULL);
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, exp);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, exp);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -(a * b) = -(a * b) */
     exp = newExpOp(EXP_NEG, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(b)),
                    NULL);
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, exp);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, exp);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -(a / b) = -(a / b) */
     exp = newExpOp(EXP_NEG, newExpOp(EXP_DIV_OP, cpyExpTree(a), cpyExpTree(b)),
                    NULL);
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, exp);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, exp);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -(a^b) != ((-a)^b) in many cases */
     exp = newExpOp(EXP_NEG, cpyExpTree(powab), NULL);
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, exp);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, exp);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -f(a) = -f(a) */
     exp = newExpOp(EXP_NEG, cpyExpTree(sina), NULL);
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, exp);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, exp);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* ----(a^b) != ((-a)^b) in many cases */
     exp = newExpOp(
@@ -569,26 +825,38 @@ int main(int argc, char *argv[]) {
         NULL);
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, powab);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, powab);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -(a * -(sin(a) + -((y - -b) / -z)))
     => -(a * (-sin(a) - -((y - -b) / -z))) */
     exp = negBlocked;
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, negBlockedTo);
+    delExpTree(simpl);
+    simpl = NULL;
     /* -(a * -(sin(a) + -((y - -b) / -z)))
     => (-(a * -sin(a)) + (a * -((y - -b) / -z))) */
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, negBlockedToDistr);
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -(-((-a - (-(a + b) + b)) + (a^-(a + b))) * -(a + b))
     => -(((a + ((-a - b) + b)) - (a^(-a - b))) * (-a - b)) */
     exp = negMul;
     simpl = distributeNeg(exp, false);
     testSimplified(exp, simpl, negMulTo);
+    delExpTree(simpl);
+    simpl = NULL;
 
-    delExpTree(zero);
     delExpTree(powab);
     delExpTree(sina);
     delExpTree(negBlocked);
@@ -644,8 +912,15 @@ int main(int argc, char *argv[]) {
                    newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(z)));
     simpl = distributeLeft(exp->left, exp->right);
     testSimplified(exp, simpl, rightBranch);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, rightBranch);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (x * (y + (z * (z + z))))  =>  ((x * y) + (x * (z * (z + z))))
       ==> The * operator in (z * (z + z)) blocks the singular distribution
@@ -654,12 +929,18 @@ int main(int argc, char *argv[]) {
                    newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(zTzPz)));
     simpl = distributeLeft(exp->left, exp->right);
     testSimplified(exp, simpl, rightNoRecurse);
+    delExpTree(simpl);
+    simpl = NULL;
     /* (x * (y + (z * (z + z))))  =>  ((x * y) + ((x * (z * z)) + (x * (z *
       z))))
       ==> The * operator in (z * (z + z)) does NOT block the recursive
       distribution passes from distributing x into (z + z) */
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, rightYesRecurse);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (x * (y + (z - (y + (z + (y - z))))))  =>  ((x * y) + ((x * z) - ((x * y)
      * + ((x * z) + ((x * y) - (x * z)))))) */
@@ -673,8 +954,15 @@ int main(int argc, char *argv[]) {
                                                      cpyExpTree(z)))))));
     simpl = distributeLeft(exp->left, exp->right);
     testSimplified(exp, simpl, rightBranchLong);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, rightBranchLong);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* ((y + z) * x)  =>  ((x * y) + (x * z)) */
     exp =
@@ -682,6 +970,10 @@ int main(int argc, char *argv[]) {
                  cpyExpTree(x));
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, rightBranch);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (x * ((x + (y - y)) + ((y + y) - z)))  =>  (((x * x) + ((x * y) - (x *
      * y))) + (((x * y) + (x * y)) - (x * z))) */
@@ -695,8 +987,24 @@ int main(int argc, char *argv[]) {
                           cpyExpTree(z))));
     simpl = distributeLeft(exp->left, exp->right);
     testSimplified(exp, simpl, balanced);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, balanced);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
+
+    /* Clean. */
+    delExpTree(zTzPz);
+    delExpTree(xTzTz);
+    delExpTree(rightBranch);
+    delExpTree(rightBranchLong);
+    delExpTree(rightNoRecurse);
+    delExpTree(rightYesRecurse);
+    delExpTree(balanced);
   }
 
   /* Test recursive term distribution:
@@ -740,8 +1048,15 @@ int main(int argc, char *argv[]) {
                  newExpOp(EXP_SUB_OP, cpyExpTree(y), cpyExpTree(z)));
     simpl = distributeLeftDistributive(exp->left, exp->right);
     testSimplified(exp, simpl, subRight);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, subRight);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* ((x - y) * (y + z))  =>  (((x * y) + (x * z)) - ((y * y) + (y * z))) */
     exp =
@@ -749,8 +1064,15 @@ int main(int argc, char *argv[]) {
                  newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(z)));
     simpl = distributeLeftDistributive(exp->left, exp->right);
     testSimplified(exp, simpl, subLeft);
+    delExpTree(simpl);
+    simpl = NULL;
+
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, subLeft);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* -(x * (y + z))  =>  (-(x * y) - (x * z)) */
     exp = newExpOp(EXP_NEG,
@@ -759,6 +1081,10 @@ int main(int argc, char *argv[]) {
                    NULL);
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, subNeg1);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (x * -(y + z))  =>  ((x * -y) - (x * z)) */
     exp = newExpOp(EXP_MUL_OP, cpyExpTree(x),
@@ -767,6 +1093,10 @@ int main(int argc, char *argv[]) {
                             NULL));
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, subNeg2);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (-x * -(y + z))  =>  ((-x * -y) - (-x * z)) */
     exp = newExpOp(EXP_MUL_OP, newExpOp(EXP_NEG, cpyExpTree(x), NULL),
@@ -775,7 +1105,12 @@ int main(int argc, char *argv[]) {
                             NULL));
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, subNeg3);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
+    /* Clean. */
     delExpTree(subRight);
     delExpTree(subLeft);
     delExpTree(xTz);
@@ -802,11 +1137,11 @@ int main(int argc, char *argv[]) {
     /* Compose expected results */
     ExpTree *twiceSingleTerms = newExpOp(
         EXP_ADD_OP,
-        newExpOp(EXP_ADD_OP, cpyExpTree(aTbTx),
+        newExpOp(EXP_ADD_OP, aTbTx,
                  newExpOp(EXP_SUB_OP, cpyExpTree(aTbTy), cpyExpTree(aTbTy))),
         newExpOp(EXP_SUB_OP,
                  newExpOp(EXP_ADD_OP, cpyExpTree(aTbTy), cpyExpTree(aTbTy)),
-                 cpyExpTree(aTbTz)));
+                 aTbTz));
 
     /* Watch out when deleting this mess of subtrees, some are copied and some
      * are not! */
@@ -882,8 +1217,9 @@ int main(int argc, char *argv[]) {
     ExpTree *fSubexp =
         newExpOp(EXP_ADD_OP, newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(y)),
                  newExpOp(EXP_MUL_OP, cpyExpTree(a), cpyExpTree(z)));
-    ExpTree *fDistributed = newExpOp(EXP_MUL_OP, cpyExpTree(x),
-                                     newExpTree(EXP_FUN, "sin", fSubexp, NULL));
+    ExpTree *fDistributed =
+        newExpOp(EXP_MUL_OP, cpyExpTree(x),
+                 newExpTree(EXP_FUN, strdup("sin"), fSubexp, NULL));
 
     /* (a * (EXP * b))
      = (a * (((x + (y - y)) + ((y + y) - z)) * b))
@@ -903,6 +1239,10 @@ int main(int argc, char *argv[]) {
             cpyExpTree(b)));
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, twiceSingleTerms);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* OUTER = (a * (b + c))
        INNER = ((a + b) + (b + c))
@@ -921,15 +1261,33 @@ int main(int argc, char *argv[]) {
     exp = newExpOp(EXP_MUL_OP, outerTerm, rightTerm);
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, combinedLongTerm);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
 
     /* (x * sin((a * (y + z))))  =>  (x * sin(((a * y) + (a * z)))) */
     ExpTree *distSubexp =
         newExpOp(EXP_MUL_OP, cpyExpTree(a),
                  newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(z)));
-    ExpTree *f = newExpTree(EXP_FUN, "sin", distSubexp, NULL);
+    ExpTree *f = newExpTree(EXP_FUN, strdup("sin"), distSubexp, NULL);
     exp = newExpOp(EXP_MUL_OP, cpyExpTree(x), f);
     simpl = toSumOfProducts(exp);
     testSimplified(exp, simpl, fDistributed);
+    delExpTree(exp);
+    exp = NULL;
+    delExpTree(simpl);
+    simpl = NULL;
+
+    /* Clean. */
+    delExpTree(aTbTy);
+    delExpTree(twiceSingleTerms);
+    delExpTree(abyb);
+    delExpTree(abzb);
+    delExpTree(acyb);
+    delExpTree(aczb);
+    delExpTree(combinedLongTerm);
+    delExpTree(fDistributed);
   }
 
   /*
@@ -943,7 +1301,7 @@ int main(int argc, char *argv[]) {
     ExpTree *addyz = newExpOp(EXP_ADD_OP, cpyExpTree(y), cpyExpTree(z));
 
     ExpTree *twoTz =
-        newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, strdup("2")), cpyExpTree(z));
+        newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "2"), cpyExpTree(z));
     ExpTree *pow = newExpOp(EXP_EXP_OP, cpyExpTree(twoTz), cpyExpTree(twoTz));
     ExpTree *sub = newExpOp(EXP_SUB_OP, pow, cpyExpTree(twoTz));
     ExpTree *mul = newExpOp(EXP_MUL_OP, cpyExpTree(a), sub);
@@ -967,7 +1325,7 @@ int main(int argc, char *argv[]) {
     delExpTree(exp);
 
     /* (3)[x := y]  =>  3 */
-    exp = newExpLeaf(EXP_NUM, strdup("3"));
+    exp = newExpLeaf(EXP_NUM, "3");
     simpl = substitute(exp, x->data, y);
     testSimplified(exp, simpl, exp);
     delExpTree(simpl);
@@ -1011,9 +1369,7 @@ int main(int argc, char *argv[]) {
     ExpTree *collectedTerms = NULL;
 
     /* Compose expected results */
-    ExpTree *zero = newExpLeaf(EXP_NUM, strdup("0"));
-    ExpTree *one = newExpLeaf(EXP_NUM, strdup("1"));
-    ExpTree *two = newExpLeaf(EXP_NUM, strdup("2"));
+    ExpTree *two = newExpLeaf(EXP_NUM, "2");
 
     /* ((a + 0) + ((x * -y) - 0)) */
     ExpTree *aP0 = newExpOp(EXP_ADD_OP, cpyExpTree(a), cpyExpTree(zero));
@@ -1079,10 +1435,22 @@ int main(int argc, char *argv[]) {
     delExpTree(collExp);
 
     /* Cleanup */
-    delExpTree(zero);
-    delExpTree(one);
     delExpTree(two);
     delExpTree(xTnegy);
     delExpTree(add1);
   }
+
+  delExpTree(a);
+  delExpTree(b);
+  delExpTree(c);
+  delExpTree(x);
+  delExpTree(y);
+  delExpTree(z);
+  delExpTree(zero);
+  delExpTree(one);
+  delExpTree(xTy);
+  delExpTree(xTz);
+  delExpTree(yTz);
+  delExpTree(xTx);
+  delExpTree(yTy);
 }

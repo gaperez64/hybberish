@@ -414,9 +414,9 @@ int main(int argc, char *argv[]) {
 
   /* Test printing. */
   {
-    testString(&iNeg, strdup("[-2.000000, -1.000000]"));
-    testString(&iOrig, strdup("[-1.000000, 1.000000]"));
-    testString(&iPos, strdup("[1.000000, 2.000000]"));
-    testString(&iDegen, strdup("[12.000000, 12.000000]"));
+    testString(&iNeg, "[-2.000000, -1.000000]");
+    testString(&iOrig, "[-1.000000, 1.000000]");
+    testString(&iPos, "[1.000000, 2.000000]");
+    testString(&iDegen, "[12.000000, 12.000000]");
   }
 }
