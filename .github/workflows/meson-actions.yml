@@ -48,7 +48,6 @@ jobs:
         brew install flex bison
 
         # Install valgrind
-        xcode-select --install
         brew tap LouisBrunner/valgrind
         export HOMEBREW_NO_INSTALL_FROM_API=1
         brew install --HEAD LouisBrunner/valgrind/valgrind
