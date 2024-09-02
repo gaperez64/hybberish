@@ -4,8 +4,13 @@
 #include "funexp.h"
 #include "interval.h"
 #include "transformations.h"
+#include "utils.h"
 #include "variables.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* A vector of Taylor Models, as a linked list.
@@ -22,6 +27,7 @@ typedef struct TaylorModel {
 
 /* Create a new, single element list.
 
+  All pointer arguments must be heap allocated or NULL.
   Transfers ownership of all allocated arguments to the newly created instance.
 */
 TaylorModel *newTaylorModel(char *const fun, ExpTree *const exp,

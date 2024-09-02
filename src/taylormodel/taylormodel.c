@@ -1,9 +1,4 @@
 #include "taylormodel.h"
-#include <assert.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 TaylorModel *newTaylorModel(char *const fun, ExpTree *const exp,
                             Interval remainder) {
@@ -428,9 +423,14 @@ TaylorModel *evaluateExpTreeTM(const ExpTree *const tree,
   case EXP_EXP_OP: {
     assert(tree->left != NULL);
     assert(tree->right != NULL);
+    assert(tree->right->data != NULL);
 
-    assert(false); // TODO: Implement this
-    return NULL;
+    const unsigned int exponent = atou(tree->right->data);
+    TaylorModel *left = evaluateExpTreeTM(tree->left, list, fun, variables, k);
+    TaylorModel *binop = powTM(left, exponent, variables, k);
+    delTaylorModel(left);
+
+    return binop;
   }
 
   case EXP_FUN: {
@@ -440,14 +440,17 @@ TaylorModel *evaluateExpTreeTM(const ExpTree *const tree,
 
     /* Unknown function, abort */
     assert(false);
-    break;
+    return NULL;
   }
 
   /* Unknown operator or leaf to evaluate. */
   default:
     assert(false);
-    break;
+    return NULL;
   }
+
+  assert(false);
+  return NULL;
 }
 
 TaylorModel *addTM(const TaylorModel *const left,
@@ -575,42 +578,53 @@ TaylorModel *divTM(const TaylorModel *const left,
   /* c = Mid(Int((p2, I2))) */
   double c = intervalMidpoint(&enclosure);
   char cStr[50];
-  snprintf(cStr, sizeof(cStr), "%.15g", c);
+  dtoa(cStr, sizeof(cStr), c);
 
-  /* pk(x) = 1/c * (1 - ((x - c) / c)^1 + ... + (-1)^k * ((x - c) / c)^k) */
+  /* b = 1 / c  where c != 0 since 0 not in Int((p2, I2)) */
+  double b = 1 / c;
+  char bStr[50];
+  dtoa(bStr, sizeof(bStr), b);
+
+  /* pk(x) = 1/c * (1 - ((x - c) / c)^1 + ... + (-1)^k * ((x - c) / c)^k)
+           =   b * (1 - ((x - c) * b)^1 + ... + (-1)^k * ((x - c) * b)^k) */
   ExpTree *inverseExp = newExpLeaf(EXP_NUM, "1");
   char *fun = left->fun;
   for (unsigned int it = 1; it <= k; ++it) {
     char expStr[50];
-    snprintf(expStr, sizeof(expStr), "%u", it);
+    utoa(expStr, sizeof(expStr), it);
     ExpTree *exponent = newExpLeaf(EXP_NUM, expStr);
 
-    /* ((x - c) / c)^i */
+    /* ((x - c) / c)^i
+      BUT should not use DIV nodes, to avoid infinite recursion in evaluation.
+    => ((x - c) * b)^i  should be used instead, where b = 1/c is evaluated. */
     ExpTree *cLeaf = newExpLeaf(EXP_NUM, cStr);
+    ExpTree *bLeaf = newExpLeaf(EXP_NUM, bStr);
     ExpTree *xLeaf = newExpLeaf(EXP_VAR, fun);
     ExpTree *term = newExpOp(EXP_SUB_OP, xLeaf, cLeaf);
-    term = newExpOp(EXP_DIV_OP, term, cpyExpTree(cLeaf));
+    term = newExpOp(EXP_MUL_OP, term, bLeaf);
     term = newExpOp(EXP_EXP_OP, term, exponent);
 
     /* Aggregate term into expression */
     ExpType opType = ((it % 2) == 0) ? EXP_ADD_OP : EXP_SUB_OP;
     inverseExp = newExpOp(opType, inverseExp, term);
   }
+  ExpTree *bLeaf = newExpLeaf(EXP_NUM, bStr);
+  inverseExp = newExpOp(EXP_MUL_OP, bLeaf, inverseExp);
 
-  /* Setup leaves. */
+  /* Setup leaves for remainder expression. */
   char expk1Str[12];
   char expk2Str[12];
-  snprintf(expk1Str, sizeof(expk1Str), "%u", k + 1);
-  snprintf(expk2Str, sizeof(expk2Str), "%u", k + 2);
+  utoa(expk1Str, sizeof(expk1Str), k + 1);
+  utoa(expk2Str, sizeof(expk2Str), k + 2);
   ExpTree *expk1 = newExpLeaf(EXP_NUM, expk1Str);
   ExpTree *expk2 = newExpLeaf(EXP_NUM, expk2Str);
   ExpTree *one = newExpLeaf(EXP_NUM, "1");
-  ExpTree *xLeaf = newExpLeaf(EXP_VAR, fun);
   ExpTree *cLeaf = newExpLeaf(EXP_NUM, cStr);
+  ExpTree *xLeaf = newExpLeaf(EXP_VAR, fun);
 
   /* Compose TM (p2 - c, I2) */
   TaylorModel *rightMod = cpyTaylorModelHead(right);
-  rightMod->exp = newExpOp(EXP_SUB_OP, rightMod->exp, cpyExpTree(cLeaf));
+  rightMod->exp = newExpOp(EXP_SUB_OP, rightMod->exp, cLeaf);
 
   /* Compose remainder expression. */
   /* 1 / x^(k+2) */
@@ -626,8 +640,19 @@ TaylorModel *divTM(const TaylorModel *const left,
 
   /* Compute (p3, I3) by substituting (p2 - c, I2) for x in pk(x) */
   Interval inverseRemainder = evaluateExpTree(remExp, variables);
+  printf("$$$$$$$$$$$$$$$$$$\\\n");
+  fflush(stdout);
   TaylorModel *inverseTM =
       evaluateExpTreeTM(inverseExp, rightMod, right->fun, variables, k);
+  printf("$$$$$$$$$$$$$$$$$$/\n");
+  fflush(stdout);
+
+  // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
+  // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
+  // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
+  // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
+  // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
+
   inverseTM->remainder = addInterval(&inverseTM->remainder, &inverseRemainder);
 
   /* Compose TM (p1, I1) / (p2, I2) = (p1, I1) * (p3, I3) */
@@ -677,20 +702,21 @@ TaylorModel *powTM(const TaylorModel *const left, const unsigned int right,
 
   /* Unroll the integer exponent into successive multiplications.
     (p, I)^n = (p, I) * ... * (p, I) */
-  TaylorModel *binaryOp = (TaylorModel *) left;
+  TaylorModel *binaryOp = (TaylorModel *)left;
   for (unsigned int it = 1; it < right; ++it) {
     TaylorModel *intermediate = mulTM(left, binaryOp, variables, k);
 
-    /* Clean: delete, except the first (input) and last (output) iteration. */
-    if (1 < it && it < (right - 1))
+    /* Clean: delete, except the first (input) iteration. */
+    if (1 < it)
       delTaylorModel(binaryOp);
 
     binaryOp = intermediate;
   }
   TaylorModel *truncated = truncateTM(binaryOp, variables, k);
 
-  /* Clean */
-  delTaylorModel(binaryOp);
+  /* Clean: except for exponent = 1, then this is the input TM. */
+  if (right > 1)
+    delTaylorModel(binaryOp);
 
   return truncated;
 }
@@ -741,6 +767,7 @@ TaylorModel *truncateTM(const TaylorModel *const list,
     return NULL;
 
   assert(list->fun != NULL);
+  assert(variables != NULL);
 
   /* Recursive case: The tail of the new element is everything built until now.
     trunc((p, I) = (p - pe, I + Int(pe))) where pe are the truncated terms and
@@ -752,6 +779,10 @@ TaylorModel *truncateTM(const TaylorModel *const list,
                            ? evaluateExpTree(truncatedTerms, variables)
                            : newInterval(0, 0);
   Interval remainder = addInterval(&list->remainder, &enclosure);
+
+  /* Clean. */
+  if (truncatedTerms != NULL)
+    delExpTree(truncatedTerms);
 
   return newTMElem(truncateTM(list->next, variables, k), fun, truncated,
                    remainder);
