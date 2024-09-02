@@ -52,7 +52,7 @@ jobs:
     - run: meson setup builddir/
       env:
         CC: gcc
-    - run: meson test -C builddir/ -v
+    - run: meson test -C builddir/ -v --wrap='valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1'
     - run: ninja -C builddir clang-format-check
     - uses: actions/upload-artifact@v1
       if: failure()
