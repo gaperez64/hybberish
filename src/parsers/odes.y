@@ -53,18 +53,18 @@ prod: factor           { $$ = $1; }
 
 factor: term              { $$ = $1; }
       | SUB term          { $$ = newExpOp(EXP_NEG, $2, NULL); }
-      | term EXP INTEGER  { ExpTree *n = newExpLeaf(EXP_NUM, $3);
+      | term EXP INTEGER  { ExpTree *n = newExpLeaf(EXP_NUM, $3); free($3);
                             $$ = newExpOp(EXP_EXP_OP, $1, n); }
       ;
 
 term: number                      { $$ = $1; }
-    | IDENT                       { $$ = newExpLeaf(EXP_VAR, $1); }
+    | IDENT                       { $$ = newExpLeaf(EXP_VAR, $1); free($1); }
     | IDENT LPAR sumofprods RPAR  { $$ = newExpTree(EXP_FUN, $1, $3, NULL); }
     | LPAR sumofprods RPAR        { $$ = $2; }
     ;
 
-number: FLOAT    { $$ = newExpLeaf(EXP_NUM, $1); }
-      | INTEGER  { $$ = newExpLeaf(EXP_NUM, $1); }
+number: FLOAT    { $$ = newExpLeaf(EXP_NUM, $1); free($1); }
+      | INTEGER  { $$ = newExpLeaf(EXP_NUM, $1); free($1); }
       ;
 
 %%
