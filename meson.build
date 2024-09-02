@@ -3,6 +3,8 @@ project('hybberish', 'c',
   default_options : ['warning_level=3']
 )
 
+subdir('src/utils')
+utils_inc = include_directories('src/utils')
 subdir('src/fun')
 fun_inc = include_directories('src/fun')
 subdir('src/systems')
