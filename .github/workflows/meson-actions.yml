@@ -46,6 +46,7 @@ jobs:
     - run: |
         brew install gcc clang-format
         brew install flex bison
+        brew install valgrind
         echo "/opt/homebrew/opt/bison/bin" >> $GITHUB_PATH
         echo "/opt/homebrew/opt/flex/bin" >> $GITHUB_PATH
     - run: pip install meson ninja
