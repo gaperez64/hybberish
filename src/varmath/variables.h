@@ -14,6 +14,7 @@ typedef struct Domain {
 
 /* Create a new, single element list.
 
+  All pointer arguments must be heap allocated or NULL.
   Transfers ownership of all allocated arguments to the newly created instance.
 */
 Domain *newDomain(char *var, Interval domain);
@@ -37,6 +38,7 @@ typedef struct Valuation {
 
 /* Create a new, single element list.
 
+  All pointer arguments must be heap allocated or NULL.
   Transfers ownership of all allocated arguments to the newly created instance.
 */
 Valuation *newValuation(char *var, double val);
