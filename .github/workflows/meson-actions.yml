@@ -1,6 +1,7 @@
 name: ci_meson
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - "**.c"
