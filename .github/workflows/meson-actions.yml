@@ -26,6 +26,7 @@ jobs:
       with:
         python-version: '3.x'
     - run: pip install meson ninja
+    - run: apt install valgrind
     - run: meson setup builddir/
       env:
         CC: gcc
