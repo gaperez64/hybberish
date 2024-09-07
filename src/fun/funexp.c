@@ -307,9 +307,7 @@ ExpTree *derivative(ExpTree *expr, char *var) {
     free(function_name);
 
     return derivative_result;
-
   }
-
 
   /* more cases for other operators */
   default:
