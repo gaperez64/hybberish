@@ -29,7 +29,7 @@ jobs:
     - run: meson setup builddir/
       env:
         CC: gcc
-    - run: meson test -C builddir/ -v
+    - run: meson test -C builddir/ -v --wrap='valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1'
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
@@ -46,14 +46,13 @@ jobs:
     - run: |
         brew install gcc clang-format
         brew install flex bison
-        brew install --HEAD valgrind
         echo "/opt/homebrew/opt/bison/bin" >> $GITHUB_PATH
         echo "/opt/homebrew/opt/flex/bin" >> $GITHUB_PATH
     - run: pip install meson ninja
     - run: meson setup builddir/
       env:
         CC: gcc
-    - run: meson test -C builddir/ -v --wrap='valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1'
+    - run: meson test -C builddir/ -v
     - run: ninja -C builddir clang-format-check
     - uses: actions/upload-artifact@v4
       if: failure()
