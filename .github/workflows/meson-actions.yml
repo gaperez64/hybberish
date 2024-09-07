@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
     - run: pip install meson ninja
@@ -30,7 +30,7 @@ jobs:
       env:
         CC: gcc
     - run: meson test -C builddir/ -v
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: Linux_Meson_Testlog
@@ -40,7 +40,7 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
     - run: |
@@ -55,7 +55,7 @@ jobs:
         CC: gcc
     - run: meson test -C builddir/ -v --wrap='valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1'
     - run: ninja -C builddir clang-format-check
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: MacOS_Meson_Testlog
