@@ -8,6 +8,17 @@ from sympy.abc import t, x, y, s
 from matplotlib.patches import Rectangle
 
 
+def create_box(xmin: float, ymin: float, xmax: float, ymax: float) -> Rectangle:
+    """Create a rectangle from the given two points.
+
+    The given points (xmin, ymin) and (xmax, ymax) are the lower left and
+    upper right corners of the rectangle.
+    """
+    width = abs(xmax - xmin)
+    height = abs(ymax - ymin)
+    return Rectangle((xmin, ymin), width, height, linewidth=1, edgecolor='b', fill=False)
+
+
 def truncate_matrix(matrix: sympy.Matrix, order: int):
   """Truncate all polynomials in the given matrix to the given order.
 
@@ -45,11 +56,20 @@ def truncate_matrix(matrix: sympy.Matrix, order: int):
 
   return sympy.Matrix(truncated)
 
+
 def taylor_polynomials(initial_polys: sympy.Matrix,
                        ode_vars: list[sympy.core.symbol.Symbol],
-                       order: int,
-                       ode: sympy.Matrix) -> sympy.Matrix:
-    """Compute the Taylor polynomial over-approximation of an ODE."""
+                       ode: sympy.Matrix,
+                       order: int) -> sympy.Matrix:
+    """Compute the Taylor polynomial over-approximation of an ODE.
+
+    @param[in]  initial_polys  The polynomial to initialize the Lie derivation with.
+    @param[in]  oder_vars      The ordered list of ODE variables, e.g. [x, y].
+    @param[in]  ode            The ODEs' vector fields as a matrix, e.g.
+                               (x'=a, y'=b) becomes [a, b].
+    @param[in]  order          The order of the to-generate Taylor polynomials.
+    @return     The matrix of generated Taylor polynomials
+    """
 
     # We will be needing the Taylor expansion of the function defined by
     # the dynamics
@@ -71,7 +91,16 @@ def picard_operator(taylor_polys: sympy.Matrix,
                     ode: sympy.Matrix,
                     ode_variables: list[sympy.core.symbol.Symbol],
                     order: int) -> sympy.Matrix:
-    """Perform the picard operator on the given taylor polynomials pk(x, y, ..., t)."""
+    """Perform the picard operator on the given taylor polynomials pk(x, y, ..., t).
+
+    @param[in]  taylor_polys   The ordered list of taylor polynomials to compute the picard operator of.
+    @param[in]  ode            The ODEs w.r.t. which to substitute the polynomials into.
+    @param[in]  ode_variables  The ordered list of ODE variables of the given ODEs.
+                               e.g. [x, y] for the ODE (x'=..., y'=...).
+    @param[in]  order          The Taylor polynomial order to adhere to.
+    @return     The matrix of corresponding picard operator results.
+
+    """
     # Substitute polynomial p(x, y, t) into vector field f(x, y).
     substituted = ode.subs(zip(ode_variables, taylor_polys))
 
@@ -99,8 +128,16 @@ def refine_remainders(taylor_polys: sympy.Matrix,
     The to-refine remainder intervals do not have to be contractive; this operation
     may also be used to verify contractivenes of the initial remainder estimate vector I0.
 
-    initial_remainder: J0, the initial remainder guess that is successively enlarged until
-                       contractiveness or failure.
+    @param[in]  taylor_polys         The ordered list of taylor polynomials to refine the remainders of.
+    @param[in]  ode                  The ODEs w.r.t. which to substitute the polynomials into.
+    @param[in]  ode_variables        The ordered list of ODE variables of the given ODEs.
+                                     e.g. [x, y] for the ODE (x'=..., y'=...).
+    @param[in]  ode_intervals        The ordered, initial remainder estimate for each ODE variable.
+    @param[in]  remainder_intervals  A running remainder estimate that is refined exactly once during this function.
+    @param[in]  time                 The interval valuation of the time variable.
+    @param[in]  order                The Taylor polynomial order to adhere to.
+    @return     The refined remainders.
+
     """
     # The time (t) and remainder (s) variables are considered separately from the ODE variables.
     variables = tuple(ode_variables + [t, s])
@@ -147,8 +184,25 @@ def contractive_remainder(taylor_polys: sympy.Matrix,
                           nr_refinements: int) -> numpy.ndarray[sympy.plotting.intervalmath.interval]:
     """Compute a contractive remainder for each pair of true flow and taylor polynomial.
 
-    initial_remainder: J0, the initial remainder guess that is successively enlarged until
-                       contractiveness or failure.
+    This operation will first generate a contractive remainder, and then refine the remainder.
+
+    @param[in]  taylor_polys              The ordered list of taylor polynomials to refine the remainders of.
+    @param[in]  ode                       The ODEs w.r.t. which to substitute the polynomials into.
+    @param[in]  ode_variables             The ordered list of ODE variables of the given ODEs.
+                                          e.g. [x, y] for the ODE (x'=..., y'=...).
+    @param[in]  ode_intervals             The initial remainder estimate for each ODE variable.
+    @param[in]  initial_remainders        The initial remainder estimate I0 that is widened and refined.
+    @param[in]  time                      The time slice to find a contractive interval over. Of the form [0, δi]
+    @param[in]  order                     The Taylor polynomial order to adhere to.
+    @param[in]  nr_contractiveness_tries  The number of times to test an interval for contractiveness.
+                                          i.e. the interval will be enlarged at most (#tries - 1) times.
+    @param[in]  contractiveness_scale     The factor with which to scale the remainder estimate in case the
+                                          contractiveness test fails. e.g. scale = 2.0 and estimate = [-0.1, 0.1],
+                                          ==> scale * estimate = [-0.2, 0.2] is tested next
+    @param[in]  nr_refinements            The number of times to additionally refine a contractive remainder.
+                                          i.e. the contractiveness test maps I0 to I1, meaning one refinement is guaranteed,
+                                          after which #refinements additional refinements are applied.
+    @return     The contractive, refined remainders.
     """
     assert nr_contractiveness_tries > 0, "Must attempt test contractiveness test at least once."
     assert contractiveness_scale > 1, "Scale must be > 1; subsequent contractiveness tests must enlarge the initial remainder estimate."
@@ -197,7 +251,14 @@ def initial_set(taylor_polys: sympy.Matrix,
                 intervals: numpy.ndarray,
                 time_var: sympy.core.symbol.Symbol,
                 time: sympy.plotting.intervalmath.interval):
-    """Compute the initial set for the next TM integration step."""
+    """Compute the initial set for the next TM integration step.
+
+    @param[in]  taylor_polys  The ordered list of taylor polynomials of the current TM integration interation.
+    @param[in]  intervals     The contractive and refined remainder intervals.
+    @param[in]  time_var      The sympy variable used as the time variable.
+    @param[in]  time          The time step-size δi of the current iteration.
+    @return     The initial set for the subsequent TM integration iteration.
+    """
     # Given t in [0, δi] = time, fix t=δi in the taylor polynomials.
     # Using evalf minimizes precision errors affecting the result adversely, see docs:
     #   https://docs.sympy.org/latest/modules/core.html#module-sympy.core.evalf
@@ -207,7 +268,7 @@ def initial_set(taylor_polys: sympy.Matrix,
     # (pk(x, y, ..., t=δi), Il)
     return fixed_time_polys, intervals
 
-def tm_integration_iter(X0: tuple[sympy.Matrix, list],
+def tm_integration_iter(Xl: tuple[sympy.Matrix, list],
                         ode: sympy.Matrix,
                         ode_variables: list[sympy.core.symbol.Symbol],
                         ode_intervals: numpy.ndarray[sympy.plotting.intervalmath.interval],
@@ -217,11 +278,25 @@ def tm_integration_iter(X0: tuple[sympy.Matrix, list],
                         contractiveness_scale: float,
                         nr_refinements: int,
                         time_step_size: float):
-    """Perform a single Taylor model integration step."""
+    """Perform a single Taylor model integration step.
+
+    @param[in]  Xl                        The input Taylor model initial set for this iteration.
+    @param[in]  ode                       The ODEs.
+    @param[in]  ode_variables             The ordered list of ODE variables of the given ODEs.
+                                          e.g. [x, y] for the ODE (x'=..., y'=...).
+    @param[in]  ode_intervals             The initial remainder estimate for each ODE variable.
+    @param[in]  initial_remainders        The initial remainder estimate to refine.
+    @param[in]  order                     The Taylor polynomial order to adhere to.
+    @param[in]  nr_contractiveness_tries  The number of times to test an interval for contractiveness.
+    @param[in]  contractiveness_scale     The factor with which to scale the remainder estimate in case the contractiveness test fails.
+    @param[in]  nr_refinements            The number of times to additionally refine a contractive remainder.
+    @param[in]  time_step_size            The time step-size of the current iteration, i.e. time t in [0, δi] must hold.
+    @return     The TM flowpipe generated in this iteration.
+    """
     time = sympy.plotting.intervalmath.interval(0.0, time_step_size)
 
     # STEP 1: Compute the Taylor approximation of the true flow
-    taylor_polys = taylor_polynomials(X0[0], ode_variables, order, ode)
+    taylor_polys = taylor_polynomials(Xl[0], ode_variables, ode, order)
 
     # STEP 2: Compute a safe remainder estimate.
     Il = contractive_remainder(
@@ -232,16 +307,6 @@ def tm_integration_iter(X0: tuple[sympy.Matrix, list],
     Xl = initial_set(taylor_polys, Il, t, time)
 
     return Xl
-
-def create_box(xmin: float, ymin: float, xmax: float, ymax: float) -> Rectangle:
-    """Create a rectangle from the given two points.
-    
-    The given points are (xmin, ymin) and (xmax, ymax) are the lower left and
-    upper right corners of the rectangle.
-    """
-    width = abs(xmax - xmin)
-    height = abs(ymax - ymin)
-    return Rectangle((xmin, ymin), width, height, linewidth=1, edgecolor='b', fill=False)
 
 def tm_integration(
         ode_variables: list[sympy.core.symbol.Symbol],
@@ -261,6 +326,29 @@ def tm_integration(
     Returns a tuple (flowpipes, boxes), where flowpipes is the ordered
     list of all generated TM flowpipes; and boxes is its associative,
     ordered list of interval enclosures of those TM flowpipes. 
+
+    @param[in]  ode_variables             The ordered list of ODE variables of the given ODEs.
+                                          e.g. [x, y] for the ODE (x'=..., y'=...).
+    @param[in]  ode                       The ODEs.
+    @param[in]  ode_intervals             The initial remainder estimate for each ODE variable.
+    @param[in]  initial_box               The domain of all ODE variables at time t=0.
+    @param[in]  initial_remainders        The initial remainder estimate to refine.
+    @param[in]  time_horizon              The complete time horizon across which to compute flowpipes.
+                                          Must be of the form [0, Δ], where Δ is the the time step-sizes
+                                          used for each of the flowpipes sum to Δ.
+    @param[in]  time_step_size            The time step-size of the current iteration, i.e. time t in [0, δi] must hold.
+    @param[in]  time_step_epsilon         An epsilon bound to decide whether the final step-size is large enough to
+                                          warrant a flow-pipe. i.e. time horizon [0, 4.1] with step-size 0.2 implies
+                                          20 full steps of size [0, 0.2] and a final step of size [0, 0.1]. Choose
+                                          epsilon 0.01, then 0.1 > 0.01 meaning we DO want the final step [0, 0.1] to be executed.
+                                          If epsilon were 0.2, then 0.1 < 0.2 so that the final step [0, 0.1] would NOT be executed.
+                                          This epsilon transparantly handles floating point errors in the time horizon partitioning process.
+    @param[in]  order                     The Taylor polynomial order to adhere to.
+    @param[in]  nr_contractiveness_tries  The number of times to test an interval for contractiveness.
+    @param[in]  contractiveness_scale     The factor with which to scale the remainder estimate in case the contractiveness test fails.
+    @param[in]  nr_refinements            The number of times to additionally refine a contractive remainder.
+    @return     A tuple (flowpipes, boxes), where flowpipes is the ordered list of all generated TM flowpipes,
+                and boxes is its associative, ordered list of interval enclosures of those TM flowpipes. 
     """
 
     assert len(ode_variables) == len(ode), "Length mismatch: list of free ODE variables does not match number of ODE equations."
