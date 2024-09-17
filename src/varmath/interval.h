@@ -1,7 +1,8 @@
 /**
  * @file interval.h
  * @author Thomas Gueutal (thomas.gueutal@student.uantwerpen.be)
- * @brief A basic implementation of interval arithmetic and a few interval properties.
+ * @brief A basic implementation of interval arithmetic and a few interval
+ * properties.
  * @version 0.1
  * @date 2024-09-16
  *
@@ -20,15 +21,15 @@
 /**
  * @brief A class representing a closed interval I = [a, b], so that a <= b.
  *
- * @details Note, since intervals are really just convex sets of numbers, interval
- * arithmetic operations are set-operations in disguise. So, intuitively,
- * unary interval arithmetic operations can generally be applied elementwise,
- * while binary interval arithmetic operations can generally be applied pairwise
- * to the input interval(s) to compute the output interval.
+ * @details Note, since intervals are really just convex sets of numbers,
+ * interval arithmetic operations are set-operations in disguise. So,
+ * intuitively, unary interval arithmetic operations can generally be applied
+ * elementwise, while binary interval arithmetic operations can generally be
+ * applied pairwise to the input interval(s) to compute the output interval.
  *
- * Interval arithmetic is over-approximate. So the result of any interval arithmetic
- * operation can only expected to be a bound on the true result, rather than the
- * true result exactly.
+ * Interval arithmetic is over-approximate. So the result of any interval
+ * arithmetic operation can only expected to be a bound on the true result,
+ * rather than the true result exactly.
  *
  * @invariant The **bounds restriction** a <= b is an invariant that is only
  * guaranteed at construction if the correct constructor method,
@@ -85,7 +86,8 @@ Interval subInterval(const Interval *const left, const Interval *const right);
  *
  * @param[in] left  The left operand.
  * @param[in] right The right operand.
- * @return \p left * \p right = [a, b] * [c, d] = [ min{ac, ad, bc, bd}, max{ac, ad, bc, bd} ]
+ * @return \p left * \p right = [a, b] * [c, d] = [ min{ac, ad, bc, bd}, max{ac,
+ * ad, bc, bd} ]
  */
 Interval mulInterval(const Interval *const left, const Interval *const right);
 
