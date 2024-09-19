@@ -202,7 +202,7 @@ double intervalMidpoint(const Interval *const source);
 /**
  * @brief Compute the magnitude of an interval.
  *
- * @param source The interval, [a, b].
+ * @param[in] source The interval, [a, b].
  * @return Mag([a, b]) = max{|a|, |b|}
  */
 double intervalMagnitude(const Interval *const source);
@@ -211,8 +211,8 @@ double intervalMagnitude(const Interval *const source);
  * @brief Check if the interval is degenerate.
  * @pre The epsilon **must** be >= 0.
  *
- * @param source  The interval, [a, b].
- * @param epsilon An epsilon, to use as an equality threshold. So, the two
+ * @param[in] source  The interval, [a, b].
+ * @param[in] epsilon An epsilon, to use as an equality threshold. So, the two
  *                bounds of the interval are equal iff. they differ at most
  *                \p epsilon.
  * @return true  if |b - a| < \p epsilon

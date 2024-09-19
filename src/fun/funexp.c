@@ -66,6 +66,8 @@ ExpTree *newExpTree(ExpType type, char *name, ExpTree *left, ExpTree *right) {
 }
 
 void delExpTree(ExpTree *tree) {
+  assert(tree != NULL);
+
   /* A simple depth-first search while freeing nodes post-order */
   if (tree->left != NULL)
     delExpTree(tree->left);
@@ -102,6 +104,8 @@ static void printBinOp(ExpType type, FILE *where) {
 void printExpTree(ExpTree *tree, FILE *where) {
   /* A simple depth-first search while printing in-order */
   assert(tree != NULL);
+  assert(where != NULL);
+
   switch (tree->type) {
   /* binary operators */
   case EXP_ADD_OP:

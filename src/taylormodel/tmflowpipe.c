@@ -74,11 +74,15 @@ TaylorModel *lieDerivativeK(ODEList *system, TaylorModel *functions,
   assert(system != NULL);
   assert(functions != NULL);
 
-  /* Copy so that the returned list's lifetime is always the caller's
-   * responsibility. */
+  /* Copy the input functions, so that the returned list is distinct from
+    the input list. Then the lifetime of the returned instance TM is
+    consistently the caller's responsibility. */
   if (order == 0)
     return cpyTaylorModel(functions);
 
+  /* After pass i of the loop, the polynomial parts of the list of Taylor
+    models represent a vector of order i Lie derivatives. So each pass
+    raises the order of the Lie derivatives by one, until order k. */
   TaylorModel *ithLieDerivative = functions;
   for (unsigned int index = 0; index < order; ++index) {
     TaylorModel *old = ithLieDerivative;
@@ -198,9 +202,6 @@ TaylorModel *picardOperatorTM(ODEList *vectorField, TaylorModel *functions) {
   assert(vectorField != NULL);
   assert(functions != NULL);
 
-  // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED
-  // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED
-  // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED
   // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED
 
   /* Pf(g) = x0 + integral_0^t ( f(g(s), s) ds )
