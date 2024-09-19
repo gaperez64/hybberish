@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
   ExpTree *num1DotZero = newExpLeaf(EXP_NUM, "1.000");
   ExpTree *numDotZero = newExpLeaf(EXP_NUM, ".000");
 
-  /* Constants */
+  /* Number constants are monomials of degree 0. */
   {
     testDegree(num0, 0);
     testDegree(num2, 0);
@@ -42,14 +42,14 @@ int main(int argc, char *argv[]) {
     testDegree(numDotZero, 0);
   }
 
-  /* Lone variables */
+  /* Lone variables are monomials of degree 1. */
   {
     testDegree(x, 1);
     testDegree(y, 1);
     testDegree(z, 1);
   }
 
-  /* x^0 */
+  /* x^0 is a monomial of degree 0. */
   {
     ExpTree *expr = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(num0));
     testDegree(expr, 0);
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
     delExpTree(expr);
   }
 
-  /* x^.000 */
+  /* x^.000 is a monomial of degree 0. */
   {
     ExpTree *expr = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(numDotZero));
     testDegree(expr, 0);
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     delExpTree(expr);
   }
 
-  /* z^1. */
+  /* z^1 is a monomial of degree 1. */
   {
     ExpTree *expr = newExpOp(EXP_EXP_OP, cpyExpTree(z), cpyExpTree(num1Dot));
     testDegree(expr, 1);
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
     delExpTree(expr);
   }
 
-  /* ((x^2) * (y^0)) */
+  /* ((x^2) * (y^0)) is a monomial of degree 2. */
   {
     ExpTree *expLeft = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(num2));
     ExpTree *expRight = newExpOp(EXP_EXP_OP, cpyExpTree(y), cpyExpTree(num0));
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     delExpTree(expr);
   }
 
-  /* ((2 * x^3) * y^1.000) */
+  /* ((2 * x^3) * y^1.000) is a monomial of degree 4. */
   {
     ExpTree *pow3 = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(num3));
     ExpTree *pow1DotZero =
@@ -95,7 +95,9 @@ int main(int argc, char *argv[]) {
     delExpTree(expr);
   }
 
-  /* Negation */
+  /* Test the monomial degree of various expressions containing
+    unary negation, to ensure a unary negative operator node
+    is handled appropriately. */
   {
     ExpTree *negNum = newExpOp(EXP_NEG, cpyExpTree(num3), NULL);
     ExpTree *negVar = newExpOp(EXP_NEG, cpyExpTree(x), NULL);

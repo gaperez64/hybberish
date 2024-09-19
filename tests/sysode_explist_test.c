@@ -28,12 +28,13 @@ int main(int argc, char *argv[]) {
   ExpTree *t2 = newExpTree(EXP_FUN, strdup("sqrt"), min, NULL);
   ExpTree *t3 = newExpOp(EXP_MUL_OP, m2, a2);
 
-  /* tress ready, now creating the list */
+  /* trees ready, now creating the list */
   ODEList *list = newOdeList(strdup("x"), t1);
   list = newOdeElem(list, strdup("y"), t2);
   list = newOdeElem(list, strdup("last"), t3);
 
-  /* printing */
+  /* Verify that the various ODEs system constructors behave
+    as expected. */
   char buffer[100];
   FILE *stream = fmemopen(buffer, 100, "w");
   assert(stream != NULL);

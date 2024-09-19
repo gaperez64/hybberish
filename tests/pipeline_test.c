@@ -15,13 +15,17 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  /* Attach parsing to the flowpipe pipeline */
+  /* Manually lay out the TM integration pipeline that the main script
+    will follow. This allows testing how each of the different parts of the
+    pipeline fit together, and verifying their output in a controlled
+    environment. */
   {
-    int code;                     // Parsing output code
-    const unsigned int order = 3; // TM order
-    const unsigned int k = 3;     // truncation order
+    int code;                     // The output code for input parsing.
+    const unsigned int order = 3; // The TM order to adhere to.
+    const unsigned int k = 3;     // The TM truncation order to adhere to.
 
-    /* Setup */
+    /* Setup of the TM integration pipeline: call the parsing functionality
+      to convert string inputs to data structures. */
     printf("=== Setup ===\n");
     fflush(stdout);
 
@@ -41,7 +45,8 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
     assert(code == 0);
 
-    /* TM flowpipe overapprox pipeline */
+    /* Actually run the TM flowpipe overapprox pipeline;
+      the TM integration algorithm. */
     printf("=== Flowpipe overapprox ===\n");
     fflush(stdout);
     TaylorModel *tms = computeTaylorPolynomial(odes, order, k);
@@ -51,7 +56,7 @@ int main(int argc, char *argv[]) {
 
     // TODO: Add safe remainder computation ...
 
-    /* Clean */
+    /* Clean up allocated memory. */
     delTaylorModel(tms);
     delDomain(domains);
     delOdeList(odes);

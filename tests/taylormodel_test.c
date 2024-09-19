@@ -87,6 +87,7 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
+  /* Setup: construct common components for use in many tests. */
   const float epsilon = 0.0001;
 
   ExpTree *x = newExpLeaf(EXP_VAR, "x");
@@ -123,20 +124,6 @@ int main(int argc, char *argv[]) {
   Domain *domy = newDomainElem(domz, strdup("y"), newInterval(3, 4));
   Domain *domx = newDomainElem(domy, strdup("x"), newInterval(1, 2));
   Domain *domains = domx;
-
-  // printf("\n=== Test values ===\n");
-  // printf("TM1:   ");
-  // printTaylorModel(tm1, stdout);
-  // printf("\n");
-  // fflush(stdout);
-  // printf("TM2:   ");
-  // printTaylorModel(tm2, stdout);
-  // printf("\n");
-  // fflush(stdout);
-  // printf("vars:  ");
-  // printDomain(domains, stdout);
-  // printf("\n");
-  // fflush(stdout);
 
   /* Test constructor and destructor. */
   {
@@ -196,7 +183,7 @@ int main(int argc, char *argv[]) {
     Interval remainder2 = newInterval(2, 3);
     TaylorModel *newTM2 = newTMElem(newTM1, strdup(fun2), exp2, remainder2);
 
-    /* Testing */
+    /* Testing: the resulting instance should be an exact copy of the input. */
     TaylorModel *copied;
 
     copied = cpyTaylorModel(newTM2);
@@ -227,7 +214,13 @@ int main(int argc, char *argv[]) {
     ExpTree *exp = newExpOp(EXP_NEG, sub, NULL);
 
     /* NOTE: There may be multiple implementations of
-      the Interval pow/exponentiation function!!!
+      the Interval pow/exponentiation function! The
+      computation below assumes a naive algorithm,
+      where exponentiation is unrolled into multiple
+      multiplications.
+
+      Fill in  -(((x + y) / x) - (z^2 + 1))  by choosing
+      x in [1, 2], y in [3, 4] and z in [-2, 1].
 
       -((([1.0, 2.0] + [3.0, 4.0]) / [1.0, 2.0]) -
         ([-2.0, 1.0]^2 + [1.0, 1.0]))
@@ -267,6 +260,9 @@ int main(int argc, char *argv[]) {
     values = appValuationElem(values, xVal);
 
     /*
+      Fill in  -(((x + y) / x) - (z^2 + 1))  by choosing
+      x = 2, y = 3 and z = 4.
+
       -(((x + y) / x) - (z^2 + 1))
       = -(((2. + 3.) / 2.) - (4.^2 + 1))
       = -((5. / 2.) - (16. + 1))
@@ -283,7 +279,9 @@ int main(int argc, char *argv[]) {
     delValuation(values);
   }
 
-  /* Test order k Taylor model arithmetic. */
+  /* Test order k Taylor model arithmetic. Simply construct some
+    taylor models and then apply different TM operators. Then
+    verify the results. */
   printf("\n=== Taylor model arithmetic ===\n");
   fflush(stdout);
 
@@ -293,7 +291,9 @@ int main(int argc, char *argv[]) {
     printf("### Taylor model binary ADD (+); TM order k = %i ###\n", tmOrder);
     fflush(stdout);
 
-    /* Test two cases:
+    /* Test two cases, where we express the expected results as follows:
+          "TM arithmetic result" => "truncated TM arithmetic result"
+
       1) Terms do NOT get truncated for the first TM element
           (x + y) + x  =>  (x + y) + x
       2) Terms DO get truncated for the second TM element:
@@ -335,12 +335,13 @@ int main(int argc, char *argv[]) {
     printf("### Taylor model binary SUB (-); TM order k = %i ###\n", tmOrder);
     fflush(stdout);
 
-    /* Test two cases:
+    /* Test two cases, where we express the expected results as follows:
+          "TM arithmetic result" => "truncated TM arithmetic result"
+
       1) Terms do NOT get truncated for the first TM element:
           (x + y) - x  =>  (x + y) - x
       2) Terms DO get truncated for the second TM element:
           (1 - y^2) - (x - z)  =>  (1 - 0) - (x - z)
-
     */
     {
       ExpTree *sub = newExpOp(EXP_SUB_OP, cpyExpTree(one), cpyExpTree(zero));
@@ -378,7 +379,9 @@ int main(int argc, char *argv[]) {
     printf("### Taylor model binary MUL (*); TM order k = %i ###\n", tmOrder);
     fflush(stdout);
 
-    /* Test two cases:
+    /* Test two cases, where we express the expected results as follows:
+          "TM arithmetic result" => "truncated TM arithmetic result"
+
       1) Terms do NOT get truncated for the first TM element
           (x * x) + (x * y)  =>  (x * x) + (x * y)
       2) Terms DO get truncated for the second TM element:
@@ -448,18 +451,19 @@ int main(int argc, char *argv[]) {
     printf("### Taylor model binary EXP (^); TM order k = %i ###\n", tmOrder);
     fflush(stdout);
 
-    /* Test two cases:
+    /* Test two cases, where we express the expected results as follows:
+          "TM arithmetic result" => "truncated TM arithmetic result"
+
       1) Terms do NOT get truncated for the first TM element
           (x + 1)^3
       =>  (x*x*x + x*x + x*x + x) + (x^2 + x + x + 1)
       2) Terms DO get truncated for the second TM element:
           (x + y)^3
-      =>  (x + y)*(x + y)*(x + y)
-      =>  (x*x + x*y + y*x + y*y)*(x + y)
+      =>  (x + y)*(x + y)*(x + y)           // intermediate result
+      =>  (x*x + x*y + y*x + y*y)*(x + y)   // intermediate result
       =>  (x*x*x + x*x*y + x*y*x + x*y*y) + (y*x*x + y*x*y + y*y*x + y*y*y)
     */
     {
-      /*  */
       ExpTree *xP1 = newExpOp(EXP_ADD_OP, cpyExpTree(x), cpyExpTree(one));
       ExpTree *xPy = newExpOp(EXP_ADD_OP, cpyExpTree(x), cpyExpTree(y));
 
@@ -556,7 +560,9 @@ int main(int argc, char *argv[]) {
     printf("### Taylor model binary DIV (/); TM order k = %i ###\n", tmOrder);
     fflush(stdout);
 
-    /* Test two cases:
+    /* Test two cases, where we express the expected results as follows:
+          "TM arithmetic result" => "truncated TM arithmetic result"
+
       1) Terms do NOT get truncated for the first TM element
           x / x  =>  x / x
       2) Terms DO get truncated for the second TM element:

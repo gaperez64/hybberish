@@ -86,7 +86,9 @@ int main(int argc, char *argv[]) {
   assert(iOrig.right <= iPos.left);
   assert(iDegen.left == iDegen.right);
 
-  /* Test binary addition. */
+  /* Test binary addition for various interval combinations.
+    Focus on the effects of positive values, negative values,
+    or zero being part of an interval. */
   {
     printf("\n=== binary ADD (+) ===\n");
     fflush(stdout);
@@ -104,7 +106,9 @@ int main(int argc, char *argv[]) {
     testInterval(&res, 11, 13, eps);
   }
 
-  /* Test binary subtraction. */
+  /* Test binary subtraction for various interval combinations.
+    Focus on the effects of positive values, negative values,
+    or zero being part of an interval. */
   {
     printf("\n=== binary SUB (-) ===\n");
     fflush(stdout);
@@ -122,7 +126,9 @@ int main(int argc, char *argv[]) {
     testInterval(&res, 13, 14, eps);
   }
 
-  /* Test binary multiplication. */
+  /* Test binary multiplication for various interval combinations.
+    Focus on the effects of positive values, negative values,
+    or zero being part of an interval. */
   {
     printf("\n=== binary MUL (*) ===\n");
     fflush(stdout);
@@ -140,7 +146,9 @@ int main(int argc, char *argv[]) {
     testInterval(&res, 12, 24, eps);
   }
 
-  /* Test binary division. */
+  /* Test binary division for various interval combinations.
+    Focus on the effects of positive values, negative values,
+    or zero being part of an interval. */
   {
     printf("\n=== binary DIV (/) ===\n");
     fflush(stdout);
@@ -159,7 +167,9 @@ int main(int argc, char *argv[]) {
     testInterval(&res, -12, -6, eps);
   }
 
-  /* Test (unary) additive inverse. */
+  /* Test (unary) additive inverse for various interval combinations.
+    Focus on the effects of positive values, negative values,
+    or zero being part of an interval. */
   {
     printf("\n=== unary NEG (-) ===\n");
     fflush(stdout);
@@ -189,7 +199,12 @@ int main(int argc, char *argv[]) {
     testInterval(&res, sqrtl(iDegen.left), sqrtl(iDegen.right), eps);
   }
 
-  /* Test (binary) exponentiation. */
+  /* Test (binary) exponentiation for various interval combinations.
+    Focus on the effects of positive values, negative values,
+    or zero being part of an interval.
+
+    Test both the smart and the naive exponentiation algorithm.
+  */
   {
     printf("\n=== binary EXP (^) ===\n");
     fflush(stdout);
@@ -322,7 +337,8 @@ int main(int argc, char *argv[]) {
     testBool(eqInterval(&iPos, &iNeg, eps), false);
   }
 
-  /* Test binary interval membership. */
+  /* Test binary interval subset equal relationship.
+    i.e. is interval I1 contained in interval I2? */
   {
     printf("\n=== binary subset (subseq) ===\n");
     fflush(stdout);
@@ -363,7 +379,8 @@ int main(int argc, char *argv[]) {
     testBool(subeqInterval(&iNeg, &rightEncompassing), false);
   }
 
-  /* Test binary interval membership. */
+  /* Test binary interval membership.
+    i.e. is a number x contained in interval I? */
   {
     printf("\n=== binary membership (elem of) ===\n");
     fflush(stdout);

@@ -30,11 +30,13 @@ int main(int argc, char *argv[]) {
   ExpTree *twoa = newExpOp(EXP_MUL_OP, m2, a2);
   ExpTree *tree = newExpOp(EXP_DIV_OP, sum, twoa);
 
-  /* printing */
+  /* Verify that the various expression tree constructors behave
+    as expected. */
   char *buffer;
   size_t buflen;
   FILE *stream = open_memstream(&buffer, &buflen);
   assert(stream != NULL);
+  /* Use the tree printing functionality to verify the result. */
   const char msg[] = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
   printExpTree(tree, stream);
   fclose(stream); /* close to flush and add a null byte*/

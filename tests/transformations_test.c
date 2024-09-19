@@ -44,7 +44,20 @@ int main(int argc, char *argv[]) {
   ExpTree *one = newExpLeaf(EXP_NUM, "1");
 
   /*
-    Test Operator Simplification
+    Test Operator Simplification.
+
+    This large set of tests will verify if a given expression
+    tree is simplified to the expected, target expression tree.
+
+    For each possible operator, these simplifications will be
+    individually tested, to ensure the simplification works
+    exactly as intended.
+
+    Individual test cases will only be annotated with what
+    transformation is expected. e.g.
+      (a + 0)  =>  a
+    specifies that input expression "(a + 0)" should be simplified
+    to output expression "a".
   */
   printf("### Operator Simplification ###\n");
   fflush(stdout);
@@ -642,7 +655,7 @@ int main(int argc, char *argv[]) {
   }
 
   /*
-    Test Sum of Products transformation
+    Test Sum of Products transformation.
   */
   printf("### To Sum of Products ###\n");
   fflush(stdout);
@@ -655,7 +668,7 @@ int main(int argc, char *argv[]) {
   ExpTree *yTy = newExpOp(EXP_MUL_OP, cpyExpTree(y), cpyExpTree(y));
 
   /* Test distributing the unary negative operator:
-    -(x + y) = -x - y
+    e.g. -(x + y) = -x - y
   */
   {
     printf("=== Unary negative distribution ===\n\n");
@@ -1291,7 +1304,7 @@ int main(int argc, char *argv[]) {
   }
 
   /*
-    Test variable substitution transformation
+    Test variable substitution transformation.
   */
   printf("### Variable substitution ###\n");
   fflush(stdout);
@@ -1314,7 +1327,7 @@ int main(int argc, char *argv[]) {
         newExpOp(EXP_NEG, newExpOp(EXP_DIV_OP, mul, negsin), NULL);
 
     /* The following notation is used for expressing the substitution of
-      variable X by expression TARGET in expression SOURCE: (SOURCE)[x :=
+      variable x by expression TARGET in expression SOURCE: (SOURCE)[x :=
       TARGET] */
 
     /* (x)[x := y]  =>  y */
@@ -1360,7 +1373,14 @@ int main(int argc, char *argv[]) {
   }
 
   /*
-    Test truncation transformation
+    Test truncation transformation.
+    Truncation needs to specify a truncation degree k.
+    All terms of degree > k are truncated. Some tests will also
+    collect the truncated terms as a new, separate expression
+    and verify if the correct expression was collected.
+    e.g. if k = 2 and the input is "1 + x + x^3 - y^4"
+    then the result of truncation with k is "1 + x", while
+    the collected/truncated expression is "x^3 - y^4".
   */
   {
     printf("### Truncation ###\n");
@@ -1378,12 +1398,15 @@ int main(int argc, char *argv[]) {
     ExpTree *sub1 = newExpOp(EXP_SUB_OP, cpyExpTree(xTnegy), cpyExpTree(zero));
     ExpTree *add1 = newExpOp(EXP_ADD_OP, newExpOp(EXP_NEG, aP0, NULL), sub1);
 
-    /* k=1  &  x^1  =>  x^1 */
+    /* truncation order k=1  &  input x^1
+    ==> remaining exp = x^1 */
     exp = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(one));
     simpl = truncate(exp, 1);
     testSimplified(exp, simpl, exp);
     delExpTree(simpl);
 
+    /* Same as the previous test, but collect the truncated terms:
+       NULL */
     collectedTerms = NULL;
     simpl = truncate2(exp, 1, &collectedTerms);
     testSimplified(exp, simpl, exp);
@@ -1392,12 +1415,15 @@ int main(int argc, char *argv[]) {
 
     delExpTree(exp);
 
-    /* k=1  &  x^2  =>  0 */
+    /* truncation order k=1  &  input = x^2
+    ==> remaining exp = 0 */
     exp = newExpOp(EXP_EXP_OP, cpyExpTree(x), cpyExpTree(two));
     simpl = truncate(exp, 1);
     testSimplified(exp, simpl, zero);
     delExpTree(simpl);
 
+    /* Same as the previous test, but collect the truncated terms:
+       x^2 */
     collectedTerms = NULL;
     simpl = truncate2(exp, 1, &collectedTerms);
     testSimplified(exp, simpl, zero);
@@ -1407,9 +1433,9 @@ int main(int argc, char *argv[]) {
 
     delExpTree(exp);
 
-    /* k=2
-       ((a + -(a * b^2)) + ((x * -y) - ((x * -y) * z)))
-    => ((a + b) + ((x * -y) - 0))
+    /* truncation order k=2  &
+       input = ((a + -(a * b^2)) + ((x * -y) - ((x * -y) * z)))
+    => remaining exp = ((a + b) + ((x * -y) - 0))
     */
     ExpTree *powb2 = newExpOp(EXP_EXP_OP, cpyExpTree(b), cpyExpTree(two));
     ExpTree *powMul = newExpOp(EXP_MUL_OP, cpyExpTree(a), powb2);
@@ -1421,6 +1447,13 @@ int main(int argc, char *argv[]) {
     testSimplified(exp, simpl, add1);
     delExpTree(simpl);
 
+    /* Same as the previous test, but collect the truncated terms:
+       -(a * b^2) + ((x * -y) * z) */
+    /* TODO: Suppose T1 = -(a * b^2) and T2 = ((x * -y) * z).
+      Currently the expected result is T1 + T2, but should it not
+      be T1 - T2? The truncation should collect that subtraction
+      as a unary negation, because now it is lost?
+    */
     ExpTree *negPowMul = newExpOp(EXP_NEG, cpyExpTree(powMul), NULL);
     ExpTree *negMul1 = newExpOp(EXP_NEG, cpyExpTree(mul1), NULL);
     ExpTree *collExp = newExpOp(EXP_ADD_OP, negPowMul, negMul1);

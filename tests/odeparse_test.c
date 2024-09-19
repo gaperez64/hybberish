@@ -10,6 +10,8 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
+  /* Test the parsing of a string representing a system of ODEs.
+    The result should be an ODEList that matches the input. */
   {
     const char str[] =
         "x' = -b; y' = sqrt((b^2) - 4 * a * c); last' = (2 * at);";
@@ -17,7 +19,7 @@ int main(int argc, char *argv[]) {
     int res = parseOdeString(str, &list);
     assert(res == 0);
 
-    /* printing */
+    /* Verify the result via the printing functionality. */
     char buffer[100];
     FILE *stream = fmemopen(buffer, 100, "w");
     assert(stream != NULL);

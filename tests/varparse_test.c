@@ -10,6 +10,9 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
+  /* Test the parsing of a string representing the domain values
+    that a series of variables is restricted to.
+    The result should be a Domain list that matches the input. */
   const char str[] =
       "x in [1, 1]; y in [ -1.4 , +3.1 ]; last in [-3.444, -3.333];";
   Domain *list;
