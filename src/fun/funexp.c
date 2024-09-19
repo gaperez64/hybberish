@@ -34,7 +34,8 @@ ExpTree *newExpOp(const ExpType type, ExpTree *left, ExpTree *right) {
   return newExpTree(type, NULL, left, right);
 }
 
-ExpTree *newExpTree(const ExpType type, char *name, ExpTree *left, ExpTree *right) {
+ExpTree *newExpTree(const ExpType type, char *name, ExpTree *left,
+                    ExpTree *right) {
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
   tree->data = name;
   tree->type = type;
@@ -453,8 +454,7 @@ ExpTree *integral(const ExpTree *expr, const char *var) {
   }
 }
 
-ExpTree *definiteIntegral(const ExpTree *expr,
-                          const char *var,
+ExpTree *definiteIntegral(const ExpTree *expr, const char *var,
                           const ExpTree *lowerBound,
                           const ExpTree *upperBound) {
   /* Enforce preconditions */

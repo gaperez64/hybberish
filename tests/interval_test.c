@@ -37,7 +37,8 @@ void testBool(bool actual, bool expected) {
   assert(actual == expected);
 }
 
-/* Test if actual = expected up to precision epsilon, and print out the results. */
+/* Test if actual = expected up to precision epsilon, and print out the results.
+ */
 void testFloat(float actual, float expected, float epsilon) {
   /* printing and comparison */
   printf("Expect: %f\n", expected);
@@ -46,7 +47,8 @@ void testFloat(float actual, float expected, float epsilon) {
   assert(fabs(expected - actual) < epsilon);
 }
 
-/* Test if actual is printed to the expected string, and print out the results. */
+/* Test if actual is printed to the expected string, and print out the results.
+ */
 void testString(Interval *actual, const char *expectedMsg) {
   /* printing and comparison */
   char *buffer = NULL;

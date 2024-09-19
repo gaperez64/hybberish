@@ -61,7 +61,8 @@ bool isEqualTM(TaylorModel *actual, TaylorModel *expected, float epsilon) {
   return isEqualTM(actual->next, expected->next, epsilon);
 }
 
-void testTaylorModel(TaylorModel *actual, TaylorModel *expected, float epsilon) {
+void testTaylorModel(TaylorModel *actual, TaylorModel *expected,
+                     float epsilon) {
   bool compare = isEqualTM(actual, expected, epsilon);
 
   printf("actual:    ");

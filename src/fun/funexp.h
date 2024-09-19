@@ -102,7 +102,8 @@ ExpTree *newExpOp(const ExpType type, ExpTree *left, ExpTree *right);
  * @param[in] right The right subtree to assign.
  * @return ExpTree* A newly heap-allocated internal node.
  */
-ExpTree *newExpTree(const ExpType type, char *name, ExpTree *left, ExpTree *right);
+ExpTree *newExpTree(const ExpType type, char *name, ExpTree *left,
+                    ExpTree *right);
 
 /**
  * @brief Deallocate the given tree recursively.
@@ -155,10 +156,8 @@ ExpTree *integral(const ExpTree *expr, const char *var);
  * @return ExpTree* A newly heap-allocated, definite integral expression
  * of the input.
  */
-ExpTree *definiteIntegral(const ExpTree *expr,
-                          const char *var,
-                          const ExpTree *lowerBound,
-                          const ExpTree *upperBound);
+ExpTree *definiteIntegral(const ExpTree *expr, const char *var,
+                          const ExpTree *lowerBound, const ExpTree *upperBound);
 
 /**
  * @brief Make an exact, deep/recursive copy of the entire expression tree.
@@ -205,8 +204,7 @@ unsigned int degreeMonomial(const ExpTree *expr);
 /**
  * @brief A forward declaration of @ref substitute in @ref transformations.h.
  */
-ExpTree *substitute(const ExpTree *source,
-                    const char *var,
+ExpTree *substitute(const ExpTree *source, const char *var,
                     const ExpTree *target);
 
 #endif

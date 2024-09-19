@@ -95,7 +95,8 @@ ExpTree *truncate(const ExpTree *source, const unsigned int k);
  * @return ExpTree* A newly heap-allocated expression tree; the truncated
  * input expression.
  */
-ExpTree *truncate2(const ExpTree *source, const unsigned int k, ExpTree **collectedTerms);
+ExpTree *truncate2(const ExpTree *source, const unsigned int k,
+                   ExpTree **collectedTerms);
 
 /**
  * @brief Truncate all terms of degree i, where i > k.
@@ -139,8 +140,7 @@ ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
  * @return ExpTree* A newly heap-allocated expression tree; the result of
  * applying substitution to the input expression.
  */
-ExpTree *substitute(const ExpTree *source,
-                    const char *var,
+ExpTree *substitute(const ExpTree *source, const char *var,
                     const ExpTree *target);
 
 /**

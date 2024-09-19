@@ -100,7 +100,8 @@ ExpTree *truncate(const ExpTree *source, const unsigned int k) {
   return truncateTerms(source, k, NULL, false);
 }
 
-ExpTree *truncate2(const ExpTree *source, const unsigned int k, ExpTree **collectedTerms) {
+ExpTree *truncate2(const ExpTree *source, const unsigned int k,
+                   ExpTree **collectedTerms) {
   /* Require the output ptr not contain any tree, to avoid unintended behavior.
    */
   assert((*collectedTerms) == NULL);
@@ -186,8 +187,7 @@ ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
   }
 }
 
-ExpTree *substitute(const ExpTree *source,
-                    const char *var,
+ExpTree *substitute(const ExpTree *source, const char *var,
                     const ExpTree *target) {
   /* Enforce preconditions */
   assert(source != NULL);
