@@ -30,11 +30,11 @@ ExpTree *newExpLeaf(const ExpType type, const char *const name) {
   return tree;
 }
 
-ExpTree *newExpOp(ExpType type, ExpTree *left, ExpTree *right) {
+ExpTree *newExpOp(const ExpType type, ExpTree *left, ExpTree *right) {
   return newExpTree(type, NULL, left, right);
 }
 
-ExpTree *newExpTree(ExpType type, char *name, ExpTree *left, ExpTree *right) {
+ExpTree *newExpTree(const ExpType type, char *name, ExpTree *left, ExpTree *right) {
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
   tree->data = name;
   tree->type = type;
@@ -101,7 +101,7 @@ static void printBinOp(ExpType type, FILE *where) {
   }
 }
 
-void printExpTree(ExpTree *tree, FILE *where) {
+void printExpTree(const ExpTree *tree, FILE *where) {
   /* A simple depth-first search while printing in-order */
   assert(tree != NULL);
   assert(where != NULL);
@@ -149,7 +149,7 @@ void printExpTree(ExpTree *tree, FILE *where) {
   }
 }
 
-ExpTree *cpyExpTree(ExpTree *src) {
+ExpTree *cpyExpTree(const ExpTree *const src) {
   if (src == NULL) {
     return NULL;
   }
@@ -171,7 +171,7 @@ ExpTree *cpyExpTree(ExpTree *src) {
   return copy;
 }
 
-bool isLinear(ExpTree *expr) {
+bool isLinear(const ExpTree *expr) {
   if (expr == NULL) {
     return false;
   }
@@ -206,7 +206,7 @@ bool isLinear(ExpTree *expr) {
   return false;
 }
 
-ExpTree *derivative(ExpTree *expr, char *var) {
+ExpTree *derivative(const ExpTree *expr, const char *var) {
   if (expr == NULL) {
     return NULL;
   }
@@ -320,7 +320,7 @@ ExpTree *derivative(ExpTree *expr, char *var) {
   }
 }
 
-ExpTree *integral(ExpTree *expr, char *var) {
+ExpTree *integral(const ExpTree *expr, const char *var) {
   if (expr == NULL) {
     return NULL;
   }
@@ -453,8 +453,10 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
 }
 
-ExpTree *definiteIntegral(ExpTree *expr, char *var, ExpTree *lowerBound,
-                          ExpTree *upperBound) {
+ExpTree *definiteIntegral(const ExpTree *expr,
+                          const char *var,
+                          const ExpTree *lowerBound,
+                          const ExpTree *upperBound) {
   /* Enforce preconditions */
   assert(expr != NULL);
   assert(var != NULL);
@@ -474,7 +476,7 @@ ExpTree *definiteIntegral(ExpTree *expr, char *var, ExpTree *lowerBound,
   return definite;
 }
 
-bool isEqual(ExpTree *expr1, ExpTree *expr2) {
+bool isEqual(const ExpTree *expr1, const ExpTree *expr2) {
   /* Base case: empty trees are equal. */
   if (expr1 == NULL && expr2 == NULL)
     return true;
@@ -500,7 +502,7 @@ bool isEqual(ExpTree *expr1, ExpTree *expr2) {
          isEqual(expr1->right, expr2->right);
 }
 
-unsigned int degreeMonomial(ExpTree *expr) {
+unsigned int degreeMonomial(const ExpTree *expr) {
   /* Enforce pre-conditions */
   assert(expr != NULL);
 

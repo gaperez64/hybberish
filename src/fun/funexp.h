@@ -81,7 +81,7 @@ ExpTree *newExpLeaf(const ExpType type, const char *const name);
  * @param[in] right The right subtree to assign.
  * @return ExpTree* A newly heap-allocated internal node.
  */
-ExpTree *newExpOp(ExpType type, ExpTree *left, ExpTree *right);
+ExpTree *newExpOp(const ExpType type, ExpTree *left, ExpTree *right);
 
 /**
  * @brief The expression tree internal (**general**) node constructor.
@@ -102,7 +102,7 @@ ExpTree *newExpOp(ExpType type, ExpTree *left, ExpTree *right);
  * @param[in] right The right subtree to assign.
  * @return ExpTree* A newly heap-allocated internal node.
  */
-ExpTree *newExpTree(ExpType type, char *name, ExpTree *left, ExpTree *right);
+ExpTree *newExpTree(const ExpType type, char *name, ExpTree *left, ExpTree *right);
 
 /**
  * @brief Deallocate the given tree recursively.
@@ -117,7 +117,7 @@ void delExpTree(ExpTree *tree);
  * @param[in] tree  The tree to print.
  * @param[in] where The stream (destination) to print to.
  */
-void printExpTree(ExpTree *tree, FILE *where);
+void printExpTree(const ExpTree *tree, FILE *where);
 
 /**
  * @brief Compute the partial derivative expression w.r.t. the given variable.
@@ -129,7 +129,7 @@ void printExpTree(ExpTree *tree, FILE *where);
  * @return ExpTree* A newly heap-allocated, partial derivative expression
  * of the input.
  */
-ExpTree *derivative(ExpTree *expr, char *var);
+ExpTree *derivative(const ExpTree *expr, const char *var);
 
 /**
  * @brief Compute the indefinite integral expression w.r.t. the given variable.
@@ -140,7 +140,7 @@ ExpTree *derivative(ExpTree *expr, char *var);
  * @param[in] var  The integration variable.
  * @return ExpTree* A newly heap-allocated, integral expression of the input.
  */
-ExpTree *integral(ExpTree *expr, char *var);
+ExpTree *integral(const ExpTree *expr, const char *var);
 
 /**
  * @brief Compute the definite integral expression w.r.t. the given variable
@@ -155,8 +155,10 @@ ExpTree *integral(ExpTree *expr, char *var);
  * @return ExpTree* A newly heap-allocated, definite integral expression
  * of the input.
  */
-ExpTree *definiteIntegral(ExpTree *expr, char *var, ExpTree *lowerBound,
-                          ExpTree *upperBound);
+ExpTree *definiteIntegral(const ExpTree *expr,
+                          const char *var,
+                          const ExpTree *lowerBound,
+                          const ExpTree *upperBound);
 
 /**
  * @brief Make an exact, deep/recursive copy of the entire expression tree.
@@ -165,7 +167,7 @@ ExpTree *definiteIntegral(ExpTree *expr, char *var, ExpTree *lowerBound,
  * @param[in] src The tree to copy.
  * @return ExpTree* A newly heap-allocated, exact copy.
  */
-ExpTree *cpyExpTree(ExpTree *src);
+ExpTree *cpyExpTree(const ExpTree *const src);
 
 /**
  * @brief Verify if the expression is linear.
@@ -173,7 +175,7 @@ ExpTree *cpyExpTree(ExpTree *src);
  * @return true  iff. the expression is linear.
  * @return false else.
  */
-bool isLinear(ExpTree *expr);
+bool isLinear(const ExpTree *expr);
 
 /**
  * @brief Verify the exact equality of the given trees.
@@ -186,7 +188,7 @@ bool isLinear(ExpTree *expr);
  * @return true  iff. both trees match exactly.
  * @return false else.
  */
-bool isEqual(ExpTree *expr1, ExpTree *expr2);
+bool isEqual(const ExpTree *expr1, const ExpTree *expr2);
 
 /**
  * @brief Compute the degree of the given monomial expression.
@@ -198,11 +200,13 @@ bool isEqual(ExpTree *expr1, ExpTree *expr2);
  * @param[in] expr The monomial expression.
  * @return unsigned int The degree of the expression.
  */
-unsigned int degreeMonomial(ExpTree *expr);
+unsigned int degreeMonomial(const ExpTree *expr);
 
 /**
  * @brief A forward declaration of @ref substitute in @ref transformations.h.
  */
-ExpTree *substitute(ExpTree *source, char *var, ExpTree *target);
+ExpTree *substitute(const ExpTree *source,
+                    const char *var,
+                    const ExpTree *target);
 
 #endif

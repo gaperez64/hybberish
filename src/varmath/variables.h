@@ -52,7 +52,7 @@ typedef struct Domain {
  * @param[in] domain The interval domain of the variable.
  * @return Domain* A heap-allocated domain instance.
  */
-Domain *newDomain(char *var, Interval domain);
+Domain *newDomain(char *var, const Interval domain);
 
 /**
  * @brief Attach the second element as the head of the first list.
@@ -84,7 +84,7 @@ Domain *appDomainElem(Domain *tail, Domain *head);
  * @return Domain* A heap-allocated, new domain element with the given tail
  * attached.
  */
-Domain *newDomainElem(Domain *tail, char *var, Interval domain);
+Domain *newDomainElem(Domain *tail, char *var, const Interval domain);
 
 /**
  * @brief Deallocate the given list.
@@ -99,7 +99,7 @@ void delDomain(Domain *list);
  * @param[in] list  The list to print.
  * @param[in] where The stream (destination) to print to.
  */
-void printDomain(Domain *list, FILE *where);
+void printDomain(const Domain *list, FILE *where);
 
 /**
  * @brief A class representing a vector of variables,
@@ -132,7 +132,7 @@ typedef struct Valuation {
  * @param[in] val The real-valued valuation of the variable.
  * @return Valuation* A heap-allocated valuation instance.
  */
-Valuation *newValuation(char *var, double val);
+Valuation *newValuation(char *var, const double val);
 
 /**
  * @brief Attach the second element as the head of the first list.
@@ -163,7 +163,7 @@ Valuation *appValuationElem(Valuation *tail, Valuation *head);
  * @return Valuation* A heap-allocated, new valuation element with the given
  * tail attached.
  */
-Valuation *newValuationElem(Valuation *tail, char *var, double val);
+Valuation *newValuationElem(Valuation *tail, char *var, const double val);
 
 /**
  * @brief Deallocate the given list.
@@ -178,6 +178,6 @@ void delValuation(Valuation *list);
  * @param[in] list  The list to print.
  * @param[in] where The stream (destination) to print to.
  */
-void printValuation(Valuation *list, FILE *where);
+void printValuation(const Valuation *list, FILE *where);
 
 #endif

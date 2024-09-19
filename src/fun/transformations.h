@@ -25,7 +25,7 @@
  * @param[in] source The expression to simplify.
  * @return ExpTree* A newly heap-allocated, simplified expression tree.
  */
-ExpTree *simplify(ExpTree *source);
+ExpTree *simplify(const ExpTree *source);
 
 /**
  * @brief Convert the expression to a sum of products.
@@ -43,7 +43,7 @@ ExpTree *simplify(ExpTree *source);
  * @return ExpTree* A newly heap-allocated expression tree; the input
  * expression as a sum of products.
  */
-ExpTree *toSumOfProducts(ExpTree *source);
+ExpTree *toSumOfProducts(const ExpTree *source);
 
 /**
  * @brief Convert the expression to Horner form.
@@ -55,7 +55,7 @@ ExpTree *toSumOfProducts(ExpTree *source);
  * @return ExpTree* A newly heap-allocated expression tree; the input
  * expression as a Horner form.
  */
-ExpTree *toHornerForm(ExpTree *source);
+ExpTree *toHornerForm(const ExpTree *source);
 
 /**
  * @brief Truncate all terms of degree i, where i > k.
@@ -70,7 +70,7 @@ ExpTree *toHornerForm(ExpTree *source);
  * @return ExpTree* A newly heap-allocated expression tree; the truncated
  * input expression.
  */
-ExpTree *truncate(ExpTree *source, unsigned int k);
+ExpTree *truncate(const ExpTree *source, const unsigned int k);
 
 /**
  * @brief Truncate all terms of degree i, where i > k.
@@ -95,7 +95,7 @@ ExpTree *truncate(ExpTree *source, unsigned int k);
  * @return ExpTree* A newly heap-allocated expression tree; the truncated
  * input expression.
  */
-ExpTree *truncate2(ExpTree *source, unsigned int k, ExpTree **collectedTerms);
+ExpTree *truncate2(const ExpTree *source, const unsigned int k, ExpTree **collectedTerms);
 
 /**
  * @brief Truncate all terms of degree i, where i > k.
@@ -119,7 +119,7 @@ ExpTree *truncate2(ExpTree *source, unsigned int k, ExpTree **collectedTerms);
  * @return ExpTree* A newly heap-allocated expression tree; the truncated
  * input expression.
  */
-ExpTree *truncateTerms(ExpTree *source, unsigned int k,
+ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
                        ExpTree **collectedTerms, const bool collect);
 
 /**
@@ -139,7 +139,9 @@ ExpTree *truncateTerms(ExpTree *source, unsigned int k,
  * @return ExpTree* A newly heap-allocated expression tree; the result of
  * applying substitution to the input expression.
  */
-ExpTree *substitute(ExpTree *source, char *var, ExpTree *target);
+ExpTree *substitute(const ExpTree *source,
+                    const char *var,
+                    const ExpTree *target);
 
 /**
  * @brief Simplify a given expression by applying any found absorbing and
@@ -161,7 +163,7 @@ ExpTree *substitute(ExpTree *source, char *var, ExpTree *target);
  * @return ExpTree* A newly heap-allocated expression tree; the result of
  * applying all neutral or absorbing elements in the input expression.
  */
-ExpTree *simplifyOperators(ExpTree *source);
+ExpTree *simplifyOperators(const ExpTree *source);
 
 /**
  * @brief Check if the given expression is a number leaf with data
@@ -170,7 +172,7 @@ ExpTree *simplifyOperators(ExpTree *source);
  * @return true  If the tree is a leaf matching the pattern.
  * @return false Else false.
  */
-bool isZeroExpTree(ExpTree *source);
+bool isZeroExpTree(const ExpTree *source);
 
 /**
  * @brief Create a number leaf with data equivalent to '0'.
@@ -186,7 +188,7 @@ ExpTree *newZeroExpTree(void);
  * @return true  If the tree is a leaf matching the pattern.
  * @return false Else false.
  */
-bool isOneExpTree(ExpTree *source);
+bool isOneExpTree(const ExpTree *source);
 
 /**
  * @brief Create a number leaf with data equivalent to '1'.
@@ -215,7 +217,7 @@ ExpTree *newOneExpTree(void);
  * @return ExpTree* A newly heap-allocated expression tree; the result of
  * applying the distribution.
  */
-ExpTree *distributeLeft(ExpTree *left, ExpTree *right);
+ExpTree *distributeLeft(const ExpTree *left, const ExpTree *right);
 
 /**
  * @brief Apply the left-distributive property of multiplication w.r.t.
@@ -239,7 +241,7 @@ ExpTree *distributeLeft(ExpTree *left, ExpTree *right);
  * @return ExpTree* A newly heap-allocated expression tree; the result of
  * applying the distribution.
  */
-ExpTree *distributeLeftDistributive(ExpTree *left, ExpTree *right);
+ExpTree *distributeLeftDistributive(const ExpTree *left, const ExpTree *right);
 
 /**
  * @brief Distribute each encountered additive inverse (unary negation)
@@ -263,6 +265,6 @@ ExpTree *distributeLeftDistributive(ExpTree *left, ExpTree *right);
  * @return ExpTree* A newly heap-allocated expression tree; the result of
  * applying the distribution.
  */
-ExpTree *distributeNeg(ExpTree *source, bool unevenNegsFound);
+ExpTree *distributeNeg(const ExpTree *source, const bool unevenNegsFound);
 
 #endif

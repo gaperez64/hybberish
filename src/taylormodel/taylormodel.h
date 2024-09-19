@@ -69,7 +69,7 @@ typedef struct TaylorModel {
  * @return TaylorModel* A heap-allocated Taylor model instance.
  */
 TaylorModel *newTaylorModel(char *const fun, ExpTree *const exp,
-                            Interval remainder);
+                            const Interval remainder);
 
 /**
  * @brief Attach the second element as the head of the first list.

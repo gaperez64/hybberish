@@ -1,7 +1,7 @@
 #include "taylormodel.h"
 
 TaylorModel *newTaylorModel(char *const fun, ExpTree *const exp,
-                            Interval remainder) {
+                            const Interval remainder) {
   assert(fun != NULL);
   assert(exp != NULL);
 

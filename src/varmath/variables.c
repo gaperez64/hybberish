@@ -1,6 +1,6 @@
 #include "variables.h"
 
-Domain *newDomain(char *var, Interval domain) {
+Domain *newDomain(char *var, const Interval domain) {
   assert(var != NULL);
 
   Domain *list = (Domain *)malloc(sizeof(Domain));
@@ -18,7 +18,7 @@ Domain *appDomainElem(Domain *tail, Domain *head) {
   return head;
 }
 
-Domain *newDomainElem(Domain *tail, char *var, Interval domain) {
+Domain *newDomainElem(Domain *tail, char *var, const Interval domain) {
   Domain *head = newDomain(var, domain);
   return appDomainElem(tail, head);
 }
@@ -31,7 +31,7 @@ void delDomain(Domain *list) {
   free(list);
 }
 
-void printDomain(Domain *list, FILE *where) {
+void printDomain(const Domain *list, FILE *where) {
   assert(list->var != NULL);
   fprintf(where, "%s in ", list->var);
 
@@ -42,7 +42,7 @@ void printDomain(Domain *list, FILE *where) {
     printDomain(list->next, where);
 }
 
-Valuation *newValuation(char *var, double val) {
+Valuation *newValuation(char *var, const double val) {
   assert(var != NULL);
 
   Valuation *list = (Valuation *)malloc(sizeof(Valuation));
@@ -60,7 +60,7 @@ Valuation *appValuationElem(Valuation *tail, Valuation *head) {
   return head;
 }
 
-Valuation *newValuationElem(Valuation *tail, char *var, double val) {
+Valuation *newValuationElem(Valuation *tail, char *var, const double val) {
   Valuation *head = newValuation(var, val);
   return appValuationElem(tail, head);
 }
@@ -73,7 +73,7 @@ void delValuation(Valuation *list) {
   free(list);
 }
 
-void printValuation(Valuation *list, FILE *where) {
+void printValuation(const Valuation *list, FILE *where) {
   assert(list->var != NULL);
   fprintf(where, "%s = %f", list->var, list->val);
 

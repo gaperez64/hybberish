@@ -1,12 +1,12 @@
 #include "transformations.h"
 
-ExpTree *simplify(ExpTree *source) {
+ExpTree *simplify(const ExpTree *source) {
   ExpTree *simplified = simplifyOperators(source);
 
   return simplified;
 }
 
-ExpTree *toSumOfProducts(ExpTree *source) {
+ExpTree *toSumOfProducts(const ExpTree *source) {
   assert(source != NULL);
 
   /* Base case: retain leaves. */
@@ -96,18 +96,18 @@ ExpTree *toSumOfProducts(ExpTree *source) {
   return NULL;
 }
 
-ExpTree *truncate(ExpTree *source, unsigned int k) {
+ExpTree *truncate(const ExpTree *source, const unsigned int k) {
   return truncateTerms(source, k, NULL, false);
 }
 
-ExpTree *truncate2(ExpTree *source, unsigned int k, ExpTree **collectedTerms) {
+ExpTree *truncate2(const ExpTree *source, const unsigned int k, ExpTree **collectedTerms) {
   /* Require the output ptr not contain any tree, to avoid unintended behavior.
    */
   assert((*collectedTerms) == NULL);
   return truncateTerms(source, k, collectedTerms, true);
 }
 
-ExpTree *truncateTerms(ExpTree *source, unsigned int k,
+ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
                        ExpTree **collectedTerms, const bool collect) {
   /* Enforce preconditions */
   assert(source != NULL);
@@ -186,7 +186,9 @@ ExpTree *truncateTerms(ExpTree *source, unsigned int k,
   }
 }
 
-ExpTree *substitute(ExpTree *source, char *var, ExpTree *target) {
+ExpTree *substitute(const ExpTree *source,
+                    const char *var,
+                    const ExpTree *target) {
   /* Enforce preconditions */
   assert(source != NULL);
   assert(var != NULL);
@@ -218,7 +220,7 @@ ExpTree *substitute(ExpTree *source, char *var, ExpTree *target) {
     Simplification Helper methods.
 */
 
-ExpTree *simplifyOperators(ExpTree *source) {
+ExpTree *simplifyOperators(const ExpTree *source) {
   assert(source != NULL);
 
   /* Base case: retain leaves. */
@@ -409,13 +411,13 @@ ExpTree *simplifyOperators(ExpTree *source) {
   }
 }
 
-bool isZeroExpTree(ExpTree *source) {
+bool isZeroExpTree(const ExpTree *source) {
   return source != NULL && source->type == EXP_NUM && atof(source->data) == 0.0;
 }
 
 ExpTree *newZeroExpTree(void) { return newExpLeaf(EXP_NUM, "0"); }
 
-bool isOneExpTree(ExpTree *source) {
+bool isOneExpTree(const ExpTree *source) {
   return source != NULL && source->type == EXP_NUM && atof(source->data) == 1.0;
 }
 
@@ -425,7 +427,7 @@ ExpTree *newOneExpTree(void) { return newExpLeaf(EXP_NUM, "1"); }
     Sum of Products Helper methods.
 */
 
-ExpTree *distributeLeft(ExpTree *left, ExpTree *right) {
+ExpTree *distributeLeft(const ExpTree *left, const ExpTree *right) {
   /* Enforce preconditions */
   assert(left != NULL);
   assert(right != NULL);
@@ -454,7 +456,7 @@ ExpTree *distributeLeft(ExpTree *left, ExpTree *right) {
   return newExpOp(right->type, leftSubDistributed, rightSubDistributed);
 }
 
-ExpTree *distributeLeftDistributive(ExpTree *left, ExpTree *right) {
+ExpTree *distributeLeftDistributive(const ExpTree *left, const ExpTree *right) {
   /* Enforce preconditions */
   assert(left != NULL);
   assert(right != NULL);
@@ -484,7 +486,7 @@ ExpTree *distributeLeftDistributive(ExpTree *left, ExpTree *right) {
   return newExpOp(left->type, leftDistributed, rightDistributed);
 }
 
-ExpTree *distributeNeg(ExpTree *source, bool unevenNegsFound) {
+ExpTree *distributeNeg(const ExpTree *source, const bool unevenNegsFound) {
   /* Enforce preconditions */
   assert(source != NULL);
 
