@@ -17,7 +17,7 @@ void test_derivative(ExpTree *expr, char *var, const char *expected_msg) {
   printExpTree(der, stream);
   fclose(stream);
   printf("Expect: %s\n", expected_msg);
-  printf("Got: %s\n", buffer);
+  printf("Actual: %s\n", buffer);
   printf("!strcmp = %i\n", !strcmp(buffer, expected_msg));
   assert(!strcmp(buffer, expected_msg));
   fflush(stdout); // Flush stdout

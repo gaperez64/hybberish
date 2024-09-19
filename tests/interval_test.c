@@ -5,59 +5,59 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool approx(float got, float expected, float epsilon) {
+bool approx(float actual, float expected, float epsilon) {
   assert(epsilon >= 0);
-  return fabs(got - expected) < epsilon;
+  return fabs(actual - expected) < epsilon;
 }
 
-/* Test if got = [a, b] = [expectedLeft, expectedRight]
+/* Test if actual = [a, b] = [expectedLeft, expectedRight]
   up to precision epsilon. and print out the results. */
-void testInterval(Interval *got, float expectedLeft, float expectedRight,
+void testInterval(Interval *actual, float expectedLeft, float expectedRight,
                   float epsilon) {
-  assert(got != NULL);
+  assert(actual != NULL);
   assert(epsilon >= 0);
 
   /* printing and comparison */
-  bool compare = approx(got->left, expectedLeft, epsilon) &&
-                 approx(got->right, expectedRight, epsilon);
+  bool compare = approx(actual->left, expectedLeft, epsilon) &&
+                 approx(actual->right, expectedRight, epsilon);
 
   printf("Expect: [%f, %f]\n", expectedLeft, expectedRight);
-  printf("Got:    [%f, %f]\n", got->left, got->right);
+  printf("Actual:    [%f, %f]\n", actual->left, actual->right);
   printf("Compare = %i\n", compare);
   fflush(stdout); // Flush stdout
   assert(compare);
 }
 
-/* Test if got = expected, and print out the results. */
-void testBool(bool got, bool expected) {
+/* Test if actual = expected, and print out the results. */
+void testBool(bool actual, bool expected) {
   /* printing and comparison */
   printf("Expect: %i\n", expected);
-  printf("Got:    %i\n", got);
+  printf("Actual:    %i\n", actual);
   fflush(stdout); // Flush stdout
-  assert(got == expected);
+  assert(actual == expected);
 }
 
-/* Test if got = expected up to precision epsilon, and print out the results. */
-void testFloat(float got, float expected, float epsilon) {
+/* Test if actual = expected up to precision epsilon, and print out the results. */
+void testFloat(float actual, float expected, float epsilon) {
   /* printing and comparison */
   printf("Expect: %f\n", expected);
-  printf("Got:    %f\n", got);
+  printf("Actual:    %f\n", actual);
   fflush(stdout); // Flush stdout
-  assert(fabs(expected - got) < epsilon);
+  assert(fabs(expected - actual) < epsilon);
 }
 
-/* Test if got is printed to the expected string, and print out the results. */
-void testString(Interval *got, const char *expectedMsg) {
+/* Test if actual is printed to the expected string, and print out the results. */
+void testString(Interval *actual, const char *expectedMsg) {
   /* printing and comparison */
   char *buffer = NULL;
   size_t buflen = 0;
   FILE *stream = open_memstream(&buffer, &buflen);
   assert(stream != NULL);
-  printInterval(got, stream);
+  printInterval(actual, stream);
   fclose(stream);
 
   printf("Expect: \"%s\"\n", expectedMsg);
-  printf("Got:    \"%s\"\n", buffer);
+  printf("Actual:    \"%s\"\n", buffer);
   printf("!strcmp = %i\n", !strcmp(buffer, expectedMsg));
   assert(!strcmp(buffer, expectedMsg));
   fflush(stdout); // Flush stdout

@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
   fclose(stream); /* close to flush and write null byte */
   printf("\n");
   printf("expect: |%s| = %lu\n", msg, strlen(msg));
-  printf("got:    |%s| = %lu\n", buffer, strlen(buffer));
+  printf("actual:    |%s| = %lu\n", buffer, strlen(buffer));
   printf("strcmp = %i\n", strcmp(buffer, msg));
   fflush(stdout);
   assert(strcmp(buffer, msg) == 0);

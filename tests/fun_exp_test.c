@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   printExpTree(tree, stream);
   fclose(stream); /* close to flush and add a null byte*/
   printf("expect: |%s| = %lu\n", msg, strlen(msg));
-  printf("got: |%s| = %lu\n", buffer, strlen(buffer));
+  printf("actual: |%s| = %lu\n", buffer, strlen(buffer));
   printf("!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
   fprintf(stderr, "done!\n");

@@ -648,10 +648,6 @@ TaylorModel *divTM(const TaylorModel *const left,
   fflush(stdout);
 
   // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
-  // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
-  // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
-  // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
-  // TODO: /\/\/\ evaluateExpTM recursively calls divTM ???? Because DIV nodes are used above /\/\/\ 
 
   inverseTM->remainder = addInterval(&inverseTM->remainder, &inverseRemainder);
 

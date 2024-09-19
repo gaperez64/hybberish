@@ -18,7 +18,7 @@ void test_integral(ExpTree *expr, char *var, const char *expected_msg) {
   fclose(stream);
 
   printf("Expect: %s\n", expected_msg);
-  printf("Got: %s\n", buffer);
+  printf("Actual: %s\n", buffer);
   printf("!strcmp = %i\n", !strcmp(buffer, expected_msg));
   assert(!strcmp(buffer, expected_msg));
   fflush(stdout); // Flush stdout

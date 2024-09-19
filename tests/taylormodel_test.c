@@ -6,69 +6,69 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool approx(float got, float expected, float epsilon) {
+bool approx(float actual, float expected, float epsilon) {
   assert(epsilon >= 0);
-  return fabs(got - expected) < epsilon;
+  return fabs(actual - expected) < epsilon;
 }
 
-/* Test if got = expected up to precision epsilon. and print out the results.
+/* Test if actual = expected up to precision epsilon. and print out the results.
  */
-void testReal(double got, double expected, float epsilon) {
+void testReal(double actual, double expected, float epsilon) {
   assert(epsilon >= 0);
 
   /* printing and comparison */
-  bool compare = got == expected;
+  bool compare = actual == expected;
   printf("Expect: %f\n", expected);
-  printf("Got:    %f\n", got);
+  printf("Actual:    %f\n", actual);
   printf("Compare = %i\n\n", compare);
   fflush(stdout); // Flush stdout
   assert(compare);
 }
 
-/* Test if got = [a, b] = [expectedLeft, expectedRight]
+/* Test if actual = [a, b] = [expectedLeft, expectedRight]
   up to precision epsilon. and print out the results. */
-void testInterval(Interval *got, float expectedLeft, float expectedRight,
+void testInterval(Interval *actual, float expectedLeft, float expectedRight,
                   float epsilon) {
-  assert(got != NULL);
+  assert(actual != NULL);
   assert(epsilon >= 0);
 
   /* printing and comparison */
-  bool compare = approx(got->left, expectedLeft, epsilon) &&
-                 approx(got->right, expectedRight, epsilon);
+  bool compare = approx(actual->left, expectedLeft, epsilon) &&
+                 approx(actual->right, expectedRight, epsilon);
 
   printf("Expect: [%f, %f]\n", expectedLeft, expectedRight);
-  printf("Got:    [%f, %f]\n", got->left, got->right);
+  printf("Actual:    [%f, %f]\n", actual->left, actual->right);
   printf("Compare = %i\n\n", compare);
   fflush(stdout); // Flush stdout
   assert(compare);
 }
 
-bool isEqualTM(TaylorModel *got, TaylorModel *expected, float epsilon) {
+bool isEqualTM(TaylorModel *actual, TaylorModel *expected, float epsilon) {
   /* Base case: no mismatches found at all */
-  if (got == NULL && expected == NULL)
+  if (actual == NULL && expected == NULL)
     return true;
   /* Length mismatch */
-  if ((got == NULL) != (expected == NULL))
+  if ((actual == NULL) != (expected == NULL))
     return false;
-  if (strcmp(got->fun, expected->fun) != 0)
+  if (strcmp(actual->fun, expected->fun) != 0)
     return false;
-  if (!(approx(got->remainder.left, expected->remainder.left, epsilon) &&
-        approx(got->remainder.right, expected->remainder.right, epsilon)))
+  if (!(approx(actual->remainder.left, expected->remainder.left, epsilon) &&
+        approx(actual->remainder.right, expected->remainder.right, epsilon)))
     return false;
-  if (!isEqual(got->exp, expected->exp))
+  if (!isEqual(actual->exp, expected->exp))
     return false;
 
-  return isEqualTM(got->next, expected->next, epsilon);
+  return isEqualTM(actual->next, expected->next, epsilon);
 }
 
-void testTaylorModel(TaylorModel *got, TaylorModel *expected, float epsilon) {
-  bool compare = isEqualTM(got, expected, epsilon);
+void testTaylorModel(TaylorModel *actual, TaylorModel *expected, float epsilon) {
+  bool compare = isEqualTM(actual, expected, epsilon);
 
-  printf("got:    ");
-  if (got == NULL)
+  printf("actual:    ");
+  if (actual == NULL)
     printf("NULL");
   else
-    printTaylorModel(got, stdout);
+    printTaylorModel(actual, stdout);
   printf("\nexpect: ");
   if (expected == NULL)
     printf("NULL");
@@ -570,9 +570,6 @@ int main(int argc, char *argv[]) {
           newTMElem(NULL, strdup(tm1->next->fun), random, newInterval(0, 0));
 
       // TODO: Implement test properly !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      // TODO: Implement test properly !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      // TODO: Implement test properly !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      // TODO: Implement test properly !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       /* Compute and test results. */
       printf("@@@ B\n");
@@ -620,9 +617,7 @@ int main(int argc, char *argv[]) {
     // exp = newExpOp(EXP_NEG, sub, NULL);
 
     // TODO: \/\/\/ Use the previous, more complete expression once eval/TM
-    // arithmetic is implemented more fully!!!!
-    // TODO: \/\/\/ Use the previous, more complete expression once eval/TM
-    // arithmetic is implemented more fully!!!!
+    //              arithmetic is implemented more fully!!!!
     /* -((((x * z) + y) * x) - (z + 1)) */
     xTx = newExpOp(EXP_MUL_OP, cpyExpTree(x), cpyExpTree(z));
     xPy = newExpOp(EXP_ADD_OP, xTx, cpyExpTree(y));
@@ -631,9 +626,7 @@ int main(int argc, char *argv[]) {
     sub = newExpOp(EXP_SUB_OP, div, z2P1);
     exp = newExpOp(EXP_NEG, sub, NULL);
     // TODO: /\/\/\ Use the previous, more complete expression once eval/TM
-    // arithmetic is implemented more fully!!!!
-    // TODO: /\/\/\ Use the previous, more complete expression once eval/TM
-    // arithmetic is implemented more fully!!!!
+    //              arithmetic is implemented more fully!!!!
 
     /* NOTE: There may be multiple implementations of
       the Interval pow/exponentiation function!!!

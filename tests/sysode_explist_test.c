@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
   printOdeList(list, stream);
   fclose(stream); /* close to flush and write null byte */
   printf("expect: |%s| = %lu\n", msg, strlen(msg));
-  printf("got: |%s| = %lu\n", buffer, strlen(buffer));
+  printf("actual: |%s| = %lu\n", buffer, strlen(buffer));
   printf("!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
 

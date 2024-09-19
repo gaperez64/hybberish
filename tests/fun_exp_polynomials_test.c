@@ -7,11 +7,11 @@
 void testDegree(ExpTree *expression, unsigned int expectedDegree) {
   unsigned int degree = degreeMonomial(expression);
 
-  printf("Expr:    ");
+  printf("Expr:          ");
   printExpTree(expression, stdout);
   printf("\n");
-  printf("Got deg: %u\n", degree);
-  printf("Expect:  %u\n\n", expectedDegree);
+  printf("Actual degree: %u\n", degree);
+  printf("Expect degree: %u\n\n", expectedDegree);
   fflush(stdout);
 
   assert(degree == expectedDegree);
