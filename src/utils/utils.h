@@ -1,3 +1,14 @@
+/**
+ * @file utils.h
+ * @author Thomas Gueutal (thomas.gueutal@student.uantwerpen.be)
+ * @brief Utility functions that do not particularly belong anywhere.
+ * @version 0.1
+ * @date 2024-09-19
+ *
+ * @copyright Copyright (c) 2024
+ *
+ */
+
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
