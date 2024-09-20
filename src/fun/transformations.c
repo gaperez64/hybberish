@@ -9,7 +9,8 @@ ExpTree *simplify(const ExpTree *source) {
 ExpTree *toSumOfProducts(const ExpTree *source) {
   assert(source != NULL);
 
-  /* Base case: retain leaves. */
+  /* Base case: leaves are a number or a variable, and are by definition
+    a valid sum of produces. So retain leaves. */
   if (source->left == NULL && source->right == NULL)
     return cpyExpTree(source);
 
@@ -22,6 +23,9 @@ ExpTree *toSumOfProducts(const ExpTree *source) {
     ExpTree *leftSumOfProd = toSumOfProducts(source->left);
     ExpTree *rightSumOfProd = toSumOfProducts(source->right);
 
+    /* Here, a tree is considered to be "distributive" if it consists
+      of multiple monomial terms, each of which can be "distributed"
+      over the other multiplication operand. */
     bool leftIsDistributive =
         leftSumOfProd->type == EXP_ADD_OP || leftSumOfProd->type == EXP_SUB_OP;
     bool rightIsDistributive = rightSumOfProd->type == EXP_ADD_OP ||
@@ -31,8 +35,8 @@ ExpTree *toSumOfProducts(const ExpTree *source) {
     if (!leftIsDistributive && !rightIsDistributive)
       return newExpOp(source->type, leftSumOfProd, rightSumOfProd);
 
-    /* Both are distributive, so distribute all elements of one across the
-     * other. */
+    /* Both modified subtrees are distributive, so distribute all monomials
+      of one across the other. */
     if (leftIsDistributive && rightIsDistributive) {
       ExpTree *res = distributeLeftDistributive(leftSumOfProd, rightSumOfProd);
       delExpTree(leftSumOfProd);
@@ -40,8 +44,8 @@ ExpTree *toSumOfProducts(const ExpTree *source) {
       return res;
     }
 
-    /* Only the left is distributive, so distribute the right across the left.
-     */
+    /* Only the left subtree is distributive, so distribute the right subtree,
+      which is a single monomial, across the left subtree's monomials. */
     if (leftIsDistributive) {
       ExpTree *res = distributeLeft(rightSumOfProd, leftSumOfProd);
       delExpTree(leftSumOfProd);
@@ -49,8 +53,8 @@ ExpTree *toSumOfProducts(const ExpTree *source) {
       return res;
     }
 
-    /* Only the right is distributive, so distribute the left across the right.
-     */
+    /* Only the right subtree is distributive, so distribute the left subtree,
+      which is a single monomial, across the right subtree's monomials. */
     ExpTree *res = distributeLeft(leftSumOfProd, rightSumOfProd);
     delExpTree(leftSumOfProd);
     delExpTree(rightSumOfProd);
@@ -80,6 +84,8 @@ ExpTree *toSumOfProducts(const ExpTree *source) {
       assert(source->right == NULL);
     }
 
+    /* FUN nodes only have one subtree, allow the distribution
+      results to be NULL. */
     ExpTree *leftSumOfProd =
         source->left ? toSumOfProducts(source->left) : NULL;
     ExpTree *rightSumOfProd =
@@ -97,6 +103,7 @@ ExpTree *toSumOfProducts(const ExpTree *source) {
 }
 
 ExpTree *truncate(const ExpTree *source, const unsigned int k) {
+  /* Force terms to not be collected, for better efficiency. */
   return truncateTerms(source, k, NULL, false);
 }
 
@@ -110,9 +117,9 @@ ExpTree *truncate2(const ExpTree *source, const unsigned int k,
 
 ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
                        ExpTree **collectedTerms, const bool collect) {
-  /* Enforce preconditions */
   assert(source != NULL);
   assert(k > 0);
+
   /* If truncated terms must be propagated up, then the destination must exist
     AND be empty (NULL). */
   if (collect) {
@@ -121,6 +128,8 @@ ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
   }
 
   switch (source->type) {
+  /* For ADD (+) and SUB (-), truncation must be dustributed
+    over the operands. */
   case EXP_ADD_OP:
   case EXP_SUB_OP: {
     assert(source->left != NULL);
@@ -133,6 +142,8 @@ ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
     ExpTree *rightTruncated =
         truncateTerms(source->right, k, &rightCTerms, collect);
 
+    /* Append truncated terms, collected from the left subtree,
+      to the out pointer. */
     if (leftCTerms != NULL) {
       if ((*collectedTerms) == NULL)
         *collectedTerms = leftCTerms;
@@ -140,6 +151,8 @@ ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
         *collectedTerms = newExpOp(EXP_ADD_OP, *collectedTerms, leftCTerms);
     }
 
+    /* Append truncated terms, collected from the right subtree,
+      to the out pointer. */
     if (rightCTerms != NULL) {
       if ((*collectedTerms) == NULL) {
         if (source->type == EXP_SUB_OP)
@@ -160,6 +173,8 @@ ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
     ExpTree *cTerms = NULL;
     ExpTree *leftTruncated = truncateTerms(source->left, k, &cTerms, collect);
 
+    /* Append truncated terms, collected from the sole subtree,
+      to the out pointer. */
     if (cTerms != NULL) {
       ExpTree *truncated = newExpOp(EXP_NEG, cTerms, NULL);
       if ((*collectedTerms) == NULL)
@@ -171,8 +186,8 @@ ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
     return newExpOp(source->type, leftTruncated, NULL);
   }
 
-  /* Remaining operators and leaves are seen as atoms,
-    for which to compute a degree and optionally prune. */
+  /* Remaining operators and leaves are seen as atoms, for
+    which to compute a degree and which to optionally prune. */
   default: {
     if (degreeMonomial(source) > k) {
       /* If required, push up the pruned term.
@@ -189,18 +204,18 @@ ExpTree *truncateTerms(const ExpTree *source, const unsigned int k,
 
 ExpTree *substitute(const ExpTree *source, const char *var,
                     const ExpTree *target) {
-  /* Enforce preconditions */
   assert(source != NULL);
   assert(var != NULL);
   assert(target != NULL);
 
-  /* Base case: leaf */
+  /* Base case: Encountered a leaf node. Leaf nodes are the targets
+    of substitution! */
   if (source->left == NULL && source->right == NULL) {
-    /* Current subtree is a to-replace variable. */
+    /* The current subtree is a to-replace variable, so substitute it. */
     if (source->type == EXP_VAR && source->data != NULL &&
         (strcmp(source->data, var) == 0))
       return cpyExpTree(target);
-    /* Else, end of recursion, retain the leaf. */
+    /* Else, end the recursion and retain the leaf. */
     else
       return cpyExpTree(source);
   }
@@ -212,7 +227,8 @@ ExpTree *substitute(const ExpTree *source, const char *var,
       source->right ? substitute(source->right, var, target) : NULL;
   char *data = source->data ? strdup(source->data) : NULL;
 
-  /* Retain all nodes except the to-replace variables. */
+  /* Retain all nodes except the to-replace variables. This node must be
+    an inner node since the base case was not triggered. */
   return newExpTree(source->type, data, leftSubstituted, rightSubstituted);
 }
 
@@ -223,7 +239,7 @@ ExpTree *substitute(const ExpTree *source, const char *var,
 ExpTree *simplifyOperators(const ExpTree *source) {
   assert(source != NULL);
 
-  /* Base case: retain leaves. */
+  /* Base case: always retain leaves. */
   if (source->left == NULL && source->right == NULL)
     return cpyExpTree(source);
 
@@ -265,7 +281,7 @@ ExpTree *simplifyOperators(const ExpTree *source) {
     /* 0 +/- b = +/- b */
     if (leftIsNeutral) {
       delExpTree(leftSimplified);
-      /* Edge case: 0 - b = -b */
+      /* Edge case: 0 - b = -b  while  0 + b = b */
       return (source->type == EXP_SUB_OP)
                  ? newExpOp(EXP_NEG, rightSimplified, NULL)
                  : rightSimplified;
@@ -428,7 +444,6 @@ ExpTree *newOneExpTree(void) { return newExpLeaf(EXP_NUM, "1"); }
 */
 
 ExpTree *distributeLeft(const ExpTree *left, const ExpTree *right) {
-  /* Enforce preconditions */
   assert(left != NULL);
   assert(right != NULL);
   /* Right MUST be distributive. */
@@ -439,25 +454,34 @@ ExpTree *distributeLeft(const ExpTree *left, const ExpTree *right) {
   ExpTree *leftSubDistributed;
   ExpTree *rightSubDistributed;
 
-  /*   left * ((x + y) + ...) = left * (x + y) + ...   */
+  /* right->left is polynomial, so compute the result of distributing left
+    across right->left:
+        left * ((x + y) + ...)  =>  left * (x + y) */
   if (right->left->type == EXP_ADD_OP || right->left->type == EXP_SUB_OP)
     leftSubDistributed = distributeLeft(left, right->left);
+  /* right->left is monomial, so the distribution reduces to a simple
+    multiplication of: left * right->left. */
   else
     leftSubDistributed =
         newExpOp(EXP_MUL_OP, cpyExpTree(left), cpyExpTree(right->left));
 
-  /*   left * (... + (y + z)) = left * ... + left * (y + z)   */
+  /* right->right is polynomial, so compute the result of distributing left
+    across right->right:
+        left * (... + (y + z))  =>  left * (y + z) */
   if (right->right->type == EXP_ADD_OP || right->right->type == EXP_SUB_OP)
     rightSubDistributed = distributeLeft(left, right->right);
+  /* right->right is monomial, so the distribution reduces to a simple
+    multiplication of: left * right->right. */
   else
     rightSubDistributed =
         newExpOp(EXP_MUL_OP, cpyExpTree(left), cpyExpTree(right->right));
 
+  /* Compose the partial distributions based on the type/sign
+    of the right subtree. */
   return newExpOp(right->type, leftSubDistributed, rightSubDistributed);
 }
 
 ExpTree *distributeLeftDistributive(const ExpTree *left, const ExpTree *right) {
-  /* Enforce preconditions */
   assert(left != NULL);
   assert(right != NULL);
   /* Right MUST be distributive. */
@@ -468,29 +492,31 @@ ExpTree *distributeLeftDistributive(const ExpTree *left, const ExpTree *right) {
   ExpTree *leftDistributed;
   ExpTree *rightDistributed;
 
-  /* The left->left subtree contains more terms to distribute over right. */
+  /* The left->left subtree contains additional terms to distribute
+    over right. */
   if (left->left->type == EXP_ADD_OP || left->left->type == EXP_SUB_OP)
     leftDistributed = distributeLeftDistributive(left->left, right);
-  /* Base case: distribute a non-distributive term across right. */
+  /* Base case: distribute a single term over right. */
   else
     leftDistributed = distributeLeft(left->left, right);
 
-  /* The left->right subtree contains more terms to distribute over right. */
+  /* The left->right subtree contains additional terms to distribute
+    over right. */
   if (left->right->type == EXP_ADD_OP || left->right->type == EXP_SUB_OP)
     rightDistributed = distributeLeftDistributive(left->right, right);
-  /* Base case: distribute a non-distributive term across right. */
+  /* Base case: distribute a single term across right. */
   else
     rightDistributed = distributeLeft(left->right, right);
 
-  /* Compose the distributions of all non-distributive subtrees. */
+  /* Compose the distributions of all single-term subtrees. */
   return newExpOp(left->type, leftDistributed, rightDistributed);
 }
 
 ExpTree *distributeNeg(const ExpTree *source, const bool unevenNegsFound) {
-  /* Enforce preconditions */
   assert(source != NULL);
 
-  /* Base case: apply unary negative to leaves. */
+  /* Base case: A leaf was found.
+    If a NEG operator was pushed down to this leaf, then deposit it here. */
   if (source->left == NULL && source->right == NULL) {
     if (unevenNegsFound)
       return newExpOp(EXP_NEG, cpyExpTree(source), NULL);
@@ -501,6 +527,10 @@ ExpTree *distributeNeg(const ExpTree *source, const bool unevenNegsFound) {
   switch (source->type) {
   case EXP_ADD_OP:
   case EXP_SUB_OP: {
+    // TODO: Is it desirable to turn (a + b) into (a - b)? Could it instead be
+    // preferable to only have ADD and NEG operators, and no SUB operators in
+    // the tree at all?
+
     /* -(a + b) = ((-a) - b)   OR   -(a - b) = ((-a) + b)
      * Any NEG turns the ADD (SUB) to a SUB (ADD), so never apply NEG to the
      * right subtree. */
@@ -518,7 +548,9 @@ ExpTree *distributeNeg(const ExpTree *source, const bool unevenNegsFound) {
   }
 
   case EXP_NEG:
-    /* -(-a) = a  ELSE  (-a) = (-a) */
+    /* -(-a) = a  ELSE  -(a) = (-a)   where 'a' represents an entire subtree.
+      Always distribute an encountered NEG deeper, though it may cancel out
+      against previously encountered NEGs. */
     return distributeNeg(source->left, !unevenNegsFound);
 
   case EXP_MUL_OP:
@@ -528,7 +560,7 @@ ExpTree *distributeNeg(const ExpTree *source, const bool unevenNegsFound) {
     /* -(a * b) = -(a * b)   OR
        -(a / b) = -(a / b)   OR
        -f(a) = -f(a)   OR
-       -(a^b) != ((-a)^b) in many cases
+       -(a^b) != ((-a)^b) in many cases, so leave it as -(a^b)
 
       For the sake of simplicity, and correctness, just start fresh
       inside of the operands, and process the operands separately
@@ -545,7 +577,7 @@ ExpTree *distributeNeg(const ExpTree *source, const bool unevenNegsFound) {
 
     /* Since we start fresh, the recursive result is an atom/leaf
       in the eyes of the progress up until this point. If required,
-      wrap the resursive result in a unary negative operator. */
+      wrap the resursive result in a NEG operator. */
     if (unevenNegsFound)
       return newExpOp(EXP_NEG, distributed, NULL);
     return distributed;

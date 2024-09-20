@@ -457,7 +457,6 @@ ExpTree *integral(const ExpTree *expr, const char *var) {
 ExpTree *definiteIntegral(const ExpTree *expr, const char *var,
                           const ExpTree *lowerBound,
                           const ExpTree *upperBound) {
-  /* Enforce preconditions */
   assert(expr != NULL);
   assert(var != NULL);
   assert(lowerBound != NULL);
@@ -481,10 +480,12 @@ bool isEqual(const ExpTree *expr1, const ExpTree *expr2) {
   if (expr1 == NULL && expr2 == NULL)
     return true;
 
-  /* Guard statements: trees not equal if current nodes not exactly equal. */
-  // Both trees are (non-)empty
+  /* Guard statements: two trees not equal if the current nodes
+    are not exactly equal/identical. */
+  // Both trees must be (non-)empty.
   if ((expr1 == NULL) != (expr2 == NULL))
     return false;
+  // The node types must match.
   if (expr1->type != expr2->type)
     return false;
   // Fail fast tactic: (not-)NULL-ness of left & right subtrees must match,
@@ -492,8 +493,10 @@ bool isEqual(const ExpTree *expr1, const ExpTree *expr2) {
   if (((expr1->left == NULL) != (expr2->left == NULL)) ||
       ((expr1->right == NULL) != (expr2->right == NULL)))
     return false;
+  // Both trees must have (non-)empty data.
   if ((expr1->data == NULL) != (expr2->data == NULL))
     return false;
+  // The data of both trees must match.
   else if (expr1->data != NULL && strcmp(expr1->data, expr2->data) != 0)
     return false;
 
@@ -503,13 +506,14 @@ bool isEqual(const ExpTree *expr1, const ExpTree *expr2) {
 }
 
 unsigned int degreeMonomial(const ExpTree *expr) {
-  /* Enforce pre-conditions */
   assert(expr != NULL);
 
   switch (expr->type) {
+  // Base case: A number constant is of degree zero.
   case EXP_NUM:
     return 0;
 
+  // Base case: A variable is of degree 1.
   case EXP_VAR:
     return 1;
 
@@ -541,6 +545,12 @@ unsigned int degreeMonomial(const ExpTree *expr) {
     double exponent = round(atof(expr->right->data));
     assert(exponent >= 0);
 
+    // TODO: This does not make sense. This code fails an assertion
+    // for (2^4). Also, is it possible for (x^3)^4 to be passed in?
+    // If not, then specify a pre-condition to prevent it, e.g. that
+    // the expression must be a monomial or smth?
+    // Also, get rid of the regex; the parser restricts exponents to
+    // integers.
     return (unsigned int)exponent;
 
   /* Invalid subexpression for a monomial. */

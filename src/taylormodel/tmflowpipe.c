@@ -116,7 +116,7 @@ TaylorModel *lieDerivativeTaylorModel(ODEList *system, TaylorModel *functions) {
     ExpTree *lieDeriv = lieDerivative(system, function->exp);
     Interval remainder = function->remainder;
 
-    /* Post-process result. */
+    /* Post-process the result. */
     ExpTree *simplified = simplify(lieDeriv);
     delExpTree(lieDeriv);
 
@@ -202,7 +202,7 @@ TaylorModel *picardOperatorTM(ODEList *vectorField, TaylorModel *functions) {
   assert(vectorField != NULL);
   assert(functions != NULL);
 
-  // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED
+  // TODO: UNTESTED CODE: NEITHER MANUAL NOR AUTOMATED TESTS DONE
 
   /* Pf(g) = x0 + integral_0^t ( f(g(s), s) ds )
     Initialize the result to x0. */
@@ -245,7 +245,7 @@ TaylorModel *substituteTaylorModel(ODEList *system, TaylorModel *functions) {
 
   ExpTree *substituted = NULL;
   TaylorModel *function = functions;
-  /* Substitute all functions into the current system. */
+  /* Substitute all functions into the current system component. */
   while (function != NULL) {
     ExpTree *source = substituted ? substituted : system->exp;
     substituted = substitute(source, function->fun, function->exp);

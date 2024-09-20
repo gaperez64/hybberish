@@ -69,17 +69,17 @@ TaylorModel *cpyTaylorModelHead(const TaylorModel *const list) {
 }
 
 TaylorModel *reverseTaylorModel(TaylorModel *const list) {
-  /* Enforce preconditions */
   assert(list != NULL);
 
-  /* Base case: push up the last element. */
+  /* Base case: push up the last element as the new head. */
   if (list->next == NULL)
     return list;
 
-  /* Recursive case: Reverse tail and retrieve new head. */
+  /* Recursive case: Reverse the remaining tail and retrieve new head. */
   TaylorModel *lastElem = reverseTaylorModel(list->next);
 
-  /* Only update upon backtracking, else would recurse on wrong or NULL ptrs. */
+  /* Only upon backtracking update this element's tail relation,
+    else the recursion would be called on incorrect or on NULL ptrs. */
   assert(list->next != NULL);
   list->next->next = list; // reverse link: A->B  =>  A<-B
   list->next = NULL;       // sever own next: A->B  =>  A->NULL
@@ -93,6 +93,7 @@ Interval evaluateExpTree(const ExpTree *const tree,
   assert(tree != NULL);
 
   switch (tree->type) {
+  /* A number constant becomes a degenerate interval. */
   case EXP_NUM: {
     assert(tree->left == NULL);
     assert(tree->right == NULL);
@@ -102,6 +103,7 @@ Interval evaluateExpTree(const ExpTree *const tree,
     return newInterval(value, value);
   }
 
+  /* A variable is substituted by the corresponding interval domain. */
   case EXP_VAR: {
     assert(tree->left == NULL);
     assert(tree->right == NULL);
@@ -214,6 +216,7 @@ double evaluateExpTreeReal(const ExpTree *const tree,
     return atof(tree->data);
   }
 
+  /* A variable is substituted by the corresponding real. */
   case EXP_VAR: {
     assert(tree->left == NULL);
     assert(tree->right == NULL);
@@ -322,6 +325,7 @@ TaylorModel *evaluateExpTreeTM(const ExpTree *const tree,
   assert(fun != NULL);
 
   switch (tree->type) {
+  /* A number constant c becomes a TM = (c, [0, 0]) */
   case EXP_NUM: {
     assert(tree->left == NULL);
     assert(tree->right == NULL);
@@ -333,6 +337,7 @@ TaylorModel *evaluateExpTreeTM(const ExpTree *const tree,
     return num;
   }
 
+  /* A variable is substituted by the corresponding TM. */
   case EXP_VAR: {
     assert(tree->left == NULL);
     assert(tree->right == NULL);
@@ -343,7 +348,7 @@ TaylorModel *evaluateExpTreeTM(const ExpTree *const tree,
       assert(tm->fun != NULL);
 
       if (strcmp(tree->data, tm->fun) == 0) {
-        /* Reorient the copied TM to correspond to the target fun/var. */
+        /* Fix the copied TM's fun/var to correspond to the target fun/var. */
         TaylorModel *copied = cpyTaylorModelHead(tm);
         free(copied->fun);
         copied->fun = strdup(fun);

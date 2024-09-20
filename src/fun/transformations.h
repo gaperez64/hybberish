@@ -106,8 +106,9 @@ ExpTree *truncate2(const ExpTree *source, const unsigned int k,
  * Collects all truncated terms as a sum expression into
  * \p collectedTerms, in addition to truncating the input expression.
  * @pre \p source may **not** be NULL.
- * @pre *\p collectedTerms (note the dereferencing) must be NULL,
- * but \p collectedTerms may **not** be NULL.
+ * @pre Iff. \p collect is true, then *\p collectedTerms (note the
+ * dereferencing) must be NULL, but \p collectedTerms may **not** be NULL.
+ * Else there are no pre-conditions for \p collectedTerms.
  * @post \p collectedTerms is NULL if no terms were truncated or if \p collect
  * is false, else it is not NULL.
  *
