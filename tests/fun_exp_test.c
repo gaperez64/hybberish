@@ -10,14 +10,14 @@ int main(int argc, char *argv[]) {
   (void)argv;
 
   /* (-b + sqrt((b^2) - ((4a)c))) / (2a) */
-  ExpTree *b1 = newExpLeaf(EXP_VAR, strdup("b"));
-  ExpTree *b2 = newExpLeaf(EXP_VAR, strdup("b"));
-  ExpTree *n2 = newExpLeaf(EXP_NUM, strdup("2"));
-  ExpTree *n4 = newExpLeaf(EXP_NUM, strdup("4"));
-  ExpTree *a1 = newExpLeaf(EXP_VAR, strdup("a"));
-  ExpTree *c1 = newExpLeaf(EXP_VAR, strdup("c"));
-  ExpTree *m2 = newExpLeaf(EXP_NUM, strdup("2"));
-  ExpTree *a2 = newExpLeaf(EXP_VAR, strdup("a"));
+  ExpTree *b1 = newExpLeaf(EXP_VAR, "b");
+  ExpTree *b2 = newExpLeaf(EXP_VAR, "b");
+  ExpTree *n2 = newExpLeaf(EXP_NUM, "2");
+  ExpTree *n4 = newExpLeaf(EXP_NUM, "4");
+  ExpTree *a1 = newExpLeaf(EXP_VAR, "a");
+  ExpTree *c1 = newExpLeaf(EXP_VAR, "c");
+  ExpTree *m2 = newExpLeaf(EXP_NUM, "2");
+  ExpTree *a2 = newExpLeaf(EXP_VAR, "a");
 
   /* leaves ready, now build a tree */
   ExpTree *exp = newExpOp(EXP_EXP_OP, b2, n2);
@@ -30,16 +30,18 @@ int main(int argc, char *argv[]) {
   ExpTree *twoa = newExpOp(EXP_MUL_OP, m2, a2);
   ExpTree *tree = newExpOp(EXP_DIV_OP, sum, twoa);
 
-  /* printing */
+  /* Verify that the various expression tree constructors behave
+    as expected. */
   char *buffer;
   size_t buflen;
   FILE *stream = open_memstream(&buffer, &buflen);
   assert(stream != NULL);
+  /* Use the tree printing functionality to verify the result. */
   const char msg[] = "((-b + sqrt(((b^2) - ((4 * a) * c)))) / (2 * a))";
   printExpTree(tree, stream);
   fclose(stream); /* close to flush and add a null byte*/
   printf("expect: |%s| = %lu\n", msg, strlen(msg));
-  printf("got: |%s| = %lu\n", buffer, strlen(buffer));
+  printf("actual: |%s| = %lu\n", buffer, strlen(buffer));
   printf("!strcmp = %i\n", !strcmp(buffer, msg));
   assert(!strcmp(buffer, msg));
   fprintf(stderr, "done!\n");

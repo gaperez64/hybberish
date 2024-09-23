@@ -1,6 +1,7 @@
 name: ci_meson
 
 on:
+  # Allow manual workflow triggering
   workflow_dispatch:
   push:
     paths:
@@ -25,10 +26,12 @@ jobs:
       with:
         python-version: '3.x'
     - run: pip install meson ninja
+    - run: sudo apt-get update
+    - run: sudo apt-get install -y valgrind
     - run: meson setup builddir/
       env:
         CC: gcc
-    - run: meson test -C builddir/ -v
+    - run: meson test -C builddir/ -v --wrap='valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1'
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
@@ -45,8 +48,8 @@ jobs:
     - run: |
         brew install gcc clang-format
         brew install flex bison
-        echo "/usr/local/opt/flex/bin" >> $GITHUB_PATH
         echo "/opt/homebrew/opt/bison/bin" >> $GITHUB_PATH
+        echo "/opt/homebrew/opt/flex/bin" >> $GITHUB_PATH
     - run: pip install meson ninja
     - run: meson setup builddir/
       env:

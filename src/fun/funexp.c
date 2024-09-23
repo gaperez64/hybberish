@@ -7,10 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-ExpTree *newExpLeaf(ExpType type, char *name) {
+ExpTree *newExpLeaf(const ExpType type, const char *const name) {
+  /* Leaves are fully dependent on their data, so it must be specified. */
+  assert(name != NULL);
+
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
-  tree->data = name;
-  // test code
   tree->data = strdup(name);
   tree->type = type;
   switch (type) {
@@ -29,14 +30,14 @@ ExpTree *newExpLeaf(ExpType type, char *name) {
   return tree;
 }
 
-ExpTree *newExpOp(ExpType type, ExpTree *left, ExpTree *right) {
+ExpTree *newExpOp(const ExpType type, ExpTree *left, ExpTree *right) {
   return newExpTree(type, NULL, left, right);
 }
 
-ExpTree *newExpTree(ExpType type, char *name, ExpTree *left, ExpTree *right) {
+ExpTree *newExpTree(const ExpType type, char *name, ExpTree *left,
+                    ExpTree *right) {
   ExpTree *tree = (ExpTree *)malloc(sizeof(ExpTree));
   tree->data = name;
-  // tree->data = NULL;
   tree->type = type;
   switch (type) {
   /* binary operators */
@@ -66,6 +67,8 @@ ExpTree *newExpTree(ExpType type, char *name, ExpTree *left, ExpTree *right) {
 }
 
 void delExpTree(ExpTree *tree) {
+  assert(tree != NULL);
+
   /* A simple depth-first search while freeing nodes post-order */
   if (tree->left != NULL)
     delExpTree(tree->left);
@@ -99,9 +102,11 @@ static void printBinOp(ExpType type, FILE *where) {
   }
 }
 
-void printExpTree(ExpTree *tree, FILE *where) {
+void printExpTree(const ExpTree *tree, FILE *where) {
   /* A simple depth-first search while printing in-order */
   assert(tree != NULL);
+  assert(where != NULL);
+
   switch (tree->type) {
   /* binary operators */
   case EXP_ADD_OP:
@@ -145,7 +150,7 @@ void printExpTree(ExpTree *tree, FILE *where) {
   }
 }
 
-ExpTree *cpyExpTree(ExpTree *src) {
+ExpTree *cpyExpTree(const ExpTree *const src) {
   if (src == NULL) {
     return NULL;
   }
@@ -167,7 +172,7 @@ ExpTree *cpyExpTree(ExpTree *src) {
   return copy;
 }
 
-bool isLinear(ExpTree *expr) {
+bool isLinear(const ExpTree *expr) {
   if (expr == NULL) {
     return false;
   }
@@ -202,7 +207,7 @@ bool isLinear(ExpTree *expr) {
   return false;
 }
 
-ExpTree *derivative(ExpTree *expr, char *var) {
+ExpTree *derivative(const ExpTree *expr, const char *var) {
   if (expr == NULL) {
     return NULL;
   }
@@ -239,8 +244,8 @@ ExpTree *derivative(ExpTree *expr, char *var) {
   }
 
   case EXP_EXP_OP: {
-    ExpTree *base = expr->left;
-    ExpTree *exponent = expr->right;
+    ExpTree *base = cpyExpTree(expr->left);
+    ExpTree *exponent = cpyExpTree(expr->right);
 
     /* Derivative of base */
     ExpTree *base_derivative = derivative(base, var);
@@ -248,19 +253,15 @@ ExpTree *derivative(ExpTree *expr, char *var) {
     /* Convert exponent from string to number */
     double exponent_val = atof(exponent->data);
 
-    /* Derivative of exponent */
-    ExpTree *exponent_minus_one =
-        newExpOp(EXP_SUB_OP, exponent, newExpLeaf(EXP_NUM, "1"));
-    ExpTree *exponent_derivative =
-        newExpOp(EXP_MUL_OP, exponent, base_derivative);
-    ExpTree *exponent_term = newExpOp(EXP_EXP_OP, base, exponent_minus_one);
-
     /* Convert (number - 1) back to a string */
     char exponent_str[50];
     snprintf(exponent_str, sizeof(exponent_str), "%.15g", exponent_val - 1);
 
-    /* Replace original exponent with new string exponent */
-    exponent_term->right = newExpLeaf(EXP_NUM, exponent_str);
+    /* Derivative of exponent */
+    ExpTree *exponent_derivative =
+        newExpOp(EXP_MUL_OP, exponent, base_derivative);
+    ExpTree *exponent_term =
+        newExpOp(EXP_EXP_OP, base, newExpLeaf(EXP_NUM, exponent_str));
 
     /* Final derivative result */
     ExpTree *final_derivative =
@@ -275,6 +276,8 @@ ExpTree *derivative(ExpTree *expr, char *var) {
       function_name[i] = tolower(function_name[i]);
     }
 
+    ExpTree *derivative_result = NULL;
+
     if (strcmp(function_name, "sin") == 0) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
@@ -282,10 +285,7 @@ ExpTree *derivative(ExpTree *expr, char *var) {
       /* Derivative of sine */
       ExpTree *cos_func =
           newExpTree(EXP_FUN, strdup("cos"), cpyExpTree(arg), NULL);
-      ExpTree *derivative_result = newExpOp(EXP_MUL_OP, cpyExpTree(cos_func),
-                                            cpyExpTree(arg_derivative));
-
-      return derivative_result;
+      derivative_result = newExpOp(EXP_MUL_OP, cos_func, arg_derivative);
     } else if (strcmp(function_name, "cos") == 0) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
@@ -293,34 +293,35 @@ ExpTree *derivative(ExpTree *expr, char *var) {
       /* Derivative of cosine */
       ExpTree *neg_sin_func =
           newExpTree(EXP_FUN, strdup("sin"), cpyExpTree(arg), NULL);
-      ExpTree *derivative_result =
+      derivative_result =
           newExpOp(EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
-                   newExpOp(EXP_MUL_OP, cpyExpTree(neg_sin_func),
-                            cpyExpTree(arg_derivative)));
-      return derivative_result;
+                   newExpOp(EXP_MUL_OP, neg_sin_func, arg_derivative));
     } else if (strcmp(function_name, "sqrt") == 0) {
       ExpTree *arg = expr->left;
       ExpTree *arg_derivative = derivative(arg, var);
 
       /* Derivative of sqrt */
       ExpTree *half = newExpLeaf(EXP_NUM, "0.5");
-      ExpTree *sqrt_derivative = newExpOp(
+      derivative_result = newExpOp(
           EXP_MUL_OP, half,
-          newExpOp(EXP_DIV_OP, cpyExpTree(arg_derivative),
+          newExpOp(EXP_DIV_OP, arg_derivative,
                    newExpTree(EXP_FUN, strdup("sqrt"), cpyExpTree(arg), NULL)));
-
-      return sqrt_derivative;
     }
+
+    /* Clean. */
+    free(function_name);
+
+    return derivative_result;
+  }
 
   /* more cases for other operators */
   default:
     assert(false);
     return NULL;
   }
-  }
 }
 
-ExpTree *integral(ExpTree *expr, char *var) {
+ExpTree *integral(const ExpTree *expr, const char *var) {
   if (expr == NULL) {
     return NULL;
   }
@@ -355,8 +356,8 @@ ExpTree *integral(ExpTree *expr, char *var) {
   }
 
   case EXP_EXP_OP: {
-    ExpTree *base = expr->left;
-    ExpTree *exponent = expr->right;
+    ExpTree *base = cpyExpTree(expr->left);
+    ExpTree *exponent = cpyExpTree(expr->right);
 
     /* Convert exponent from string to number */
     double exponent_val = atof(exponent->data);
@@ -388,12 +389,13 @@ ExpTree *integral(ExpTree *expr, char *var) {
       function_name[i] = tolower(function_name[i]);
     }
 
+    ExpTree *integral_result = NULL;
+
     if (strcmp(function_name, "sin(x)") == 0) {
       /* Handle integral of sin(x) */
-      ExpTree *integral_result = newExpOp(
+      integral_result = newExpOp(
           EXP_MUL_OP, newExpLeaf(EXP_NUM, "-1"),
           newExpTree(EXP_FUN, strdup("cos"), newExpLeaf(EXP_VAR, var), NULL));
-      return integral_result;
     } else if (strstr(expr->data, "sin(") != NULL &&
                strstr(expr->data, "x)") != NULL) {
       char *n_str = strdup(expr->data + 4);
@@ -405,17 +407,15 @@ ExpTree *integral(ExpTree *expr, char *var) {
         /* Handle integral of sin(nx) */
         char result_str[50];
         snprintf(result_str, sizeof(result_str), "(-1/%.1f)*cos(%.1f)", n, n);
-        ExpTree *integral_result = newExpTree(EXP_FUN, strdup(result_str),
-                                              newExpLeaf(EXP_VAR, var), NULL);
+        integral_result = newExpTree(EXP_FUN, strdup(result_str),
+                                     newExpLeaf(EXP_VAR, var), NULL);
         free(n_str);
-        return integral_result;
       }
     } else if (strcmp(function_name, "cos(x)") == 0) {
       /* Handle integral of cos(x) */
-      ExpTree *integral_result = newExpOp(
+      integral_result = newExpOp(
           EXP_MUL_OP, newExpLeaf(EXP_NUM, "1"),
           newExpTree(EXP_FUN, strdup("sin"), newExpLeaf(EXP_VAR, var), NULL));
-      return integral_result;
     } else if (strstr(expr->data, "cos(") != NULL &&
                strstr(expr->data, "x)") != NULL) {
       char *n_str = strdup(expr->data + 4);
@@ -427,10 +427,9 @@ ExpTree *integral(ExpTree *expr, char *var) {
         /* Handle integral of cos(nx) */
         char result_str[50];
         snprintf(result_str, sizeof(result_str), "(1/%.1f)*sin(%.1f)", n, n);
-        ExpTree *integral_result = newExpTree(EXP_FUN, strdup(result_str),
-                                              newExpLeaf(EXP_VAR, var), NULL);
+        integral_result = newExpTree(EXP_FUN, strdup(result_str),
+                                     newExpLeaf(EXP_VAR, var), NULL);
         free(n_str);
-        return integral_result;
       }
     }
 
@@ -438,16 +437,125 @@ ExpTree *integral(ExpTree *expr, char *var) {
       ExpTree *arg = expr->left;
 
       /* Compute the integral of sqrt(x) as (2/3) * x^(3/2) */
-      ExpTree *integral_result = newExpOp(
+      integral_result = newExpOp(
           EXP_MUL_OP, newExpLeaf(EXP_NUM, "(2/3)"),
           newExpOp(EXP_EXP_OP, cpyExpTree(arg), newExpLeaf(EXP_NUM, "(3/2)")));
-
-      return integral_result;
     }
+
+    /* Clean. */
+    free(function_name);
+
+    return integral_result;
+  }
 
   default:
     assert(false);
     return NULL;
   }
+}
+
+ExpTree *definiteIntegral(const ExpTree *expr, const char *var,
+                          const ExpTree *lowerBound,
+                          const ExpTree *upperBound) {
+  assert(expr != NULL);
+  assert(var != NULL);
+  assert(lowerBound != NULL);
+  assert(upperBound != NULL);
+  assert(lowerBound->type == EXP_NUM || lowerBound->type == EXP_VAR);
+  assert(upperBound->type == EXP_NUM || upperBound->type == EXP_VAR);
+
+  ExpTree *integrated = integral(expr, var);
+  ExpTree *lowerSubstituted = substitute(integrated, var, lowerBound);
+  ExpTree *upperSubstituted = substitute(integrated, var, upperBound);
+  ExpTree *definite = newExpOp(EXP_SUB_OP, upperSubstituted, lowerSubstituted);
+
+  /* Clean */
+  delExpTree(integrated);
+
+  return definite;
+}
+
+bool isEqual(const ExpTree *expr1, const ExpTree *expr2) {
+  /* Base case: empty trees are equal. */
+  if (expr1 == NULL && expr2 == NULL)
+    return true;
+
+  /* Guard statements: two trees not equal if the current nodes
+    are not exactly equal/identical. */
+  // Both trees must be (non-)empty.
+  if ((expr1 == NULL) != (expr2 == NULL))
+    return false;
+  // The node types must match.
+  if (expr1->type != expr2->type)
+    return false;
+  // Fail fast tactic: (not-)NULL-ness of left & right subtrees must match,
+  //    though this is eventually caught by the base case as well
+  if (((expr1->left == NULL) != (expr2->left == NULL)) ||
+      ((expr1->right == NULL) != (expr2->right == NULL)))
+    return false;
+  // Both trees must have (non-)empty data.
+  if ((expr1->data == NULL) != (expr2->data == NULL))
+    return false;
+  // The data of both trees must match.
+  else if (expr1->data != NULL && strcmp(expr1->data, expr2->data) != 0)
+    return false;
+
+  /* Recursive case: left & right subtrees respectively must be equal */
+  return isEqual(expr1->left, expr2->left) &&
+         isEqual(expr1->right, expr2->right);
+}
+
+unsigned int degreeMonomial(const ExpTree *expr) {
+  assert(expr != NULL);
+
+  switch (expr->type) {
+  // Base case: A number constant is of degree zero.
+  case EXP_NUM:
+    return 0;
+
+  // Base case: A variable is of degree 1.
+  case EXP_VAR:
+    return 1;
+
+  case EXP_NEG:
+    assert(expr->left != NULL);
+    assert(expr->right == NULL);
+    return degreeMonomial(expr->left);
+
+  case EXP_MUL_OP:
+    assert(expr->left != NULL);
+    assert(expr->right != NULL);
+    return degreeMonomial(expr->left) + degreeMonomial(expr->right);
+
+  case EXP_EXP_OP:
+    assert(expr->left != NULL);
+    assert(expr->right != NULL);
+    /* Restrict exponents to non-negative integers. */
+    assert(expr->right->type == EXP_NUM);
+    assert(expr->left->type == EXP_VAR);
+
+    const char *pattern = "^[0-9]*(\\.0*)?$";
+    regex_t regex;
+    assert(!regcomp(&regex, pattern, REG_EXTENDED));
+    assert(!regexec(&regex, expr->right->data, 0, NULL, 0));
+    regfree(&regex);
+
+    /* Do rounding to avoid floating point errors, only integer degrees are
+     * wanted. */
+    double exponent = round(atof(expr->right->data));
+    assert(exponent >= 0);
+
+    // TODO: This does not make sense. This code fails an assertion
+    // for (2^4). Also, is it possible for (x^3)^4 to be passed in?
+    // If not, then specify a pre-condition to prevent it, e.g. that
+    // the expression must be a monomial or smth?
+    // Also, get rid of the regex; the parser restricts exponents to
+    // integers.
+    return (unsigned int)exponent;
+
+  /* Invalid subexpression for a monomial. */
+  default:
+    assert(false);
+    break;
   }
 }
