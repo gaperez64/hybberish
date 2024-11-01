@@ -120,6 +120,10 @@ function tay_model_error(f, p, domain, k::Integer, J,
             # remainder J1.
             tmv = map(construct_tm, zip(p, J1))
             break
+        # Contractiveness failure condition reached: nr of retries exhausted.
+        elseif nct == NR_CONTRACTIVENESS_TRIES
+            println("Could not find a contractive remainder.")
+            @assert(false)
         end
 
         # Contractiveness test failed, widen all initial remainders.
