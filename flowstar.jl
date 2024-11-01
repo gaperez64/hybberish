@@ -145,29 +145,31 @@ function tay_model_error(f, p, domain, k::Integer, J,
     return errors
 end
 
-# Example 3.3.6
-k = 3   # The TM arithmetic and truncation order
-NR_CONTRACTIVENESS_TRIES = 5
-NR_REFINEMENTS           = 1
-SCALE                    = 2.0
-vars = set_variables("x y t", order=k)
-# The vector field f of the ODEs:
-#   f[1] = 1 + y
-#   f[2] = -x^2
-f = [1 + vars[2],  # x
-     -vars[1]^2]   # y
-# The polynomial approx:
-#   p[1] = x + t + yt
-#   p[2] = y - (x^2)t - xt^2 - (1/3)t^3
-p = tay_poly(f, k)  # FIXME: We should be using a general fun!
-domain = IntervalBox([-1..1,      # x
-		      -0.5..0.5,  # y
-		      0..0.02])   # t
-# Initial remainder estimate J, a hyperrectangle
-J = fill(-0.1..0.1, length(p))
-# Let's get that safe remainder now!
-I = tay_model_error(f, p, domain, k, J,
-                    NR_CONTRACTIVENESS_TRIES,
-                    NR_REFINEMENTS,
-                    SCALE)
-println("safe remainders = $I")
+if abspath(PROGRAM_FILE) == @__FILE__
+    # Example 3.3.6
+    k = 3   # The TM arithmetic and truncation order
+    NR_CONTRACTIVENESS_TRIES = 5
+    NR_REFINEMENTS           = 1
+    SCALE                    = 2.0
+    vars = set_variables("x y t", order=k)
+    # The vector field f of the ODEs:
+    #   f[1] = 1 + y
+    #   f[2] = -x^2
+    f = [1 + vars[2],  # x
+         -vars[1]^2]   # y
+    # The polynomial approx:
+    #   p[1] = x + t + yt
+    #   p[2] = y - (x^2)t - xt^2 - (1/3)t^3
+    p = tay_poly(f, k)  # FIXME: We should be using a general fun!
+    domain = IntervalBox([-1..1,      # x
+    		      -0.5..0.5,  # y
+    		      0..0.02])   # t
+    # Initial remainder estimate J, a hyperrectangle
+    J = fill(-0.1..0.1, length(f))
+    # Let's get that safe remainder now!
+    I = tay_model_error(f, p, domain, k, J,
+                        NR_CONTRACTIVENESS_TRIES,
+                        NR_REFINEMENTS,
+                        SCALE)
+    println("safe remainders = $I")
+end
