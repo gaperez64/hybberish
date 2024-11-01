@@ -1,5 +1,5 @@
-using TaylorSeries  # IntervalArithmetic
-using TaylorModels
+using TaylorSeries  # Uses IntervalArithmetic
+using TaylorModels  # Version req'd: https://github.com/gaperez64/taylormodels.jl
 
 # Assumes the last variable is t
 """Generate the Taylor polynomial approximation part of the i-th flowpipe
@@ -43,23 +43,20 @@ end
 """
 function picard_tm_extension(f, tmv, domain, k)
     # FIXME: Is a copy needed? The substitution f(g(x, t), t)
-    # seems to have side effects? Or is it just getting late :/
+    # seems to have side effects?
     tmv = copy(tmv)
-
     # Perform the substitution operation of the Picard operator:
     #   f(g(x, s), s).
-    ftm = map((fj) -> fj(tmv), f)
-
+    ftm = map((fj) -> evaluate(fj, tmv), f)  # FIXME: Should be a general fun, not TSeries
     # Compute the integral's remainder part:
-    #   (Int(pe) + I) * [0, t].
-    # FIXME: Is it fine to assume the t interval is the last one in the box?
+    #   (int_enclosure(pe) + I) * [0, t].
+    # FIXME: Once again we assume the t interval is the last one
     tdom = domain.v[end]
-    # FIXME: Is readable at all?
-    Int(p_error_terms, dom) = sum(perr(dom) for perr in p_error_terms)
+    # Prepare two functions to define new error intervals pointwise
+    int_enclosure(p_error_terms, dom) = sum(perr(dom) for perr in p_error_terms)
     pe(tm::TaylorModelN) = polynomial(tm)[k:end]
-    integrated = map((tmj) -> (Int(pe(tmj), domain) + remainder(tmj)) * tdom, ftm)
-
-    return integrated
+    return map((tmj) ->
+	       (int_enclosure(pe(tmj), domain) + remainder(tmj)) * tdom, ftm)
 end
 
 
@@ -85,81 +82,58 @@ remainders(tmv) = remainder.(tmv)
 """
 function tay_model_error(f, p, domain, k::Integer, J,
                          NR_CONTRACTIVENESS_TRIES::Integer,
-                         MAX_WIDTH_THRESHOLD::Float64,
                          NR_REFINEMENTS::Integer,
                          SCALE::Float64)
     zd = zero(domain)
+    # get a copy of the t variable before messing up order
+    t = get_variables()[end]
 
-    # To account for composition, we'll square the current order
+    # To account for composition, we'll up the current order
     old_order = get_order()
-    # TODO: This is not exactly squaring since you multiply
-    # two potentially different values?
-    sqd_order = old_order * maximum(get_order.(p))
-    vars = set_variables(get_variable_string(), order=sqd_order)
-    # FIXME: The time variable MUST be of the old variable order.
-    # We define a dummy TM with it, and else TaylorModels'
-    # TM multiplication throws an assertion error about
-    # the terms having too large an order.
-    t = get_variables(old_order)[end]
-    # t = vars[end] # FIXME: Uncomment to recreate the error described above.
-
-    # TODO: start loop
-    #   ==> [Thomas]; Done?
+    hgr_order = old_order * maximum(get_order.(p))
+    vars = set_variables(get_variable_string(), order=hgr_order)
 
     # Construct the TM vector now.
     # Note: Anonymous function tuple destructuring has unique syntax:
     #   https://discourse.julialang.org/t/argument-destructuring-and-anonymous-functions/24893
-    compose_tm = ((poly, rem),) -> TaylorModelN(poly, rem, zd, domain)
-    tmv = map(compose_tm, zip(p, J))
+    construct_tm = ((poly, rem),) -> TaylorModelN(poly, rem, zd, domain)
+    tmv = map(construct_tm, zip(p, J))
 
     # Add a dummy TM (t, [0, 0]) for the time variable because the substitution
     # requires one TM for every variable, which includes the time variable.
     # FIXME: Can this ugliness be circumvented?
     dummy_t_tm = TaylorModelN(t, 0..0, zd, domain)
-    append!(tmv, dummy_t_tm)
 
-    # TODO: truncate and compute error
-    #   ==> [Thomas]; NOT done I think!
-    # TODO: end loop after contraction check
-    #   ==> [Thomas]; Done? See "break" in for-loop below.
     J0 = nothing
     J1 = nothing
-    for _ in 1:NR_CONTRACTIVENESS_TRIES
-        J0 = remainders(tmv)[1:end-1]   # FIXME: drop the dummy interval of t
+    for nct in 1:NR_CONTRACTIVENESS_TRIES
+	println("Contractiveness attempt: $nct")
+        J0 = remainders(tmv)
 
-        # Width([I1, ..., In]) = max(Width(I1), ..., Width(In)).
-        # If any remainder exceeds the width threshold, then return FAIL.
-        if any(diam(j0) >= MAX_WIDTH_THRESHOLD for j0 in J0)
-            @assert(false)
-        end
-
-        # Perform the first refinement, which to next test for contractiveness.
+        # Perform the first refinement.
+        append!(tmv, dummy_t_tm)  # FIXME: appending dummy
         J1 = picard_tm_extension(f, tmv, domain, k)
 
         # Test contractiveness.
         if all(issubset.(J1, J0))
             # Contractiveness test succeeded, pass along the contractive (safe)
             # remainder J1.
-            tmv = map(compose_tm, zip(p, J1))
-            append!(tmv, dummy_t_tm)    # FIXME: Still appending dummy TM :(
+            tmv = map(construct_tm, zip(p, J1))
             break
         end
 
         # Contractiveness test failed, widen all initial remainders.
-        tmv = map(compose_tm, zip(p, remainders(tmv)*SCALE))
-        append!(tmv, dummy_t_tm)    # FIXME: Still appending dummy TM :(
+        tmv = map(construct_tm, zip(p, remainders(tmv) * SCALE))
     end
 
-    # TODO: add loop to continue contracting for a while
-    #   ==> [Thomas]; Done?
-    for _ in 1:NR_REFINEMENTS
+    for nr in 1:NR_REFINEMENTS
+	println("Refinement no. $nr")
+        append!(tmv, dummy_t_tm)  # FIXME: appending dummy
         Jn = picard_tm_extension(f, tmv, domain, k)
-        tmv = map(compose_tm, zip(p, Jn))
-        append!(tmv, dummy_t_tm)    # FIXME: Still appending dummy TM :(
+        tmv = map(construct_tm, zip(p, Jn))
     end
 
     # Collect the results.
-    tmv = tmv[1:end-1]    # FIXME: Drop dummy TM for final output.
     errors = remainders(tmv)
 
     # We now restore the order.
@@ -167,44 +141,29 @@ function tay_model_error(f, p, domain, k::Integer, J,
     return errors
 end
 
-# TODO: For now, we require a custom version of the TaylorModels package
-#   https://github.com/gaperez64/TaylorModels.jl
-
-#TODO: Clean below and call the above
-#
 # Example 3.3.6
 k = 3   # The TM arithmetic and truncation order
 NR_CONTRACTIVENESS_TRIES = 5
-MAX_WIDTH_THRESHOLD      = 10.0
 NR_REFINEMENTS           = 1
 SCALE                    = 2.0
 vars = set_variables("x y t", order=k)
 # The vector field f of the ODEs:
 #   f[1] = 1 + y
 #   f[2] = -x^2
-f = [1 + vars[2], -vars[1]^2]
+f = [1 + vars[2],  # x
+     -vars[1]^2]   # y
 # The polynomial approx:
 #   p[1] = x + t + yt
 #   p[2] = y - (x^2)t - xt^2 - (1/3)t^3
-p = [
-    vars[1] + vars[3] + vars[2] * vars[3],
-    vars[2] - vars[1]^2 * vars[3] - vars[1] * vars[3]^2 - 1/3 * vars[3]^3
-]
-domain = IntervalBox([-1..1,-0.5..0.5,0..0.02])
-# TODO: [Thomas]: I personally prefer the initial remainder estimate J (sometimes
-# also called J0) to be an input to the TM integration function. It can be fixed
-# as a constant in some config file, but preferably not in the code itself?
+p = tay_poly(f, k)  # FIXME: We should be using a general fun!
+domain = IntervalBox([-1..1,      # x
+		      -0.5..0.5,  # y
+		      0..0.02])   # t
+# Initial remainder estimate J, a hyperrectangle
 J = fill(-0.1..0.1, length(p))
+# Let's get that safe remainder now!
 I = tay_model_error(f, p, domain, k, J,
                     NR_CONTRACTIVENESS_TRIES,
-                    MAX_WIDTH_THRESHOLD,
                     NR_REFINEMENTS,
                     SCALE)
-println(" safe remainders = $I")
-
-
-# Example 3.3.2
-vars = set_variables("x y t", order=4)
-f = [1 + vars[2], -vars[1]^2]
-p = tay_poly(f, 4)
-println("poly from new TM = $p")
+println("safe remainders = $I")
