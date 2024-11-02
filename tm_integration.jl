@@ -20,6 +20,21 @@ function tm_initial_set(box::IntervalBox)
 end
 
 
+"""Convert the given TM initial Xi set to a box Bi.
+
+    A box also represents a TM initial set. This is a different,
+    but equivalent representation to a TM initial set.
+"""
+function interval_initial_set(Xi, domain::IntervalBox)
+    # Each variable except t should have a matching TM initial set element.
+    @assert(get_numvars() == length(Xi))
+
+    # Do the conversion: (p, I)  =>  p(domains) + I  given the domains.
+    Bij(Xij) = polynomial(Xij)(domain) + remainder(Xij)
+    return map((Xij) -> Bij(Xij), Xi)
+end
+
+
 """Given a single TM (p, I), compute the corresponding flowpipe.
 
     Given an initial set Xi, the flowpipe is computed as (p(Xi, t), I).
@@ -38,25 +53,15 @@ end
 
 """Compute the next iteration's initial set Xi based on the
     current flowpipe Fi.
-"""
-function initial_set(Fi::TaylorModelN, δi::Float64, domain::IntervalBox)
-    # FIXME: AFAIK the 'evaluate' function for TaylorN of TaylorSeries
-    #       does not allow mixing value types. For example:
-    # x, y, a, b = set_variables("x y a b", order=3)
-    # p = TaylorN(x + y)
-    # p([1, 2, 3, 4])   # This works fine.
-    # p([a, b, x, y])   # This works fine too.
-    # p([1, b, 3, y])   # ERROR.
-    # FIXME: The solution? A dirty hack, hooray.
 
-    # Construct a constant TaylorN expression of δi.
-    δi_cte = TaylorN(δi, get_order())
+    The time step-size δi is used for substitution in a TaylorSeries.
+"""
+function initial_set(Fi::TaylorModelN, δi::TaylorN, variables, domain::IntervalBox)
     # To compute Xi, fix t=δi in Fi.
     # FIXME: Assume t is the last variable and exclude it from the list.
-    vars_except_t = get_variables()[1:end-1]
-    values = vcat(vars_except_t, [δi_cte])
-    println("subst values = $values ($(typeof(values)))")
-    ps = polynomial(Fi)(values)
+    vars_except_t = variables[1:end-1]
+    valuations = vcat(vars_except_t, [δi])
+    ps = polynomial(Fi)(valuations)
     Is = remainder(Fi)
     zd = zero(domain)
     return TaylorModelN(ps, Is, zd, domain)
@@ -71,6 +76,7 @@ end
 """
 function tm_integration(f, domain, k::Integer, J, Δ::Float64,
                         TIME_STEP_SIZE::Float64,
+                        TIME_STEP_SIZE_EPS::Float64,
                         NR_CONTRACTIVENESS_TRIES::Integer,
                         NR_REFINEMENTS::Integer,
                         SCALE::Float64)
@@ -85,7 +91,7 @@ function tm_integration(f, domain, k::Integer, J, Δ::Float64,
 
     # Start the TM integration loop.
     remaining_time::Float64 = Δ
-    initial_sets::Array{Any} = [X0]
+    initial_sets::Array = [X0]
     Fi = nothing    # The current flowpipe.
     Xi = X0         # The current initial set.
     # FIXME: Would a for-loop be cleaner?
@@ -93,6 +99,11 @@ function tm_integration(f, domain, k::Integer, J, Δ::Float64,
         δi = min(remaining_time, TIME_STEP_SIZE)
         remaining_time -= δi
         println("time step [0, $δi] (remaining Δ: $remaining_time)")
+
+        if δi < TIME_STEP_SIZE_EPS
+            println("==> Skipping! δi = $δi < $TIME_STEP_SIZE_EPS, the step-size is too small.")
+            continue
+        end
 
         # Step 1: generate the poly approximation of the flow.
         p = tay_poly(f, k)
@@ -103,38 +114,59 @@ function tm_integration(f, domain, k::Integer, J, Δ::Float64,
                             NR_REFINEMENTS,
                             SCALE)
 
+        # Step 3: Compute the flowpipe and next initial set.
         # get a copy of the t variable before messing up order
         t = get_variables()[end]
-
-        # Step 3: Compute the flowpipe and next initial set.
-        # To account for composition, we'll up the current order
         old_order = get_order()
+        old_variables = get_variables()
+        # FIXME: AFAIK the 'evaluate' function for TaylorN of TaylorSeries
+        # acts up when the substitution values have different orders.
+        # For example:
+        #   x, y, a, b = set_variables("x y a b", order=3)
+        #   p = TaylorN(x + y)
+        #   p([1, 2, 3, 4])   # This works fine.
+        #   p([a, b, x, y])   # This works fine too.
+        #   p([1, b, 3, y])   # ERROR.
+        # This even fails if one of the variables is of lower order than others!
+        #   x, y, a, b = set_variables("x y a b", order=3)
+        #   p = TaylorN(x + y)
+        #   p([a, b, x, y])   # This works fine.
+        #   a = get_variables(1)[3]
+        #   p([a, b, x, y])   # ERROR. a is now order 1, which is less than 3!
+        #
+        # FIXME: The solution: Convert the scalar δi to a TaylorN.
+        # Construct a TaylorN representation of the scalar δi.
+        # Must be of the same order as the variables, else evaluation fails!
+        δi_tayn = TaylorN(δi, get_order())
+
+        # To account for composition, we'll up the current order
         hgr_order = old_order * maximum(get_order.(p))
         vars = set_variables(get_variable_string(), order=hgr_order)
-
-        println("p = $p")
-        println("I = $I")
 
         # TODO: Compute the flowpipe components.
         # FIXME: Does TaylorModels actually add the enclosures of truncated
         # terms during TM arithmetic to the remainders? Because the
         # substitution below requires this!
+        # Also, does TaylorModels take into account that TaylorSeries seems
+        # to compute the order of a constructed expression based on the order
+        # of the lowest order term.
+        # e.g. for x order 1 and y order 3, then (x + y^2) is order 1 and
+        # actually becomes x with y^2 truncated.
         tmv = zip(p, I)
         Fi = map(((pj, Ij),) -> flowpipe(pj, Ij, Xi, domain), tmv)
-        println("Fi = $Fi")
 
-        # TODO: Compute the initial set components.
-        Xi = map((fpi) -> initial_set(fpi, δi, domain), Fi)
-        
+        # TODO: Compute the initial set vector.
+        Xi::Vector{TaylorModelN{3, Float64, Float64}} =
+             map((Fij) -> initial_set(Fij, δi_tayn, old_variables, domain), Fi)
+
         dummy_t_tm = TaylorModelN(t, 0..0, zd, domain)
-        append!(Xi, dummy_t_tm)   # FIXME: Append dummy
-
-        println("Xi = $Xi")
-        append!(initial_sets, Xi)
+        push!(Xi, dummy_t_tm)   # FIXME: Append dummy
+        # FIXME: output Xi AFTER appending the dummy TM, for consistency
+        # with X0 that was added to the output list before the loop.
+        push!(initial_sets, Xi)
 
         # We now restore the order.
         vars = set_variables(get_variable_string(), order=old_order)
-        # break   # FIXME: REMOVE, this is here for testing purposes (i.e. faster testing by breaking loop)
     end
 
     return initial_sets
@@ -149,6 +181,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     NR_REFINEMENTS           = 1
     SCALE                    = 2.0
     TIME_STEP_SIZE = 0.02
+    TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
     Δ = 0.2     # The finite time horizon
     vars = set_variables("x y t", order=k)
     # The vector field f of the ODEs:
@@ -156,42 +189,26 @@ if abspath(PROGRAM_FILE) == @__FILE__
     #   f[2] = -x^2
     f = [1 + vars[2],  # x
         -vars[1]^2]   # y
-    domain = IntervalBox([-1..1,      # x
+    dom = IntervalBox([-1..1,      # x
                 -0.5..0.5,  # y
                 0..0.02])   # t
     # Initial remainder estimate J, a hyperrectangle
     J = fill(-0.1..0.1, length(f))
 
-    initial_sets = tm_integration(f, domain, k, J, Δ,
+    initial_sets = tm_integration(f, dom, k, J, Δ,
                                TIME_STEP_SIZE,
+                               TIME_STEP_SIZE_EPS,
                                NR_CONTRACTIVENESS_TRIES,
                                NR_REFINEMENTS,
                                SCALE)
-    println("init sets = $initial_sets")
+    println("init sets  = $initial_sets")
 
-
-    # x, y, a, b = set_variables("x y a b", order=3)
-    # p = TaylorN(x + y)
-    # println("p([1, 2, 3, 4]): $(p([1, 2, 3, 4]))")
-    # println("p([a, b, x, y]): $(p([a, b, x, y]))")
-    # println("p([1, b, 3, y]): $(p([1, b, 3, y]))")
-
-
-    # X0 = tm_initial_set(domain)
-    # println(X0)
-
-
-
-    # p = tay_poly(f, k)
-
-    #     # To account for composition, we'll up the current order
-    #     old_order = get_order()
-    #     hgr_order = old_order * maximum(get_order.(p))
-    #     vars = set_variables(get_variable_string(), order=hgr_order)
-
-    # println(flowpipe(p[1], -1..1, X0, domain))
-
-    #     # We now restore the order.
-    #     vars = set_variables(get_variable_string(), order=old_order)
+    initial_boxes = map((Xi) -> interval_initial_set(Xi, dom), initial_sets)
+    # FIXME: Assume t is the last variable, and drop its dummy vector element.
+    initial_boxes = map((Bij) -> Bij[1:end-1], initial_boxes)
+    println("\ninit boxes:")
+    for e in initial_boxes
+        println("    $e")
+    end
 
 end
