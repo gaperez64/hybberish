@@ -1,3 +1,4 @@
+using Plots
 using TaylorModels
 include("flowstar.jl")
 
@@ -173,6 +174,20 @@ function tm_integration(f, domain, k::Integer, J, Δ::Float64,
 end
 
 
+
+function plot_boxes(boxes)
+    rect(w, h, x, y) = Shape(x .+ [0, w, w, 0, 0], y .+ [0, 0, h, h, 0])
+
+    rectangles = map((box) -> rect(diam(box[1]), diam(box[2]), box[1].lo, box[2].lo), boxes)
+    plt = plot(rectangles, fc=:transparent, lc=:blue, legend=:false)
+    gui(plt)
+
+    # Keep the script running until the user closes the plot window
+    println("Press Enter to continue...")
+    readline()
+end
+
+
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Full TM integration, based on Example 3.3.2 and Example 3.3.6
@@ -210,5 +225,5 @@ if abspath(PROGRAM_FILE) == @__FILE__
     for e in initial_boxes
         println("    $e")
     end
-
+    plot_boxes(initial_boxes)
 end
