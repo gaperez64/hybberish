@@ -1,6 +1,7 @@
 using Plots
 using TaylorModels
 include("flowstar.jl")
+include("plotting.jl")
 
 """Convert the given box to a TM initial set.
 
@@ -93,6 +94,7 @@ function tm_integration(f, domain, k::Integer, J, Δ::Float64,
     # Start the TM integration loop.
     remaining_time::Float64 = Δ
     initial_sets::Array = [X0]
+    step_sizes::Array = [0.0]
     Fi = nothing    # The current flowpipe.
     Xi = X0         # The current initial set.
     # FIXME: Would a for-loop be cleaner?
@@ -165,26 +167,13 @@ function tm_integration(f, domain, k::Integer, J, Δ::Float64,
         # FIXME: output Xi AFTER appending the dummy TM, for consistency
         # with X0 that was added to the output list before the loop.
         push!(initial_sets, Xi)
+        push!(step_sizes, δi)
 
         # We now restore the order.
         vars = set_variables(get_variable_string(), order=old_order)
     end
 
-    return initial_sets
-end
-
-
-
-function plot_boxes(boxes)
-    rect(w, h, x, y) = Shape(x .+ [0, w, w, 0, 0], y .+ [0, 0, h, h, 0])
-
-    rectangles = map((box) -> rect(diam(box[1]), diam(box[2]), box[1].lo, box[2].lo), boxes)
-    plt = plot(rectangles, fc=:transparent, lc=:blue, legend=:false)
-    gui(plt)
-
-    # Keep the script running until the user closes the plot window
-    println("Press Enter to continue...")
-    readline()
+    return initial_sets, step_sizes
 end
 
 
@@ -210,13 +199,18 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Initial remainder estimate J, a hyperrectangle
     J = fill(-0.1..0.1, length(f))
 
-    initial_sets = tm_integration(f, dom, k, J, Δ,
-                               TIME_STEP_SIZE,
-                               TIME_STEP_SIZE_EPS,
-                               NR_CONTRACTIVENESS_TRIES,
-                               NR_REFINEMENTS,
-                               SCALE)
-    println("init sets  = $initial_sets")
+    initial_sets, step_sizes =
+        tm_integration(f, dom, k, J, Δ,
+                       TIME_STEP_SIZE,
+                       TIME_STEP_SIZE_EPS,
+                       NR_CONTRACTIVENESS_TRIES,
+                       NR_REFINEMENTS,
+                       SCALE)
+    println("\ninit sets:")
+    for e in initial_sets
+        println("    $e")
+    end
+    println("\nδi vector = $step_sizes")
 
     initial_boxes = map((Xi) -> interval_initial_set(Xi, dom), initial_sets)
     # FIXME: Assume t is the last variable, and drop its dummy vector element.
@@ -225,5 +219,10 @@ if abspath(PROGRAM_FILE) == @__FILE__
     for e in initial_boxes
         println("    $e")
     end
-    plot_boxes(initial_boxes)
+
+    vars_no_t = get_variable_names()[1:end-1]
+
+    plot_boxes_2D(initial_boxes, vars_no_t)
+    plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=true)
+    plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=false)
 end

@@ -1,0 +1,98 @@
+using Plots
+using TaylorModels # Includes IntervalArithmetic
+
+
+"""Construct a rectangle shape for plotting.
+
+    @param[in] w The width of the rectangle
+    @param[in] h The height of the rectangle
+    @param[in] x The x-coord of the bottom left corner of the rectangle
+    @param[in] y The y-coord of the bottom left corner of the rectangle
+"""
+rect(w, h, x, y) = Shape(x .+ [0, w, w, 0, 0], y .+ [0, 0, h, h, 0])
+
+
+"""For a sequence of 2-dimensional boxes, plot the box's components against each other.
+
+    For a sequence of boxes [(Ix, Iy), ...], plot interval Ix against
+    interval Iy for each 2D box (Ix, Iy).
+
+    @param[in] boxes          The sequence of boxes to plot.
+    @param[in] variable_names The ordered name of the ODE variables.
+"""
+function plot_boxes_2D(boxes, variable_names::Array{String})
+    # Require there to be exactly two variables.
+    @assert length(variable_names) == 2
+
+    xname, yname = variable_names
+    rectangles = map((box) -> rect(diam(box[1]), diam(box[2]), box[1].lo, box[2].lo), boxes)
+    plt = plot(rectangles, fc=:transparent, lc=:blue, legend=:false,
+               xlabel=xname, ylabel=yname)
+    display(plt)
+
+    # Keep the script running until the user closes the plot window
+    println("Press Enter to continue...")
+    readline()
+end
+
+
+"""For a sequence of n-dimensional boxes, plot all components of each box against
+    time individually.
+
+    For a sequence of boxes [(I1, ..., In), ...], plot intervals I1, ..., In
+    against time individually, for each nD box (I1, ..., In).
+
+    @param[in] boxes             The sequence of boxes to plot.
+    @param[in] time_steps        The time steps δ1, ..., δN. The time
+                                 step δi corresponds to the i-th box.
+    @param[in] variable_names    The ordered name of the ODE variables.
+    @param[in] use_local_horizon If true, then plot each box against
+                                 `t in [0, δi]`. Else, for
+                                 `T = summ_{j=1}^{i-1} δj` plot each box
+                                 against `t in [T, T + δi]`
+"""
+function plot_boxes_ND(boxes, time_steps::Array{Float64}, variable_names::Array{String};
+                       use_local_horizon::Bool=false)
+    # Each box must correspond to a time step.
+    @assert length(boxes) == length(time_steps)
+
+    nr_ODE_components::Integer = length(variable_names)
+
+    # Compute one plot for each ODE component.
+    rectangles = map((_) -> Vector(), variable_names)
+    # The time interval to plot each variable against.
+    time_step = Interval(0.0, 0.0)
+    # For each box, and the corresponding time step δi,
+    # generate the corresponding rectangles.
+    for (box, step) in zip(boxes, time_steps)
+        if use_local_horizon
+            time_step = Interval(0.0, step)
+        else
+            time_step = Interval(time_step.hi, time_step.hi + step)
+        end
+
+        # Each ODE component corresponds to a fixed box component
+        # and has a corresponding set of shapes (rectangles) to draw.
+        for (dimension, shape_set) in zip(box, rectangles)
+            shape = rect(time_step.hi - time_step.lo, diam(dimension), time_step.lo, dimension.lo)
+            push!(shape_set, shape)
+        end
+    end
+
+    plots = []
+    # For each variable, plot the corresponding rectangles in its own figure.
+    for (var, shape_set) in zip(variable_names, rectangles)
+        shape_set = map((e) -> e, shape_set)    # Convert Array to Vector, because plotting does not want arrays :(
+        plt = plot(shape_set, fc=:transparent, lc=:blue, legend=:false,
+                   xlabel="t (time)", ylabel="$var")
+        push!(plots, plt)
+    end
+
+    # Compose the separate figures into a column of figures.
+    plt = plot(plots..., layout=(nr_ODE_components, 1))
+    display(plt)
+
+    # Keep the script running until the user closes the plot window
+    println("Press Enter to continue...")
+    readline()
+end
