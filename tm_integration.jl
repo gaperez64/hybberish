@@ -221,8 +221,54 @@ if abspath(PROGRAM_FILE) == @__FILE__
     end
 
     vars_no_t = get_variable_names()[1:end-1]
+    USE_LOCAL_HORIZON = false
 
-    plot_boxes_2D(initial_boxes, vars_no_t)
-    plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=true)
-    plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=false)
+
+    # plt1 = plot_boxes_2D(initial_boxes, vars_no_t)
+    # plt2 = plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=true)
+    plt3 = plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+                         title="Computed boxes Bi", titlefontsize=8)
+
+    # Create a sequence of known boxes that have some overlap with
+    # the initial boxes.
+    known_boxes = []
+    for box in initial_boxes
+        known_box = []
+        for interval in box
+            known_int = interval - diam(interval) / 2.0
+            push!(known_box, known_int)
+        end
+        push!(known_boxes, known_box)
+    end
+    plt4 = plot_boxes_ND(known_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+                         title="Given boxes Gi", titlefontsize=8)
+
+    plt5 = nothing
+    if USE_LOCAL_HORIZON
+        # Use a hack to plot TWO sequences of boxes on the same figure:
+        # Append the box vectors to each other. BUT, a shifted version of the
+        # time step vector, since the global time in the plotting function
+        # increases for each box plotted.
+        plt5 = plot_boxes_ND([initial_boxes..., known_boxes...], [step_sizes..., step_sizes...], vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+                            title="Bi & Gi")
+    else
+        plt5 = plot_boxes_ND([initial_boxes..., reverse(known_boxes)...], [step_sizes..., (-step_sizes)...], vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+                            title="Bi & Gi")
+    end
+
+    intersect_boxes = map(((init, known),) -> intersect(IntervalBox(init), IntervalBox(known)), zip(initial_boxes, known_boxes))
+    intersect_not_empty = map((int) -> emptyinterval() != int, intersect_boxes)
+
+
+    plt6 = plot_boxes_ND(intersect_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+                         title="Bi ∩ Gi")
+
+    # We want there to be overlap between the computed and known boxes.
+    @assert all(intersect_not_empty)
+
+    plt_composed = plot(plt3, plt4, plt5, plt6, layout=(1, 4), ylims=(-2.5, 2), xticks=[0.0, 0.1, 0.2])
+
+    println("Press Enter to continue...")
+    display(plt_composed)
+    readline()
 end

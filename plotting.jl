@@ -19,20 +19,16 @@ rect(w, h, x, y) = Shape(x .+ [0, w, w, 0, 0], y .+ [0, 0, h, h, 0])
 
     @param[in] boxes          The sequence of boxes to plot.
     @param[in] variable_names The ordered name of the ODE variables.
+    @param[in] title             The plot title.
+    @return The generated plot object.
 """
-function plot_boxes_2D(boxes, variable_names::Array{String})
+function plot_boxes_2D(boxes, variable_names::Array{String}; title::String="", titlefontsize::Integer=10)
     # Require there to be exactly two variables.
     @assert length(variable_names) == 2
 
     xname, yname = variable_names
     rectangles = map((box) -> rect(diam(box[1]), diam(box[2]), box[1].lo, box[2].lo), boxes)
-    plt = plot(rectangles, fc=:transparent, lc=:blue, legend=:false,
-               xlabel=xname, ylabel=yname)
-    display(plt)
-
-    # Keep the script running until the user closes the plot window
-    println("Press Enter to continue...")
-    readline()
+    return plot(rectangles, fc=:transparent, lc=:blue, legend=:false, xlabel=xname, ylabel=yname, title=title, titlefontsize=titlefontsize)
 end
 
 
@@ -50,9 +46,11 @@ end
                                  `t in [0, δi]`. Else, for
                                  `T = summ_{j=1}^{i-1} δj` plot each box
                                  against `t in [T, T + δi]`
+    @param[in] title             The plot title.
+    @return The generated plot object.
 """
 function plot_boxes_ND(boxes, time_steps::Array{Float64}, variable_names::Array{String};
-                       use_local_horizon::Bool=false)
+                       use_local_horizon::Bool=false, title::String="", titlefontsize::Integer=10)
     # Each box must correspond to a time step.
     @assert length(boxes) == length(time_steps)
 
@@ -89,10 +87,5 @@ function plot_boxes_ND(boxes, time_steps::Array{Float64}, variable_names::Array{
     end
 
     # Compose the separate figures into a column of figures.
-    plt = plot(plots..., layout=(nr_ODE_components, 1))
-    display(plt)
-
-    # Keep the script running until the user closes the plot window
-    println("Press Enter to continue...")
-    readline()
+    return plot(plots..., layout=(nr_ODE_components, 1), title=title, titlefontsize=titlefontsize)
 end
