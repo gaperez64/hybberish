@@ -102,18 +102,48 @@ end
 
 """Plot the given x, y data on the leaf subplots of the specified plot.
 
-    The leaf subplots are modified in-place.
+    The leaf subplots are modified in-place. Given
+               y = [s1, ..., sn]
+        y_labels = [l1, ..., ln]
+    where si is the i-th y-axis series and li is the corresponding label.
+    For any subplot, the first series sj whose label lj matches the y-axis
+    label is drawn on that subplot.
 
-    @param[in,out] plt The plot to modify
-    @param[in] x       The x data to plot
-    @param[in] y       The y data to plot
+    @param[in,out] plt  The plot to modify
+    @param[in] x        The x data to plot, a single series
+    @param[in] y        The y data to plot, a list of series
+    @param[in] y_labels The y-axis labels. The i-th label corresponds to
+                        the i-th y series.
 """
-function plot_recursively!(plt::Plots.Plot, x, y)
-    if length(plt) == 1
-        plot!(plt, x, y)
-    end
+function plot_recursively!(plt, x, y, y_labels)
+    # Each series in y corresponds to one label.
+    @assert length(y) == length(y_labels)
 
-    for subplt in subplots(plt)
+    for subplt in plt.subplots
+        for (series, label) in zip(y, y_labels)
+            ylabel = subplt[:yaxis][:guide]
+            if label == ylabel
+                plot!(subplt, x, series, linewidth=2, linecolor = :red)
+                break
+            elseif label == y_labels[end]
+                # This axis' ylabel does not correspond to any series
+                @assert(false)
+            end
+        end
+    end
+end
+
+"""Plot the given x, y data on the leaf subplots of the specified plot.
+
+    The leaf subplots are modified in-place. The y-axis data
+    is drawn to all subplots.
+
+    @param[in,out] plt  The plot to modify
+    @param[in] x        The x data to plot, a single series
+    @param[in] y        The y data to plot, a single series
+"""
+function plot_recursively!(plt, x, y)
+    for subplt in plt.subplots
         plot!(subplt, x, y, linewidth=2, linecolor = :red)
     end
 end

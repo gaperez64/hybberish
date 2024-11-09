@@ -2,6 +2,7 @@ using Plots
 using TaylorModels
 include("flowstar.jl")
 include("plotting.jl")
+include("euler.jl")
 
 """Convert the given box to a TM initial set.
 
@@ -186,7 +187,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     SCALE                    = 2.0
     TIME_STEP_SIZE = 0.02
     TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
-    USE_LOCAL_HORIZON = true
+    USE_LOCAL_HORIZON = false
     Δ = 0.2     # The finite time horizon
     vars = set_variables("x y t", order=k)
     vars_no_t = get_variable_names()[1:end-1]
@@ -272,16 +273,23 @@ if abspath(PROGRAM_FILE) == @__FILE__
     plt_composed = plot(figures..., layout=(1, length(figures)),
                         ylims=ylims_val, xticks=[xlims_val.lo, mid(xlims_val), xlims_val.hi])
 
-    datax_max = USE_LOCAL_HORIZON ? maximum(step_sizes) : Δ
-    datax = range(0.0, datax_max, step=0.001)
-    datay = datax
-    plot_recursively!(plt_composed, datax, datay)
+    euler_step_size = 0.001
+    datax_max = Δ
+    tseries, yseries = euler(ode!, datax_max, euler_step_size, [0.0; 0.0])
+    datax = USE_LOCAL_HORIZON ? [0.0, map((_) -> euler_step_size, datax[2:end])...] : tseries
+    datay = map((vec) -> vec[2], yseries)
+
+    plot_recursively!(plt_composed, datax, [datay, datay], vars_no_t)
 
     println("Press Enter to continue...")
     display(plt_composed)
     readline()
 
     plt_2D = plot_boxes_2D(initial_boxes, vars_no_t)
+    datax = map((vec) -> vec[1], yseries)
+    datay = map((vec) -> vec[2], yseries)
+
+    plot_recursively!(plt_2D, datax, datay)
 
     println("Press Enter to continue...")
     display(plt_2D)
