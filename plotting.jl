@@ -89,3 +89,31 @@ function plot_boxes_ND(boxes, time_steps::Array{Float64}, variable_names::Array{
     # Compose the separate figures into a column of figures.
     return plot(plots..., layout=(nr_ODE_components, 1), title=title, titlefontsize=titlefontsize)
 end
+
+"""A flattened list of all leaf subplots of the given plot.
+
+    This is a simple wrapper around the index accessing of
+    a plot's subplots, to retrieve all of them as an ordered
+    list in the same order as the indexing would access them.
+"""
+function subplots(plt::Plots.Plot)
+    return map((subplot_idx) -> plt[subplot_idx], 1:1:length(plt))
+end
+
+"""Plot the given x, y data on the leaf subplots of the specified plot.
+
+    The leaf subplots are modified in-place.
+
+    @param[in,out] plt The plot to modify
+    @param[in] x       The x data to plot
+    @param[in] y       The y data to plot
+"""
+function plot_recursively!(plt::Plots.Plot, x, y)
+    if length(plt) == 1
+        plot!(plt, x, y)
+    end
+
+    for subplt in subplots(plt)
+        plot!(subplt, x, y, linewidth=2, linecolor = :red)
+    end
+end
