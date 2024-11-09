@@ -186,8 +186,10 @@ if abspath(PROGRAM_FILE) == @__FILE__
     SCALE                    = 2.0
     TIME_STEP_SIZE = 0.02
     TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
-    Δ = 0.2     # The finite time horizon
+    USE_LOCAL_HORIZON = true
+    Δ = 0.4     # The finite time horizon
     vars = set_variables("x y t", order=k)
+    vars_no_t = get_variable_names()[1:end-1]
     # The vector field f of the ODEs:
     #   f[1] = 1 + y
     #   f[2] = -x^2
@@ -198,6 +200,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
                 0..0.02])   # t
     # Initial remainder estimate J, a hyperrectangle
     J = fill(-0.1..0.1, length(f))
+
 
     initial_sets, step_sizes =
         tm_integration(f, dom, k, J, Δ,
@@ -220,12 +223,6 @@ if abspath(PROGRAM_FILE) == @__FILE__
         println("    $e")
     end
 
-    vars_no_t = get_variable_names()[1:end-1]
-    USE_LOCAL_HORIZON = false
-
-
-    # plt1 = plot_boxes_2D(initial_boxes, vars_no_t)
-    # plt2 = plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=true)
     plt3 = plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
                          title="Computed boxes Bi", titlefontsize=8)
 
@@ -263,12 +260,25 @@ if abspath(PROGRAM_FILE) == @__FILE__
     plt6 = plot_boxes_ND(intersect_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
                          title="Bi ∩ Gi")
 
+    figures = [plt3, plt4, plt5, plt6]
+    # Find the single ylim to enclose all plots.
+    ylims_val = hull(Interval.(ylims.(figures))...)
+    ylims_val = (ylims_val.lo, ylims_val.hi)
+    xlims_val = hull(Interval.(xlims.(figures))...)
+
     # We want there to be overlap between the computed and known boxes.
     @assert all(intersect_not_empty)
 
-    plt_composed = plot(plt3, plt4, plt5, plt6, layout=(1, 4), ylims=(-2.5, 2), xticks=[0.0, 0.1, 0.2])
+    plt_composed = plot(figures..., layout=(1, length(figures)),
+                        ylims=ylims_val, xticks=[xlims_val.lo, mid(xlims_val), xlims_val.hi])
 
     println("Press Enter to continue...")
     display(plt_composed)
+    readline()
+
+    plt_2D = plot_boxes_2D(initial_boxes, vars_no_t)
+
+    println("Press Enter to continue...")
+    display(plt_2D)
     readline()
 end
