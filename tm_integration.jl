@@ -187,7 +187,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     TIME_STEP_SIZE = 0.02
     TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
     USE_LOCAL_HORIZON = true
-    Δ = 0.4     # The finite time horizon
+    Δ = 0.2     # The finite time horizon
     vars = set_variables("x y t", order=k)
     vars_no_t = get_variable_names()[1:end-1]
     # The vector field f of the ODEs:
@@ -271,6 +271,11 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     plt_composed = plot(figures..., layout=(1, length(figures)),
                         ylims=ylims_val, xticks=[xlims_val.lo, mid(xlims_val), xlims_val.hi])
+
+    datax_max = USE_LOCAL_HORIZON ? maximum(step_sizes) : Δ
+    datax = range(0.0, datax_max, step=0.001)
+    datay = datax
+    plot_recursively!(plt_composed, datax, datay)
 
     println("Press Enter to continue...")
     display(plt_composed)
