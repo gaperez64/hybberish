@@ -59,11 +59,11 @@ end
 
     The time step-size δi is used for substitution in a TaylorSeries.
 """
-function initial_set(Fi::TaylorModelN, δi::TaylorN, variables, domain::IntervalBox)
+function initial_set(Fi::TaylorModelN, delta_i::TaylorN, variables, domain::IntervalBox)
     # To compute Xi, fix t=δi in Fi.
     # FIXME: Assume t is the last variable and exclude it from the list.
     vars_except_t = variables[1:end-1]
-    valuations = vcat(vars_except_t, [δi])
+    valuations = vcat(vars_except_t, [delta_i])
     ps = polynomial(Fi)(valuations)
     Is = remainder(Fi)
     zd = zero(domain)
@@ -77,13 +77,13 @@ end
     as a sequence of flowpipes over partial time horizons
     [0, δi] of the full time horizon [0, Δ].
 """
-function tm_integration(f, domain, k::Integer, J, Δ::Float64,
+function tm_integration(f, domain, k::Integer, J, time_horizon::Float64,
                         TIME_STEP_SIZE::Float64,
                         TIME_STEP_SIZE_EPS::Float64,
                         NR_CONTRACTIVENESS_TRIES::Integer,
                         NR_REFINEMENTS::Integer,
                         SCALE::Float64)
-    @assert(Δ > 0)  # The time horizon must not be [0, 0].
+    @assert(time_horizon > 0)  # The time horizon must not be [0, 0].
     @assert(TIME_STEP_SIZE > 0)
     @assert(NR_CONTRACTIVENESS_TRIES >= 0)
     @assert(NR_REFINEMENTS >= 0)
@@ -93,19 +93,19 @@ function tm_integration(f, domain, k::Integer, J, Δ::Float64,
     zd = zero(domain)
 
     # Start the TM integration loop.
-    remaining_time::Float64 = Δ
+    remaining_time::Float64 = time_horizon
     initial_sets::Array = [X0]
     step_sizes::Array = [0.0]
     Fi = nothing    # The current flowpipe.
     Xi = X0         # The current initial set.
     # FIXME: Would a for-loop be cleaner?
     while remaining_time > 0.0
-        δi = min(remaining_time, TIME_STEP_SIZE)
-        remaining_time -= δi
-        println("time step [0, $δi] (remaining Δ: $remaining_time)")
+        delta_i = min(remaining_time, TIME_STEP_SIZE)
+        remaining_time -= delta_i
+        println("time step [0, $delta_i] (remaining Δ: $remaining_time)")
 
-        if δi < TIME_STEP_SIZE_EPS
-            println("==> Skipping! δi = $δi < $TIME_STEP_SIZE_EPS, the step-size is too small.")
+        if delta_i < TIME_STEP_SIZE_EPS
+            println("==> Skipping! δi = $delta_i < $TIME_STEP_SIZE_EPS, the step-size is too small.")
             continue
         end
 
@@ -141,7 +141,7 @@ function tm_integration(f, domain, k::Integer, J, Δ::Float64,
         # FIXME: The solution: Convert the scalar δi to a TaylorN.
         # Construct a TaylorN representation of the scalar δi.
         # Must be of the same order as the variables, else evaluation fails!
-        δi_tayn = TaylorN(δi, get_order())
+        delta_i_tayn = TaylorN(delta_i, get_order())
 
         # To account for composition, we'll up the current order
         hgr_order = old_order * maximum(get_order.(p))
@@ -161,14 +161,14 @@ function tm_integration(f, domain, k::Integer, J, Δ::Float64,
 
         # TODO: Compute the initial set vector.
         Xi::Vector{TaylorModelN{3, Float64, Float64}} =
-             map((Fij) -> initial_set(Fij, δi_tayn, old_variables, domain), Fi)
+             map((Fij) -> initial_set(Fij, delta_i_tayn, old_variables, domain), Fi)
 
         dummy_t_tm = TaylorModelN(t, 0..0, zd, domain)
         push!(Xi, dummy_t_tm)   # FIXME: Append dummy
         # FIXME: output Xi AFTER appending the dummy TM, for consistency
         # with X0 that was added to the output list before the loop.
         push!(initial_sets, Xi)
-        push!(step_sizes, δi)
+        push!(step_sizes, delta_i)
 
         # We now restore the order.
         vars = set_variables(get_variable_string(), order=old_order)
@@ -188,7 +188,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     TIME_STEP_SIZE = 0.02
     TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
     USE_LOCAL_HORIZON = false
-    Δ = 0.2     # The finite time horizon
+    time_horizon = 0.2     # The finite time horizon
     vars = set_variables("x y t", order=k)
     vars_no_t = get_variable_names()[1:end-1]
     # The vector field f of the ODEs:
@@ -204,7 +204,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
 
     initial_sets, step_sizes =
-        tm_integration(f, dom, k, J, Δ,
+        tm_integration(f, dom, k, J, time_horizon,
                        TIME_STEP_SIZE,
                        TIME_STEP_SIZE_EPS,
                        NR_CONTRACTIVENESS_TRIES,
@@ -274,7 +274,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
                         ylims=ylims_val, xticks=[xlims_val.lo, mid(xlims_val), xlims_val.hi])
 
     euler_step_size = 0.001
-    datax_max = Δ
+    datax_max = time_horizon
     tseries, yseries = euler(ode!, datax_max, euler_step_size, [0.0; 0.0])
     datax = USE_LOCAL_HORIZON ? [0.0, map((_) -> euler_step_size, datax[2:end])...] : tseries
     datay = map((vec) -> vec[2], yseries)
