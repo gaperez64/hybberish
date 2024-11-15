@@ -3,6 +3,7 @@ using TaylorModels
 include("flowstar.jl")
 include("plotting.jl")
 include("euler.jl")
+include("scripts/clean_intervals.jl")
 
 """Convert the given box to a TM initial set.
 
@@ -187,8 +188,8 @@ if abspath(PROGRAM_FILE) == @__FILE__
     SCALE                    = 2.0
     TIME_STEP_SIZE = 0.02
     TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
-    USE_LOCAL_HORIZON = false
-    time_horizon = 0.2     # The finite time horizon
+    USE_LOCAL_HORIZON = true
+    time_horizon = 0.8     # The finite time horizon
     vars = set_variables("x y t", order=k)
     vars_no_t = get_variable_names()[1:end-1]
     # The vector field f of the ODEs:
@@ -210,16 +211,14 @@ if abspath(PROGRAM_FILE) == @__FILE__
                        NR_CONTRACTIVENESS_TRIES,
                        NR_REFINEMENTS,
                        SCALE)
-    println("\ninit sets:")
+    println("\ninit sets ($(length(initial_sets))):")
     for e in initial_sets
         println("    $e")
     end
-    println("\nδi vector = $step_sizes")
+    println("\nδi vector ($(length(step_sizes))) = $step_sizes")
 
-    initial_boxes = map((Xi) -> interval_initial_set(Xi, dom), initial_sets)
-    # FIXME: Assume t is the last variable, and drop its dummy vector element.
-    initial_boxes = map((Bij) -> Bij[1:end-1], initial_boxes)
-    println("\ninit boxes:")
+0
+    println("\ninit boxes ($(length(initial_boxes))):")
     for e in initial_boxes
         println("    $e")
     end
@@ -238,6 +237,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
         end
         push!(known_boxes, known_box)
     end
+    known_boxes = CLEAN_BOXES # FIXME: insert the clean boxes
     plt4 = plot_boxes_ND(known_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
                          title="Given boxes Gi", titlefontsize=8)
 
@@ -276,14 +276,19 @@ if abspath(PROGRAM_FILE) == @__FILE__
     euler_step_size = 0.001
     datax_max = time_horizon
     tseries, yseries = euler(ode!, datax_max, euler_step_size, [0.0; 0.0])
-    datax = USE_LOCAL_HORIZON ? [0.0, map((_) -> euler_step_size, datax[2:end])...] : tseries
+    println("euler t: $tseries")
+    println("euler y: $yseries")
+    datax = USE_LOCAL_HORIZON ? [0.0, map((_) -> euler_step_size, tseries[2:end])...] : tseries
     datay = map((vec) -> vec[2], yseries)
 
     plot_recursively!(plt_composed, datax, [datay, datay], vars_no_t)
 
+    png_dst = "output/Xi_composed_local.png"
     println("Press Enter to continue...")
     display(plt_composed)
     readline()
+    savefig(plt_composed, png_dst)
+    println("Wrote .png to \"$png_dst\"")
 
     plt_2D = plot_boxes_2D(initial_boxes, vars_no_t)
     datax = map((vec) -> vec[1], yseries)
@@ -291,7 +296,11 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     plot_recursively!(plt_2D, datax, datay)
 
+    
+    png_dst = "output/Xi_2d_local.png"
     println("Press Enter to continue...")
     display(plt_2D)
     readline()
+    savefig(plt_2D, png_dst)
+    println("Wrote .png to \"$png_dst\"")
 end
