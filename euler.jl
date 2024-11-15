@@ -5,7 +5,7 @@ using OrdinaryDiffEq
     x' = 1 + y
     y' = -x^2
 """
-function ode!(du, u, p, t)
+function ode332!(du, u, p, t)
     du[1] = 1.0 + u[2]
     du[2] = -(u[1]^2)
 end

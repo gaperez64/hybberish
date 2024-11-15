@@ -102,7 +102,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     euler_step_size = 0.001
     datax_max = time_horizon
-    tseries, yseries = euler(ode!, datax_max, euler_step_size, [0.0; 0.0])
+    tseries, yseries = euler(ode332!, datax_max, euler_step_size, [0.0; 0.0])
     println("euler t: $tseries")
     println("euler y: $yseries")
     datax = USE_LOCAL_HORIZON ? [0.0, map((_) -> euler_step_size, tseries[2:end])...] : tseries

@@ -17,6 +17,8 @@ begin
 	using TaylorSeries
 	using IntervalArithmetic
 	include("tm_integration.jl")
+	include("euler.jl")
+	include("plotting.jl")
 end
 
 # ╔═╡ 0edfc1f9-9744-468e-bf3c-1b1f41b588b0
@@ -184,7 +186,7 @@ begin
 	euler_step_size = 0.001
 	datax_max = time_horizon
 	init_conditions = [0.0; 0.0]
-	tseries, vseries = euler(ode!, datax_max, euler_step_size, init_conditions)
+	tseries, vseries = euler(ode332!, datax_max, euler_step_size, init_conditions)
 
 	# Display forward Euler results legibly
 	plots = []
