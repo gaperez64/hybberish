@@ -141,6 +141,18 @@ begin
 	initial_boxes = map((Bij) -> Bij[1:end-1], initial_boxes)
 end
 
+# ╔═╡ 4e250e61-a17f-4742-a5fb-b5063562b421
+begin
+	include("scripts/clean_intervals.jl")  # Import most recent known boxes
+
+	USE_LOCAL_HORIZON = false 	# Boolean flag, 
+	known_boxes = copy(get_clean_boxes()) 	# Check intersection between computed and known boxes
+
+	# Compare as many known VS computed boxes as possible, so that
+	# you can always generate some plot even if the lengths mismatch.
+	known_boxes = known_boxes[1:min(length(known_boxes), length(initial_boxes))]
+end
+
 # ╔═╡ 244cb2cc-323b-43b9-a7fd-4ca2a1bff0d6
 md"""
 Next we define some configuration variables for the plotting section.
@@ -153,16 +165,6 @@ If **false**, then it is instead plotted against the $i$-th true (**global** so 
 
 $[\delta_1 + \dots + \delta_{i-1}, \delta_1 + \dots + \delta_{i-1} + \delta_i] = \left[\sum_{j=1}^{i-1} \delta_j, \left( \sum_{j=1}^{i-1} \delta_j \right) + \delta_i\right]$
 """
-
-# ╔═╡ 4e250e61-a17f-4742-a5fb-b5063562b421
-begin
-	USE_LOCAL_HORIZON = false 	# Boolean flag, 
-	known_boxes = CLEAN_BOXES 	# Check intersection between computed and known boxes
-
-	# Compare as many known VS computed boxes as possible, so that
-	# you can always generate some plot even if the lengths mismatch.
-	known_boxes = known_boxes[1:min(length(known_boxes), length(initial_boxes))]
-end
 
 # ╔═╡ a31e4811-a5cd-4656-a46a-eb8123522455
 md"""
