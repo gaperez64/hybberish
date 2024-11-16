@@ -10,6 +10,13 @@ function ode332!(du, u, p, t)
     du[2] = -(u[1]^2)
 end
 
+"""A representation of the following 1D ODE:
+    x' = sin(x)
+"""
+function ode3310!(du, u, p, t)
+    du[1] = sin(u[1])
+end
+
 """Use forward Euler to solve the given ODE.
 
     @param[in]
