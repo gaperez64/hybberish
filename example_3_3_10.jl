@@ -1,6 +1,6 @@
 include("plotting.jl")
 include("euler.jl")
-include("scripts/clean_intervals.jl")
+include("scripts/clean_intervals_3_3_10.jl")
 include("tm_integration.jl")
 
 if abspath(PROGRAM_FILE) == @__FILE__
