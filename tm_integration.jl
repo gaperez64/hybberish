@@ -75,16 +75,27 @@ end
     as a sequence of flowpipes over partial time horizons
     [0, δi] of the full time horizon [0, Δ].
 """
-function tm_integration(f, domain, k::Integer, J, time_horizon::Float64,
+function tm_integration(vector_field_tms::Vector{TaylorModelN{N, Float64, Float64}},
+                        domain, k::Integer, J, time_horizon::Float64,
                         TIME_STEP_SIZE::Float64,
                         TIME_STEP_SIZE_EPS::Float64,
                         NR_CONTRACTIVENESS_TRIES::Integer,
                         NR_REFINEMENTS::Integer,
-                        SCALE::Float64)
+                        SCALE::Float64) where N
     @assert(time_horizon > 0)  # The time horizon must not be [0, 0].
     @assert(TIME_STEP_SIZE > 0)
     @assert(NR_CONTRACTIVENESS_TRIES >= 0)
     @assert(NR_REFINEMENTS >= 0)
+
+    # TODO: Where & how should this comment be integrated into function docs?
+    # The vector field f used for TM integration is represented as
+    #   f = [ (p1, I1), ... ]
+    # a vector of TMs where
+    #   pi is a polynomial approximation of the i-th vector field
+    #      component, which may be non-polynomial
+    #   Ii is the error accrued by replacing the i-th, true vector
+    #      field with polynomial pi
+    vector_field = polynomials(vector_field_tms)
 
     # Derive the corresponding TM initial set from the interval initial set.
     X0 = tm_initial_set(domain)
@@ -95,7 +106,7 @@ function tm_integration(f, domain, k::Integer, J, time_horizon::Float64,
     initial_sets::Array = [X0]
     step_sizes::Array = [0.0]
     Fi = nothing    # The current flowpipe.
-    Xi = X0         # The current initial set.
+    Xi::Vector{TaylorModelN{N, Float64, Float64}} = X0 # The current initial set.
     # FIXME: Would a for-loop be cleaner?
     while remaining_time > 0.0
         delta_i = min(remaining_time, TIME_STEP_SIZE)
@@ -108,10 +119,10 @@ function tm_integration(f, domain, k::Integer, J, time_horizon::Float64,
         end
 
         # Step 1: generate the poly approximation of the flow.
-        p = tay_poly(f, k)
+        p = tay_poly(vector_field, k)
 
         # Step2: generate a safe, refined remainder interval.
-        I = tay_model_error(f, p, domain, k, J,
+        I = tay_model_error(vector_field_tms, p, domain, k, J,
                             NR_CONTRACTIVENESS_TRIES,
                             NR_REFINEMENTS,
                             SCALE)
@@ -158,8 +169,7 @@ function tm_integration(f, domain, k::Integer, J, time_horizon::Float64,
         Fi = map(((pj, Ij),) -> flowpipe(pj, Ij, Xi, domain), tmv)
 
         # TODO: Compute the initial set vector.
-        Xi::Vector{TaylorModelN{3, Float64, Float64}} =
-             map((Fij) -> initial_set(Fij, delta_i_tayn, old_variables, domain), Fi)
+        Xi = map((Fij) -> initial_set(Fij, delta_i_tayn, old_variables, domain), Fi)
 
         dummy_t_tm = TaylorModelN(t, 0..0, zd, domain)
         push!(Xi, dummy_t_tm)   # FIXME: Append dummy

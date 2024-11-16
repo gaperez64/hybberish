@@ -16,17 +16,33 @@ if abspath(PROGRAM_FILE) == @__FILE__
     time_horizon = 0.8     # The finite time horizon
     vars = set_variables("x y t", order=k)
     vars_no_t = get_variable_names()[1:end-1]
-    # The vector field f of the ODEs:
-    #   f[1] = 1 + y
-    #   f[2] = -x^2
-    f = [1 + vars[2],  # x
-        -vars[1]^2]   # y
     dom = IntervalBox([-1..1,      # x
                 -0.5..0.5,  # y
                 0..0.02])   # t
+    vars_tms = tm_initial_set(dom)
+
+    # FIXME: Bumping up the order to avoid assertion errors
+    # during TM arithmetic.
+    old_order = get_order()
+    new_order = old_order*2
+    vars = set_variables(get_variable_string(), order=new_order)
+
+    # The vector field f of the ODEs:
+    #   f[1] = 1 + y
+    #   f[2] = -x^2
+    # Represent the vector field as TMs:
+    #   f[1] = 1 + y + [0, 0]
+    #   f[2] = -x^2 + [0, 0]
+    # where the Lagrange remainder is always zero, since
+    # the vector field contains only polynomial terms
+    f = [1 + vars_tms[2],  # x
+        -vars_tms[1]^2]   # y
+
     # Initial remainder estimate J, a hyperrectangle
     J = fill(-0.1..0.1, length(f))
 
+    # TODO: Reset to old order.
+    vars = set_variables(get_variable_string(), order=old_order)
 
     initial_sets, step_sizes =
         tm_integration(f, dom, k, J, time_horizon,
@@ -106,9 +122,10 @@ if abspath(PROGRAM_FILE) == @__FILE__
     println("euler t: $tseries")
     println("euler y: $yseries")
     datax = USE_LOCAL_HORIZON ? [0.0, map((_) -> euler_step_size, tseries[2:end])...] : tseries
-    datay = map((vec) -> vec[2], yseries)
+    datay1 = map((vec) -> vec[1], yseries)
+    datay2 = map((vec) -> vec[2], yseries)
 
-    plot_recursively!(plt_composed, datax, [datay, datay], vars_no_t)
+    plot_recursively!(plt_composed, datax, [datay1, datay2], vars_no_t)
 
     png_dst = "output/Xi_composed_local.png"
     println("Press Enter to continue...")

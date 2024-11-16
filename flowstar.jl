@@ -5,7 +5,7 @@ using TaylorModels  # Version req'd: https://github.com/gaperez64/taylormodels.j
 """Generate the Taylor polynomial approximation part of the i-th flowpipe
     via Lie derivatives.
 """
-function tay_poly(f, k)
+function tay_poly(f::Vector{TaylorN{N}}, k::Integer) where {N <: Number}
     vars = get_variables()
     t = vars[end]
     # Let's pad f with a 1 at the end for t
@@ -41,13 +41,23 @@ end
 """Compute the remainder of the TM extension of the picard operator:
     Pf((p, I)) = J.
 """
-function picard_tm_extension(f, tmv, domain, k)
+function picard_tm_extension(vector_field_tms::Vector{TaylorModelN{N, Float64, Float64}}, tmv, domain, k) where N
+    # TODO: Does this comment make sense/does it belong here?
+    # Represent each component of the actual vector as a TM.
+    # The Taylor polynomial approximates the actual function
+    # and the remainder represents the error incurred by this
+    # approximation.
+    f::Vector{TaylorN} = polynomials(vector_field_tms)
+    errors::Vector{Interval} = remainders(vector_field_tms)
     # FIXME: Is a copy needed? The substitution f(g(x, t), t)
     # seems to have side effects?
     tmv = copy(tmv)
     # Perform the substitution operation of the Picard operator:
     #   f(g(x, s), s).
     ftm = map((fj) -> evaluate(fj, tmv), f)  # FIXME: Should be a general fun, not TSeries
+    # Add the error of aproximating the true vector field.
+    add_to_rem(tm, err) = TaylorModelN(polynomial(tm), remainder(tm) + err, tm.x0, domain)
+    ftm = add_to_rem.(ftm, errors)
     # Compute the integral's remainder part:
     #   (int_enclosure(pe) + I) * [0, t].
     # FIXME: Once again we assume the t interval is the last one
@@ -61,7 +71,10 @@ end
 
 
 """A broadcasting of the TM remainder function across a TM vector."""
-remainders(tmv) = remainder.(tmv)
+remainders(tmv::Vector{TaylorModelN{N, Float64, Float64}}) where N = remainder.(tmv)
+
+"""A broadcasting of the TM polynomial function across a TM vector."""
+polynomials(tmv::Vector{TaylorModelN{N, Float64, Float64}}) where N = polynomial.(tmv)
 
 
 """Compute a safe remainder interval for the i-th flowpipe.
@@ -80,10 +93,11 @@ remainders(tmv) = remainder.(tmv)
     become known when the contractiveness and refinement iteration
     converge or fail.
 """
-function tay_model_error(f, p, domain, k::Integer, J,
+function tay_model_error(vector_field_tms::Vector{TaylorModelN{N, Float64, Float64}},
+                         p, domain, k::Integer, J,
                          NR_CONTRACTIVENESS_TRIES::Integer,
                          NR_REFINEMENTS::Integer,
-                         SCALE::Float64)
+                         SCALE::Float64) where N
     zd = zero(domain)
     # get a copy of the t variable before messing up order
     t = get_variables()[end]
@@ -112,7 +126,7 @@ function tay_model_error(f, p, domain, k::Integer, J,
 
         # Perform the first refinement.
         append!(tmv, dummy_t_tm)  # FIXME: appending dummy
-        J1 = picard_tm_extension(f, tmv, domain, k)
+        J1 = picard_tm_extension(vector_field_tms, tmv, domain, k)
 
         # Test contractiveness.
         if all(issubset.(J1, J0))
@@ -133,7 +147,7 @@ function tay_model_error(f, p, domain, k::Integer, J,
     for nr in 1:NR_REFINEMENTS
 	println("Refinement no. $nr")
         append!(tmv, dummy_t_tm)  # FIXME: appending dummy
-        Jn = picard_tm_extension(f, tmv, domain, k)
+        Jn = picard_tm_extension(vector_field_tms, tmv, domain, k)
         tmv = map(construct_tm, zip(p, Jn))
     end
 
