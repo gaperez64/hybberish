@@ -147,3 +147,76 @@ function plot_recursively!(plt, x, y)
         plot!(subplt, x, y, linewidth=2, linecolor = :red)
     end
 end
+
+"""Plot the computed boxes, known boxes, their intersection,
+    and the approximation of the ODE computed with forward Euler.
+
+    @param[in] initial_boxes The boxes of the computed initial sets
+    @param[in] known_boxes The boxes to compare our solution to.
+                           e.g. boxes gotten through flowstar
+    @param[in] step_sizes The step sizes (deltas) for all boxes
+    @param[in] vars_no_t The ordered string names of all variables except time
+    @param[in] USE_LOCAL_HORIZON Whether to use the local time horizon for plotting
+    @param[in] euler_ode The ODE function to pass to the forward euler routine
+    @param[in] euler_init_state The initial conditions to pass to the forward euler routine
+"""
+function plot_vars_against_time(initial_boxes::Vector{IntervalBox{N, Float64}}, known_boxes::Vector{IntervalBox{N, Float64}},
+    time_horizon::Float64, step_sizes::Vector{Float64}, vars_no_t::Vector{String}, USE_LOCAL_HORIZON::Bool,
+    euler_ode::Function, euler_init_state::Vector{Float64}) where N
+    plt_computed = plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+    title="Computed boxes Bi", titlefontsize=8)
+
+    plt_known = plot_boxes_ND(known_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+    title="Given boxes Gi", titlefontsize=8)
+
+    plt_both = nothing
+    if USE_LOCAL_HORIZON
+        # Use a hack to plot TWO sequences of boxes on the same figure:
+        # Append the box vectors to each other. BUT, a shifted version of the
+        # time step vector, since the global time in the plotting function
+        # increases for each box plotted.
+        plt_both = plot_boxes_ND([initial_boxes..., known_boxes...], [step_sizes..., step_sizes...], vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+        title="Bi & Gi")
+    else
+        plt_both = plot_boxes_ND([initial_boxes..., reverse(known_boxes)...], [step_sizes..., (-step_sizes)...], vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+        title="Bi & Gi")
+    end
+
+    intersect_boxes = map(((init, known),) -> intersect(IntervalBox(init), IntervalBox(known)), zip(initial_boxes, known_boxes))
+    intersect_not_empty = map((int) -> emptyinterval() != int, intersect_boxes)
+
+    # We want there to be overlap between the computed and known boxes.
+    @assert all(intersect_not_empty)
+
+    plt_intersect = plot_boxes_ND(intersect_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
+    title="Bi ∩ Gi")
+
+    figures = [plt_computed, plt_known, plt_both, plt_intersect]
+
+    # Find the single ylim to enclose all plots.
+    ylims_val = hull(Interval.(ylims.(figures))...)
+    ylims_val = (ylims_val.lo, ylims_val.hi)
+    xlims_val = hull(Interval.(xlims.(figures))...)
+
+    plt_composed = plot(figures..., layout=(1, length(figures)),
+    ylims=ylims_val, xticks=[xlims_val.lo, mid(xlims_val), xlims_val.hi])
+
+    # Compute forward Euler
+    euler_step_size = 0.001
+    datax_max = time_horizon
+    tseries, vseries = euler(euler_ode, datax_max, euler_step_size, euler_init_state)
+
+    datax = USE_LOCAL_HORIZON ? [0.0, map((_) -> euler_step_size, tseries[2:end])...] : tseries
+
+
+    @assert length(vseries) > 0 "Forward Euler did not produce any values."
+    datay = []
+    for subseries_idx in eachindex(vseries[1])
+    subseries = map((vec) -> vec[subseries_idx], vseries)
+    push!(datay, subseries)
+    end
+
+    plot_recursively!(plt_composed, datax, datay, vars_no_t)
+
+    return plt_composed, tseries, vseries
+end

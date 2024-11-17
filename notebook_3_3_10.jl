@@ -17,7 +17,6 @@ begin
 	using TaylorModels
 	include("plotting.jl")
 	include("euler.jl")
-	include("scripts/clean_intervals.jl")
 	include("tm_integration.jl")
 end
 
