@@ -47,13 +47,13 @@ We now set up the hardcoded inputs. The comments in the markdown cells will be k
 # ╔═╡ e9eaca80-5d03-45d0-ace0-9e9939200aa6
 begin
     # Full TM integration, based on Example 3.3.2 and Example 3.3.6
-    k = 3   # The TM arithmetic and truncation order
+    k = 4   # The TM arithmetic and truncation order
     NR_CONTRACTIVENESS_TRIES = 5
     NR_REFINEMENTS           = 1
     SCALE                    = 2.0
     TIME_STEP_SIZE = 0.02
     TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
-    time_horizon = 0.8     # The finite time horizon
+    time_horizon = 1.0     # The finite time horizon
     vars = set_variables("x t", order=k)
     vars_no_t = get_variable_names()[1:end-1]
 
@@ -137,6 +137,14 @@ begin
 	# Compare as many known VS computed boxes as possible, so that
 	# you can always generate some plot even if the lengths mismatch.
 	known_boxes = known_boxes[1:min(length(known_boxes), length(initial_boxes))]
+
+	length_diff = length(initial_boxes) - length(known_boxes)
+	if length_diff > 0
+		padding = map((_) -> IntervalBox(zero(initial_boxes[1])), 1:length_diff)
+		known_boxes = vcat(known_boxes, padding)
+	end
+
+	known_boxes # Pluto cell output
 end
 
 # ╔═╡ 22867a28-ebb4-4d04-bf0e-2847ff774091
