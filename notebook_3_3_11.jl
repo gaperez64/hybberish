@@ -55,13 +55,13 @@ We now set up the hardcoded inputs. The comments in the markdown cells will be k
 # ╔═╡ f9d36075-e6bd-49bf-af79-0ce17108f282
 begin
     # Full TM integration, based on Example 3.3.11
-    k = 5   # The TM arithmetic and truncation order
+    k = 10   # The TM arithmetic and truncation order
     NR_CONTRACTIVENESS_TRIES = 5
-    NR_REFINEMENTS           = 1
+    NR_REFINEMENTS           = 10
     SCALE                    = 2.0
     TIME_STEP_SIZE = 0.02
     TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
-    time_horizon = 0.8     # The finite time horizon
+    time_horizon = 3.1     # The finite time horizon
     vars = set_variables("x y t", order=k)
     vars_no_t = get_variable_names()[1:end-1]
 
@@ -98,7 +98,7 @@ begin
     # TODO: Reset to old order.
     vars = set_variables(get_variable_string(), order=old_order)
 
-	dom, vars_tms, f # Pluto cell output
+	"k=$k", "NR_REFINEMENTS=$NR_REFINEMENTS", "TIME_STEP_SIZE=$TIME_STEP_SIZE", "time_horizon=$time_horizon", dom, vars_tms, f # Pluto cell output
 end
 
 # ╔═╡ 45ede61b-c358-44c0-a096-9315fd0524fa
@@ -153,8 +153,16 @@ end
 begin
 	include("scripts/clean_intervals_3_3_11.jl")  # Import most recent known boxes
 
-	USE_LOCAL_HORIZON = false 	# Boolean flag, 
-	known_boxes = copy(get_clean_boxes()) 	# Check intersection between computed and known boxes
+	# Boolean flags to toggle which subplots to show and how.
+	SHOW_ONLY_COMPUTED_BOXES = true
+	USE_LOCAL_HORIZON = false
+
+	# The number of flowpipes/boxes to keep.
+	trunc_max = 40
+	trunc_max = length(initial_boxes)
+
+	# Check intersection between computed and known boxes
+	known_boxes = copy(get_clean_boxes())
 	known_boxes = map((_) -> known_boxes[1], eachindex(initial_boxes))
 
 	# Compare as many known VS computed boxes as possible, so that
@@ -188,6 +196,19 @@ Also plot the approximate solution of the ODE obtained by **forward Euler** as a
 
 """
 
+# ╔═╡ 960db067-b6bd-41a1-a1d9-be30d42ad2ae
+begin
+	# Truncate several series, so that you can play around with the number
+	# of flowpipes/boxes to display on the plots without having to re-run
+	# TM integration.
+
+	# Truncating should be safe, only the plots follow after this.
+	time_horizon_truncated = trunc_max * TIME_STEP_SIZE
+	step_sizes_truncated = step_sizes[1:trunc_max]
+	initial_boxes_truncated = initial_boxes[1:trunc_max]
+	known_boxes_truncated = known_boxes[1:trunc_max]
+end
+
 # ╔═╡ 87acf7ba-fd57-40e0-b9e7-53ff97379a1f
 begin
 	euler_init_state = [
@@ -195,10 +216,35 @@ begin
 		2.0  # y
 	]
 	# Generate the composed plot, which also does euler
-	plt_composed, tseries_, vseries_ = plot_vars_against_time(initial_boxes, known_boxes, time_horizon, step_sizes, vars_no_t, USE_LOCAL_HORIZON, ode3311!, euler_init_state)
+	plt_composed, tseries_, vseries_ = plot_vars_against_time(initial_boxes_truncated, known_boxes_truncated, time_horizon_truncated, step_sizes_truncated, vars_no_t, USE_LOCAL_HORIZON, ode3311!, euler_init_state)
 
-	plt_composed # Pluto cell output
-	# plot(plt_composed, xlims=(-10, 10), ylims=(-10, 10))
+	if SHOW_ONLY_COMPUTED_BOXES
+		plot(plot(plt_composed[1]), plot(plt_composed[2]), layout=(2,1)) # Pluto cell output
+	else
+		plt_composed # Pluto cell output
+	end
+end
+
+# ╔═╡ 3438d00a-7ccd-4599-83d0-1eec4c3330db
+begin
+	plt_2D_computed =
+		plot_boxes_2D(initial_boxes_truncated, vars_no_t, title="Computed boxes")
+    plt_2D_known =
+		plot_boxes_2D(known_boxes_truncated, vars_no_t, title="Known boxes")
+    datay_2x = map((vec) -> vec[1], vseries_)
+    datay_2y = map((vec) -> vec[2], vseries_)
+
+    plot_recursively!(plt_2D_computed, datay_2x, datay_2y)
+    plot_recursively!(plt_2D_known, datay_2x, datay_2y)
+
+	# Compose the 2D plots
+	plt_2D = plot(plt_2D_computed, plt_2D_known)
+
+	if SHOW_ONLY_COMPUTED_BOXES
+		plot(plt_2D[1]) # Pluto cell output
+	else
+		plt_2D # Pluto cell output
+	end
 end
 
 # ╔═╡ Cell order:
@@ -216,4 +262,6 @@ end
 # ╟─84afb4c5-c7b4-40fd-bb1a-37ab44994eb9
 # ╠═f048f8ad-feea-4603-9ecc-889eb5ce288a
 # ╟─3ede02f6-2b5f-4476-8c6d-f1f4a9b275ca
+# ╠═960db067-b6bd-41a1-a1d9-be30d42ad2ae
 # ╠═87acf7ba-fd57-40e0-b9e7-53ff97379a1f
+# ╠═3438d00a-7ccd-4599-83d0-1eec4c3330db
