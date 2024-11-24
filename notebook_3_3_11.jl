@@ -68,7 +68,7 @@ begin
     dom::IntervalBox = IntervalBox([
 		4.9..5.1,   # x
 		1.9..2.1,   # y
-    	0..0.02  # t
+    	0..(TIME_STEP_SIZE)  # t
 	])
 
 	# Shift the domains, and replace all variables by shifted variables.

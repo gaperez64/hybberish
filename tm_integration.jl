@@ -87,6 +87,14 @@ function tm_integration(vector_field_tms::Vector{TaylorModelN{N, Float64, Float6
     @assert(NR_CONTRACTIVENESS_TRIES >= 0)
     @assert(NR_REFINEMENTS >= 0)
 
+    # Make assertions about the time domain, to prevent mistakes by the caller.
+    tdom = domain.v[end]
+    @assert tdom.lo == 0.0 "The time domain's lower bound must be exactly 0.0"*
+                           ": time.lo = $(tdom.lo) != 0.0"
+    @assert tdom.hi == TIME_STEP_SIZE "The time domain's upper bound must "*
+            "exactly match the fixed step size: "*
+            "time.hi = $(tdom.hi) != $TIME_STEP_SIZE = fixed step size"
+
     # TODO: Where & how should this comment be integrated into function docs?
     # The vector field f used for TM integration is represented as
     #   f = [ (p1, I1), ... ]
