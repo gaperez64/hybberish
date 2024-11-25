@@ -29,13 +29,13 @@ include("plotting.jl")
 begin
     # Full TM integration, based on a TMJets bug report:
 	# https://github.com/JuliaReach/ReachabilityAnalysis.jl/issues/588
-    k = 2   # The TM arithmetic and truncation order
+    k = 8   # The TM arithmetic and truncation order
     NR_CONTRACTIVENESS_TRIES = 5
     NR_REFINEMENTS           = 15
     SCALE                    = 2.0
     TIME_STEP_SIZE = 0.01
     TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
-    time_horizon = 0.02     # The finite time horizon
+    time_horizon = 5.0     # The finite time horizon
     vars = set_variables("y t", order=k)
     vars_no_t = get_variable_names()[1:end-1]
 
@@ -147,7 +147,7 @@ end
 # ╔═╡ 6f7f3780-cca6-4db1-99e7-dd21a67932bc
 begin
 	euler_init_state = [
-		0.1  # y
+		1.1  # y
 	]
 	# Generate the composed plot, which also does euler
 	plt_composed, tseries_, vseries_ = plot_vars_against_time(initial_boxes_truncated, known_boxes_truncated, time_horizon_truncated, step_sizes_truncated, vars_no_t, USE_LOCAL_HORIZON, odeTMJets!, euler_init_state, euler_step_size = 0.00001)
