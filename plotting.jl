@@ -162,7 +162,8 @@ end
 """
 function plot_vars_against_time(initial_boxes::Vector{IntervalBox{N, Float64}}, known_boxes::Vector{IntervalBox{N, Float64}},
     time_horizon::Float64, step_sizes::Vector{Float64}, vars_no_t::Vector{String}, USE_LOCAL_HORIZON::Bool,
-    euler_ode::Function, euler_init_state::Vector{Float64}) where N
+    euler_ode::Function, euler_init_state::Vector{Float64};
+    euler_step_size = 0.001) where N
     plt_computed = plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
     title="Computed boxes Bi", titlefontsize=8)
 
@@ -202,7 +203,6 @@ function plot_vars_against_time(initial_boxes::Vector{IntervalBox{N, Float64}}, 
     ylims=ylims_val, xticks=[xlims_val.lo, mid(xlims_val), xlims_val.hi])
 
     # Compute forward Euler
-    euler_step_size = 0.001
     datax_max = time_horizon
     tseries, vseries = euler(euler_ode, datax_max, euler_step_size, euler_init_state)
 
