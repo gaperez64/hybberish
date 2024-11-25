@@ -22,10 +22,15 @@ end
     y' = -3y + xy
 """
 function ode3311!(du, u, p, t)
-	# FIXME: offset x by +5 and y by +2, since the TaylorModels
-	# library requires 0 to be in the domains and such.
     du[1] = 1.5u[1] - u[1] * u[2]
     du[2] = -3 * u[2] + u[1] * u[2]
+end
+
+"""A representation of the following 1D ODE:
+    y' = y + cos(y)
+"""
+function odeTMJets!(du, u, p, t)
+    du[1] = u[1] * cos(u[1])
 end
 
 function trucktrailer!(du, u, p, t)
