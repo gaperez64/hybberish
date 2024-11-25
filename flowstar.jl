@@ -97,6 +97,7 @@ function tay_model_error(vector_field_tms::Vector{TaylorModelN{N, Float64, Float
                          p, domain, k::Integer, J,
                          NR_CONTRACTIVENESS_TRIES::Integer,
                          NR_REFINEMENTS::Integer,
+                         REFINEMENT_EPS::Float64,
                          SCALE::Float64) where N
     zd = zero(domain)
     # get a copy of the t variable before messing up order
@@ -145,10 +146,19 @@ function tay_model_error(vector_field_tms::Vector{TaylorModelN{N, Float64, Float
     end
 
     for nr in 1:NR_REFINEMENTS
-	println("Refinement no. $nr")
+	print("Refinement no. $nr")
         append!(tmv, dummy_t_tm)  # FIXME: appending dummy
         Jn = picard_tm_extension(vector_field_tms, tmv, domain, k)
+
+        max_improvement::Float64 = diam(IntervalBox(remainders(tmv))) - diam(IntervalBox(Jn))
+        @assert max_improvement >= 0.0 "Refinement should not decrease the bound tightness!"
+
         tmv = map(construct_tm, zip(p, Jn))
+        
+        println("  (max improvement=$max_improvement)")
+        if max_improvement < REFINEMENT_EPS
+            break
+        end
     end
 
     # Collect the results.
@@ -164,6 +174,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     k = 3   # The TM arithmetic and truncation order
     NR_CONTRACTIVENESS_TRIES = 5
     NR_REFINEMENTS           = 1
+    REFINEMENT_EPS           = 0.01
     SCALE                    = 2.0
     vars = set_variables("x y t", order=k)
     # The vector field f of the ODEs:
@@ -184,6 +195,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     I = tay_model_error(f, p, domain, k, J,
                         NR_CONTRACTIVENESS_TRIES,
                         NR_REFINEMENTS,
+                        REFINEMENT_EPS,
                         SCALE)
     println("safe remainders = $I")
 end

@@ -81,7 +81,8 @@ function tm_integration(vector_field_tms::Vector{TaylorModelN{N, Float64, Float6
                         TIME_STEP_SIZE_EPS::Float64,
                         NR_CONTRACTIVENESS_TRIES::Integer,
                         NR_REFINEMENTS::Integer,
-                        SCALE::Float64) where N
+                        SCALE::Float64;
+                        REFINEMENT_EPS::Float64 = 0.001) where N
     @assert(time_horizon > 0)  # The time horizon must not be [0, 0].
     @assert(TIME_STEP_SIZE > 0)
     @assert(NR_CONTRACTIVENESS_TRIES >= 0)
@@ -133,6 +134,7 @@ function tm_integration(vector_field_tms::Vector{TaylorModelN{N, Float64, Float6
         I = tay_model_error(vector_field_tms, p, domain, k, J,
                             NR_CONTRACTIVENESS_TRIES,
                             NR_REFINEMENTS,
+                            REFINEMENT_EPS,
                             SCALE)
 
         # Step 3: Compute the flowpipe and next initial set.
