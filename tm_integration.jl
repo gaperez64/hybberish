@@ -75,14 +75,14 @@ end
     as a sequence of flowpipes over partial time horizons
     [0, δi] of the full time horizon [0, Δ].
 """
-function tm_integration(vector_field_tms::Vector{TaylorModelN{N, Float64, Float64}},
+function tm_integration(vector_field_tms::Vector{T},
                         domain::IntervalBox{M, Float64}, k::Integer, J, time_horizon::Float64,
                         TIME_STEP_SIZE::Float64,
                         TIME_STEP_SIZE_EPS::Float64,
                         NR_CONTRACTIVENESS_TRIES::Integer,
                         NR_REFINEMENTS::Integer,
                         SCALE::Float64;
-                        REFINEMENT_EPS::Float64 = 0.001) where {N, M}
+                        REFINEMENT_EPS::Float64 = 0.001) where {T <: TaylorModelN, M}
     @assert(time_horizon > 0)  # The time horizon must not be [0, 0].
     @assert(TIME_STEP_SIZE > 0)
     @assert(NR_CONTRACTIVENESS_TRIES >= 0)
@@ -115,7 +115,7 @@ function tm_integration(vector_field_tms::Vector{TaylorModelN{N, Float64, Float6
     initial_sets::Array = [X0]
     step_sizes::Array = [0.0]
     Fi = nothing    # The current flowpipe.
-    Xi::Vector{TaylorModelN{N, Float64, Float64}} = X0 # The current initial set.
+    Xi::Vector = X0 # The current initial set.
     # FIXME: Would a for-loop be cleaner?
     while remaining_time > 0.0
         delta_i = min(remaining_time, TIME_STEP_SIZE)

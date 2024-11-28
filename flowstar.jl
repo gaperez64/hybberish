@@ -41,7 +41,7 @@ end
 """Compute the remainder of the TM extension of the picard operator:
     Pf((p, I)) = J.
 """
-function picard_tm_extension(vector_field_tms::Vector{TaylorModelN{N, Float64, Float64}}, tmv, domain, k) where N
+function picard_tm_extension(vector_field_tms::Vector{T}, tmv, domain, k) where T <: TaylorModelN
     # TODO: Does this comment make sense/does it belong here?
     # Represent each component of the actual vector as a TM.
     # The Taylor polynomial approximates the actual function
@@ -71,10 +71,10 @@ end
 
 
 """A broadcasting of the TM remainder function across a TM vector."""
-remainders(tmv::Vector{TaylorModelN{N, Float64, Float64}}) where N = remainder.(tmv)
+remainders(tmv::Vector{T}) where T <: TaylorModelN = remainder.(tmv)
 
 """A broadcasting of the TM polynomial function across a TM vector."""
-polynomials(tmv::Vector{TaylorModelN{N, Float64, Float64}}) where N = polynomial.(tmv)
+polynomials(tmv::Vector{T}) where T <: TaylorModelN = polynomial.(tmv)
 
 
 """Compute a safe remainder interval for the i-th flowpipe.
@@ -93,12 +93,12 @@ polynomials(tmv::Vector{TaylorModelN{N, Float64, Float64}}) where N = polynomial
     become known when the contractiveness and refinement iteration
     converge or fail.
 """
-function tay_model_error(vector_field_tms::Vector{TaylorModelN{N, Float64, Float64}},
+function tay_model_error(vector_field_tms::Vector{T},
                          p, domain, k::Integer, J,
                          NR_CONTRACTIVENESS_TRIES::Integer,
                          NR_REFINEMENTS::Integer,
                          REFINEMENT_EPS::Float64,
-                         SCALE::Float64) where N
+                         SCALE::Float64) where T <: TaylorModelN
     zd = zero(domain)
     # get a copy of the t variable before messing up order
     t = get_variables()[end]
