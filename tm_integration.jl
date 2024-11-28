@@ -40,7 +40,7 @@ end
 
     Given an initial set Xi, the flowpipe is computed as (p(Xi, t), I).
 """
-function flowpipe(p::TaylorN, I::Interval, Xi::Vector, domain::IntervalBox)
+function tm_flowpipe(p::TaylorN, I::Interval, Xi::Vector, domain::IntervalBox)
     Xi = copy(Xi)
     # Compute the flowpipe Fi = (p(Xi), I) = (ps, Is + I)
     #             where p(Xi) = (ps, Is)
@@ -76,13 +76,13 @@ end
     [0, δi] of the full time horizon [0, Δ].
 """
 function tm_integration(vector_field_tms::Vector{TaylorModelN{N, Float64, Float64}},
-                        domain, k::Integer, J, time_horizon::Float64,
+                        domain::IntervalBox{M, Float64}, k::Integer, J, time_horizon::Float64,
                         TIME_STEP_SIZE::Float64,
                         TIME_STEP_SIZE_EPS::Float64,
                         NR_CONTRACTIVENESS_TRIES::Integer,
                         NR_REFINEMENTS::Integer,
                         SCALE::Float64;
-                        REFINEMENT_EPS::Float64 = 0.001) where N
+                        REFINEMENT_EPS::Float64 = 0.001) where {N, M}
     @assert(time_horizon > 0)  # The time horizon must not be [0, 0].
     @assert(TIME_STEP_SIZE > 0)
     @assert(NR_CONTRACTIVENESS_TRIES >= 0)
@@ -176,7 +176,7 @@ function tm_integration(vector_field_tms::Vector{TaylorModelN{N, Float64, Float6
         # e.g. for x order 1 and y order 3, then (x + y^2) is order 1 and
         # actually becomes x with y^2 truncated.
         tmv = zip(p, I)
-        Fi = map(((pj, Ij),) -> flowpipe(pj, Ij, Xi, domain), tmv)
+        Fi = map(((pj, Ij),) -> tm_flowpipe(pj, Ij, Xi, domain), tmv)
 
         # TODO: Compute the initial set vector.
         Xi = map((Fij) -> initial_set(Fij, delta_i_tayn, old_variables, domain), Fi)
