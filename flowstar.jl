@@ -76,6 +76,11 @@ remainders(tmv::Vector{T}) where T <: TaylorModelN = remainder.(tmv)
 """A broadcasting of the TM polynomial function across a TM vector."""
 polynomials(tmv::Vector{T}) where T <: TaylorModelN = polynomial.(tmv)
 
+"""Map each component of a box to the degenerate zero interval."""
+zerobox(box::IntervalBox)::IntervalBox = IntervalBox(zero(box))
+
+"""Map each component of a box to the degenerate interval of its midpoint."""
+midbox(box::IntervalBox)::IntervalBox = IntervalBox(mid(box))
 
 """Compute a safe remainder interval for the i-th flowpipe.
 
@@ -98,8 +103,8 @@ function tay_model_error(vector_field_tms::Vector{T},
                          NR_CONTRACTIVENESS_TRIES::Integer,
                          NR_REFINEMENTS::Integer,
                          REFINEMENT_EPS::Float64,
-                         SCALE::Float64) where T <: TaylorModelN
-    zd = zero(domain)
+                         SCALE::Float64;
+                         fixpoint_callback::Function=midbox) where T <: TaylorModelN
     # get a copy of the t variable before messing up order
     t = get_variables()[end]
 
@@ -111,13 +116,13 @@ function tay_model_error(vector_field_tms::Vector{T},
     # Construct the TM vector now.
     # Note: Anonymous function tuple destructuring has unique syntax:
     #   https://discourse.julialang.org/t/argument-destructuring-and-anonymous-functions/24893
-    construct_tm = ((poly, rem),) -> TaylorModelN(poly, rem, zd, domain)
+    construct_tm = ((poly, rem),) -> TaylorModelN(poly, rem, fixpoint_callback(domain), domain)
     tmv = map(construct_tm, zip(p, J))
 
     # Add a dummy TM (t, [0, 0]) for the time variable because the substitution
     # requires one TM for every variable, which includes the time variable.
     # FIXME: Can this ugliness be circumvented?
-    dummy_t_tm = TaylorModelN(t, 0..0, zd, domain)
+    dummy_t_tm = TaylorModelN(t, 0..0, fixpoint_callback(domain), domain)
 
     J0 = nothing
     J1 = nothing
@@ -167,35 +172,4 @@ function tay_model_error(vector_field_tms::Vector{T},
     # We now restore the order.
     vars = set_variables(get_variable_string(), order=old_order)
     return errors
-end
-
-if abspath(PROGRAM_FILE) == @__FILE__
-    # Example 3.3.6
-    k = 3   # The TM arithmetic and truncation order
-    NR_CONTRACTIVENESS_TRIES = 5
-    NR_REFINEMENTS           = 1
-    REFINEMENT_EPS           = 0.01
-    SCALE                    = 2.0
-    vars = set_variables("x y t", order=k)
-    # The vector field f of the ODEs:
-    #   f[1] = 1 + y
-    #   f[2] = -x^2
-    f = [1 + vars[2],  # x
-         -vars[1]^2]   # y
-    # The polynomial approx:
-    #   p[1] = x + t + yt
-    #   p[2] = y - (x^2)t - xt^2 - (1/3)t^3
-    p = tay_poly(f, k)  # FIXME: We should be using a general fun!
-    domain = IntervalBox([-1..1,      # x
-    		      -0.5..0.5,  # y
-    		      0..0.02])   # t
-    # Initial remainder estimate J, a hyperrectangle
-    J = fill(-0.1..0.1, length(f))
-    # Let's get that safe remainder now!
-    I = tay_model_error(f, p, domain, k, J,
-                        NR_CONTRACTIVENESS_TRIES,
-                        NR_REFINEMENTS,
-                        REFINEMENT_EPS,
-                        SCALE)
-    println("safe remainders = $I")
 end

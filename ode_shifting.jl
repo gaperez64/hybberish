@@ -16,7 +16,7 @@ using TaylorSeries
         [mid(b1), ..., mid(bn)]
     )
 """
-function shifted_vars_tms(dom::IntervalBox)
+function shifted_vars_tms(dom::IntervalBox; fixpoint_callback::Function=midbox)
 	# Center the initial hyper rectangle on the origin.
 	# This applies a SUBTRACTION to the domains.
 	offsets::Vector{Float64} = map((domj) -> mid(domj), dom)
@@ -25,7 +25,7 @@ function shifted_vars_tms(dom::IntervalBox)
 	dom_shifted = dom - IntervalBox(offsets...)	# The SUBTRACTION
 
 	# Construct the identity TM for each variable.
-    vars_tms = tm_initial_set(dom_shifted)
+    vars_tms = tm_initial_set(dom_shifted, fixpoint_callback=fixpoint_callback)
 
 	# Shift the ODEs to compensate for the shifted hyper rectangle
 	# This applies an ADDITION to the ODEs that compensates the
@@ -47,6 +47,7 @@ end
 function unshift_boxes(boxes::Vector{Vector{Interval{Float64}}}, offsets::Vector{Float64})
 	# FIXME: Assume the last component corresponds to time t.
 	offsets = offsets[1:(end-1)]
+	boxes = map((box) -> box[1:(end-1)], boxes)
 
 	# Undo the SUBTRACTION that the shifting applied to the domain.
 	return map((box) -> box + offsets, boxes)
