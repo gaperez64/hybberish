@@ -143,7 +143,7 @@ function tay_model_error(vector_field_tms::Vector{T},
         # Contractiveness failure condition reached: nr of retries exhausted.
         elseif nct == NR_CONTRACTIVENESS_TRIES
             println("Could not find a contractive remainder.")
-            @assert(false)
+            @assert false "Could not find a contractive remainder"
         end
 
         # Contractiveness test failed, widen all initial remainders.

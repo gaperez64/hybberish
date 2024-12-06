@@ -160,10 +160,10 @@ end
     @param[in] euler_ode The ODE function to pass to the forward euler routine
     @param[in] euler_init_state The initial conditions to pass to the forward euler routine
 """
-function plot_vars_against_time(initial_boxes::Vector{IntervalBox{N, Float64}}, known_boxes::Vector{IntervalBox{N, Float64}},
+function plot_vars_against_time(initial_boxes::Vector{T1}, known_boxes::Vector{T2},
     time_horizon::Float64, step_sizes::Vector{Float64}, vars_no_t::Vector{String}, USE_LOCAL_HORIZON::Bool,
     euler_ode::Function, euler_init_state::Vector{Float64};
-    euler_step_size = 0.001) where N
+    euler_step_size = 0.001) where {T1 <: IntervalBox, T2 <: IntervalBox}
     plt_computed = plot_boxes_ND(initial_boxes, step_sizes, vars_no_t, use_local_horizon=USE_LOCAL_HORIZON,
     title="Computed boxes Bi", titlefontsize=8)
 
