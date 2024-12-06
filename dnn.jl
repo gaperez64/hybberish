@@ -4,7 +4,7 @@ using YAML
 function load_dnn_fun(yml_filename)
     data = YAML.load_file(yml_filename)
     offsets = [data["offsets"][key] for key in 1:length(data["offsets"])]
-    weights = [stack(data["weights"][key], dims=1)
+    weights = [transpose(stack(data["weights"][key], dims=1))
                for key in 1:length(data["weights"])]
     zs = [zeros(length(offsets[key])) for key in 1:length(data["offsets"])]
     funs = [x -> max.(weights[i] * x + offsets[i], zs[i])
