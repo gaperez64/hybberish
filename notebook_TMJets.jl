@@ -18,7 +18,6 @@ begin
 	include("plotting.jl")
 	include("euler.jl")
 	include("tm_integration.jl")
-	include("ode_shifting.jl")
 end
 
 # ╔═╡ 8f29564c-a24b-42a3-a27e-748c65b12bee
@@ -49,6 +48,7 @@ begin
     TIME_STEP_SIZE = 0.02
     TIME_STEP_SIZE_EPS = 2.0e-8  # The minimum time step-size
     time_horizon = 5.0     # The finite time horizon
+	vars = set_variables("y t", order=k)
 
 	# The variable domains, initial hyperrectangle
     dom::IntervalBox = IntervalBox([
