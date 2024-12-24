@@ -8,7 +8,7 @@ using InteractiveUtils
 begin
     import Pkg
     # I used Base.current_project() because you mentioned that your notebook is located in the same folder of the Project.toml
-    Pkg.activate()
+    Pkg.activate(".")
 end
 
 # ╔═╡ 45a71bbe-6f74-4453-9b89-ec9621848b95
