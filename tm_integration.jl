@@ -1,6 +1,7 @@
 using Plots
 using TaylorModels
 include("flowstar.jl")
+include("ode_shifting.jl")
 
 """An over-approximation of the true flow for a slice of the time horizon.
 """
@@ -148,7 +149,8 @@ end
                          Optional, the default is false.
 	@return (
 		A vector of TMs representing the (shifted) vector field,
-		A vector of shift offsets with one element for each vector field component
+		A vector of shift offsets with one element for each vector field component,
+        The shifted domains
 	)
 """
 function vector_field_tmv_shifted(f!::Function, variables::Vector, domains::IntervalBox;
