@@ -35,16 +35,18 @@ end
 # Dynamics
 g(y,t) = -y - sin(t) + cos(t)
 
-# Initial state bounds
-# y(0) = [1, 1]
-# t(0) = [0, 0]
-
 # Integration task specification
 # a. Take delta_t = 1
 # b. Construct a flowpipe consisting of 4 Taylor models, including the initial
 #    one
 # c. Work with order 4
 ord = 4
+domy = -2..2
+
+# Initial state bounds
+# y(0) = [1, 1]
+# t(0) = [0, 0]
+vals = IntervalBox(1..1, 0..0)
 
 # Taylor variables (from TaylorSeries library)
 y, t = set_variables("y t", order=ord)
@@ -52,12 +54,17 @@ y, t = set_variables("y t", order=ord)
 # Iteration 1
 # Step 0: Taylorize the dynamics
 # We want to have a polynomial approximation of the dynamics centered around
-# the initial values. The library centers around 0 by default, so for y we
-# feed the function y -> y + 1.
-g_poly_approx = g(y + 1, t)
+# the midpoint of the current values.
+ytm = TaylorModelN(y, interval(0), IntervalBox(mid(vals)), IntervalBox(domy, 0..1))
+ttm = TaylorModelN(t, interval(0), IntervalBox(mid(vals)), IntervalBox(domy, 0..1))
+y, t = set_variables("y t", order=ord*2)
+g_poly_approx = g(ytm, ttm)
+println("Polynomial approximation of the dynamics:")
+println(g_poly_approx)
 
 # Step 1: Obtain the polynomial part of the Taylor model
-p = tay_poly([g_poly_approx], 4)
+p = tay_poly([polynomial(g_poly_approx)], 4)
+print(p)
 
 # Step 2: Obtain the remainder/error interval of the TM
 # TODO
