@@ -112,3 +112,7 @@ println(rems)
 if all(issubset.(rems, [remainder(candidate_tm)]))
     println("Contractive!")
 end
+
+# Step 3: Get the new local values (and interval box) and update domain for next step
+# i.e. just change the domain of the time variable in doms
+# TODO
