@@ -22,19 +22,17 @@ function tay_poly(f::Vector{TaylorN{N}}, k::Integer) where {N <: Number}
     deleteat!(g, length(vars))
     # Start a vector function for the result
     res = copy(g)
-    
     for i = 1:k
         g = TaylorSeries.jacobian(g, vars) * fp1
         term = map((h) -> evaluate(h, val0) * t^i * (1 / factorial(i)), g)
         res += term
     end
-    
     return res
 end
 
 
 # Dynamics
-g(y,t) = -y - sin(t) + cos(t)
+f_dot(y,t) = -y - sin(t) + cos(t)
 
 # Integration task specification
 # a. Take delta_t = 1
@@ -42,12 +40,13 @@ g(y,t) = -y - sin(t) + cos(t)
 #    one
 # c. Work with order 4
 ord = 4
-domy = -2..2
+# Initial integration domain
+doms = [-2..2, 0..1]
 
 # Initial state bounds
 # y(0) = [1, 1]
 # t(0) = [0, 0]
-vals = IntervalBox(1..1, 0..0)
+vals = [1..1, 0..0]
 
 # Taylor variables (from TaylorSeries library)
 y, t = set_variables("y t", order=ord)
@@ -57,27 +56,21 @@ y, t = set_variables("y t", order=ord)
 # Step 0 - Taylorize the dynamics:
 # We want to have a polynomial approximation of the dynamics centered around
 # the midpoint of the current values.
-ytm = TaylorModelN(y, interval(0), IntervalBox(mid(vals)), IntervalBox(domy, 0..1))
-ttm = TaylorModelN(t, interval(0), IntervalBox(mid(vals)), IntervalBox(domy, 0..1))
-# FIXME: Hack to allow for higher degree terms in the intermediate computation
-y, t = set_variables("y t", order=ord*2)
-gtm = g(ytm, ttm)
-# FIXME: We go back to the lower degree afterwards
-y, t = set_variables("y t", order=ord)
+f_dot_poly = f_dot(y, t)  # FIXME: center at the midpoint of vals?
 # We will be needing the highest-degree terms of it too
-htm = TaylorModelN(TaylorN(polynomial(gtm)[ord], ord),
-		   interval(0), expansion_point(gtm), domain(gtm))
-
-println("Taylor model overapproximation of the dynamics:")
-println(gtm)
-println("Highest degree terms of overapprox:")
-println(htm)
-println("Range bound of the latter:")
-println(quadratic_fast_bounder(htm))
+h_poly = TaylorN(f_dot_poly[ord], ord)
 
 # Step 1 - Obtain the polynomial part of the Taylor model
-p = tay_poly([polynomial(gtm) - polynomial(htm)], 4)
+p = tay_poly([f_dot_poly], 4)
 println(p)
 
 # Step 2: Obtain the remainder/error interval of the TM
-# TODO
+Intpk = evaluate(h_poly, doms)
+println(Intpk)
+I = -1.5..2
+println(I)
+println(Intpk + I)
+J = (Intpk + I) * (0..0.5)  # Intpk + I * time-step interval
+println(J)
+# TODO: Check contractiveness and do a few rounds of Picard iteration
+
