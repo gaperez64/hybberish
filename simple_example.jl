@@ -40,13 +40,13 @@ f_dot(y,t) = -y - sin(t) + cos(t)
 #    one
 # c. Work with order 4
 ord = 4
-# Initial integration domain
-doms = [-2..2, 0..1]
+domy = -2..2
+doms = IntervalBox(domy, 0..1)
 
 # Initial state bounds
 # y(0) = [1, 1]
 # t(0) = [0, 0]
-vals = [1..1, 0..0]
+vals = IntervalBox(1..1, 0..0)
 
 # Taylor variables (from TaylorSeries library)
 y, t = set_variables("y t", order=ord)
@@ -56,21 +56,36 @@ y, t = set_variables("y t", order=ord)
 # Step 0 - Taylorize the dynamics:
 # We want to have a polynomial approximation of the dynamics centered around
 # the midpoint of the current values.
-f_dot_poly = f_dot(y, t)  # FIXME: center at the midpoint of vals?
+ytm = TaylorModelN(y, interval(0), vals, doms)
+ttm = TaylorModelN(t, interval(0), vals, doms)
+# FIXME: Hack to allow for higher degree terms in the intermediate computation
+y, t = set_variables("y t", order=ord*2)
+ftm = f_dot(ytm, ttm)
+# FIXME: We go back to the lower degree afterwards
+y, t = set_variables("y t", order=ord)
 # We will be needing the highest-degree terms of it too
-h_poly = TaylorN(f_dot_poly[ord], ord)
+htm = TaylorModelN(TaylorN(polynomial(ftm)[ord], ord),
+		   interval(0), expansion_point(ftm), domain(ftm))
+
+println("Taylor model overapproximation of the dynamics:")
+println(ftm)
+println("Highest degree terms of overapprox:")
+println(htm)
+println("Range bound of the latter:")
+Intpk = evaluate(polynomial(htm), doms)
+println(Intpk)
 
 # Step 1 - Obtain the polynomial part of the Taylor model
-p = tay_poly([f_dot_poly], 4)
+p = tay_poly([polynomial(ftm)], 4)
 println(p)
 
 # Step 2: Obtain the remainder/error interval of the TM
-Intpk = evaluate(h_poly, doms)
-println(Intpk)
-I = -1.5..2
-println(I)
-println(Intpk + I)
-J = (Intpk + I) * (0..0.5)  # Intpk + I * time-step interval
-println(J)
+# Start Picard iteration, we need the TM to be integrated
+guesstm = TaylorModelN(p[1], interval(0), vals, doms)
+integrand = evaluate(ftm, guesstm)
+println(integrand)
+# println(Intpk + I)
+# J = (Intpk + I) * (0..0.5)  # Intpk + I * time-step interval
+# println(J)
 # TODO: Check contractiveness and do a few rounds of Picard iteration
 
