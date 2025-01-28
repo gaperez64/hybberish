@@ -31,8 +31,38 @@ function tay_poly(f::Vector{TaylorN{N}}, k::Integer) where {N <: Number}
 end
 
 
+"""Compute the remainder of the TM extension of the picard operator:
+    Pf((p, I)) = J.
+"""
+function picard_tm_extension(vector_field_tms::Vector{T}, tmv, domain, k) where T <: TaylorModelN
+    f::Vector{TaylorN} = polynomial.(vector_field_tms)
+    errors::Vector{Interval} = remainder.(vector_field_tms)
+    # FIXME: Is a copy needed? The substitution f(g(x, t), t)
+    # seems to have side effects?
+    tmv = copy(tmv)
+    # Perform the substitution operation of the Picard operator:
+    #   f(g(x, s), s).
+    # FIXME: Hack to allow for higher degree terms in the intermediate computation
+    y, t = set_variables("y t", order=k*2)
+    ftm = map((fj) -> evaluate(fj, tmv), f)
+    y, t = set_variables("y t", order=k)
+    # Add the error of aproximating the true vector field.
+    add_to_rem(tm, err) = TaylorModelN(polynomial(tm), remainder(tm) + err, tm.x0, domain)
+    ftm = add_to_rem.(ftm, errors)
+    # Compute the integral's remainder part:
+    #   (int_enclosure(pe) + I) * [0, t].
+    # FIXME: Once again we assume the t interval is the last one
+    tdom = domain.v[end]
+    # Prepare two functions to define new error intervals pointwise
+    int_enclosure(p_error_terms, dom) = sum(perr(dom) for perr in p_error_terms)
+    pe(tm::TaylorModelN) = polynomial(tm)[k:end]
+    return map((tmj) ->
+	       (int_enclosure(pe(tmj), domain) + remainder(tmj)) * tdom, ftm)
+end
+
+
 # Dynamics
-f_dot(y,t) = -y - sin(t) + cos(t)
+f_dot(y, t) = -y - sin(t) + cos(t)
 
 # Integration task specification
 # a. Take delta_t = 1
@@ -41,19 +71,19 @@ f_dot(y,t) = -y - sin(t) + cos(t)
 # c. Work with order 4
 ord = 4
 domy = -2..2
-doms = IntervalBox(domy, 0..1)
-
-# Initial state bounds
-# y(0) = [1, 1]
-# t(0) = [0, 0]
-vals = IntervalBox(1..1, 0..0)
 
 # Taylor variables (from TaylorSeries library)
 y, t = set_variables("y t", order=ord)
 
+# Initial state variable bounds and domain
+# y(0) = [1, 1]
+# t(0) = [0, 0]
+vals = IntervalBox(1..1, 0..0)
+doms = IntervalBox(domy, 0..0.1)
+
 # Iteration 1
 #
-# Step 0 - Taylorize the dynamics:
+# Step 0: Taylorize the dynamics
 # We want to have a polynomial approximation of the dynamics centered around
 # the midpoint of the current values.
 ytm = TaylorModelN(y, interval(0), vals, doms)
@@ -63,29 +93,22 @@ y, t = set_variables("y t", order=ord*2)
 ftm = f_dot(ytm, ttm)
 # FIXME: We go back to the lower degree afterwards
 y, t = set_variables("y t", order=ord)
-# We will be needing the highest-degree terms of it too
-htm = TaylorModelN(TaylorN(polynomial(ftm)[ord], ord),
-		   interval(0), expansion_point(ftm), domain(ftm))
-
-println("Taylor model overapproximation of the dynamics:")
+println("taylorized vector field/dynamics:")
 println(ftm)
-println("Highest degree terms of overapprox:")
-println(htm)
-println("Range bound of the latter:")
-Intpk = evaluate(polynomial(htm), doms)
-println(Intpk)
 
-# Step 1 - Obtain the polynomial part of the Taylor model
-p = tay_poly([polynomial(ftm)], 4)
+# Step 1: Obtain the polynomial part of the Taylor model
+p = tay_poly([polynomial(ftm)], ord)
+println("polynomial part of TM:")
 println(p)
 
 # Step 2: Obtain the remainder/error interval of the TM
-# Start Picard iteration, we need the TM to be integrated
-guesstm = TaylorModelN(p[1], interval(0), vals, doms)
-integrand = evaluate(ftm, guesstm)
-println(integrand)
-# println(Intpk + I)
-# J = (Intpk + I) * (0..0.5)  # Intpk + I * time-step interval
-# println(J)
-# TODO: Check contractiveness and do a few rounds of Picard iteration
-
+# Start Picard iteration, we need the candidate/guessed TM
+candidate_tm = TaylorModelN(p[1], -0.1..0.1, vals, doms)
+# Then we take the TM extension of the approx'd vector field composed with the
+# candidate TM
+rems = picard_tm_extension([ftm], [candidate_tm, ttm], doms, ord)
+println("error interval part of TM:")
+println(rems)
+if all(issubset.(rems, [remainder(candidate_tm)]))
+    println("Contractive!")
+end
