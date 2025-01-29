@@ -79,7 +79,7 @@ y, t = set_variables("y t", order=ord)
 # y(0) = [1, 1]
 # t(0) = [0, 0]
 vals = IntervalBox(1..1, 0..0)
-doms = IntervalBox(domy, 0..0.1)
+doms = IntervalBox(domy, 0..0.5)
 
 # Iteration 1
 #
@@ -115,4 +115,6 @@ end
 
 # Step 3: Get the new local values (and interval box) and update domain for next step
 # i.e. just change the domain of the time variable in doms
-# TODO
+# TODO:
+# For the new local values, we just need to evaluate the polynomial part of
+# the TM on vals and add the error/remainders. That we can plot!
