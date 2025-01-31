@@ -24,6 +24,8 @@ function tay_poly(f::Vector{TaylorN{N}}, k::Integer) where {N <: Number}
     res = copy(g)
     for i = 1:k
         g = TaylorSeries.jacobian(g, vars) * fp1
+        println("Lie derivative:")
+        println(map((h) -> evaluate(h, vars), g))
         term = map((h) -> evaluate(h, val0) * t^i * (1 / factorial(i)), g)
         res += term
     end
