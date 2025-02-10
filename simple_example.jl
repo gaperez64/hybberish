@@ -34,38 +34,89 @@ function tay_poly(f::Vector{TaylorN{N}}, k::Integer) where {N <: Number}
 end
 
 
-"""Compute the remainder of the TM extension of the picard operator:
-    Pf((p, I)) = J.
+"""Compute the remainder of the TM extension of the picard operator.
+
+    The term "TM extension" refers to the fact that all mathematical operators
+    in the Picard operator are replaced with their TM arithmetic counterparts.
+    This implies that the vector field f and function g w.r.t. which the normal
+    Picard operator is computed, must be TMs instead of functions when working
+    with the TM extension of the Picard operator P.
+    Suppose
+
+        P_f(g) = x * int_0^t f(g(x, t), t) dt
+
+    is the normal Picard operator. Then
+
+        P_F(G)
+        = x * int_0^t F(G) dt
+        = x * int_0^t (p, I) \\circ (q, J) dt
+        = x * int_0^t p(q, J) + I dt
+        = x * int_0^t (r, K) + I dt
+        = x * int_0^t (r, K + I) dt
+        = (p, K + I)
+
+    is the TM extension of the Picard operator, where F = (p, I) is a TM
+    (Taylorization plus Lagrange remainder) of the vector field f and
+    G = (q, J) is the TM representing the function g.
+
+    @param[in] vector_field_tms The TM representation F of the vector field f.
+    @param[in]     function_tms The TM representation G of the function g.
+    @param[in]           domain The domains of all ODE variables, including time.
+    @param[in]                k The Taylor polynomial and truncation order.
+    @return The remainders of the TM result of the TM extension of the Picard
+     operator; the interval vector K.
 """
-function picard_tm_extension(vector_field_tms::Vector{T}, tmv, domain, k) where T <: TaylorModelN
-    f::Vector{TaylorN} = polynomial.(vector_field_tms)
-    errors::Vector{Interval} = remainder.(vector_field_tms)
-    # FIXME: Is a copy needed? The substitution f(g(x, t), t)
-    # seems to have side effects?
-    tmv = copy(tmv)
-    # Perform the substitution operation of the Picard operator:
-    #   f(g(x, s), s).
+function picard_tm_extension(vector_field_tms::Vector{T}, function_tms, domain, k) where T <: TaylorModelN
+    #= Step (1), setup. =#
+    ode_polynomials::Vector{TaylorN} = polynomial.(vector_field_tms)
+    ode_remainders::Vector{Interval} = remainder.(vector_field_tms)
+    # FIXME: Is a copy needed? f(g(x,t),t) has side effects?
+    function_tms = copy(function_tms)
+
+    #= Step (2), perform the substitution operation part of the
+      TM extension of Picard operator:
+        (p, I) \circ (q, J) = p(q, J) + I = (r, K) + I = (r, K + I)
+      The normal Picard operator expresses this as f(g(x, t), t).
+    =#
+    #= Step (2.1), perform p(q, J) = (r, K) =#
     # FIXME: Hack to allow for higher degree terms in the intermediate computation
     y, t = set_variables("y t", order=k*2)
-    ftm = map((fj) -> evaluate(fj, tmv), f)
+    substitution_tms = map((fj) -> evaluate(fj, function_tms), ode_polynomials)
     y, t = set_variables("y t", order=k)
-    # Add the error of aproximating the true vector field, here we have NOT
-    # yet reached where we can use formula Xin Chen (p42, antiderivative formula)
-    # we are still just accounting for errors coming from the dynamics having
-    # been approximated by polynomials. Here we're instead using the formula
-    # for the error of TM composition (P, I) \circ (Q, J) = P(Q,J) + I
-    # = (T,K) + I = (T, K + I) 
-    add_to_rem(tm, err) = TaylorModelN(polynomial(tm), remainder(tm) + err, tm.x0, domain)
-    ftm = add_to_rem.(ftm, errors)
-    # Compute the integral's remainder part:
-    #   (int_enclosure(pe) + I) * [0, t].
+    #= Step (2.2), compute (r, K) + I = r + K + I = (r, K + I)
+      Add the error of aproximating the true vector field. Here we have NOT
+      yet reached where we can use formula Xin Chen (p42, antiderivative formula)
+      we are still just accounting for errors coming from the dynamics having
+      been approximated by polynomials. Here we're instead using the formula
+      for the error of TM composition:
+        (p, I) \circ (q, J)
+        = p(q, J) + I
+        = (r, K) + I
+        = (r, K + I)
+    =#
+    substitution_tms = map(
+        ((tm, err),) -> TaylorModelN(
+            polynomial(tm),      # r
+            remainder(tm) + err, # K + I
+            tm.x0, # Retain the expansion point.
+            domain),
+        zip(substitution_tms, ode_remainders))
+
+    #= Step (3), apply the antiderivative formula. =#
     # FIXME: Once again we assume the t interval is the last one
     tdom = domain.v[end]
-    # Prepare two functions to define new error intervals pointwise
-    int_enclosure(p_error_terms, dom) = sum(evaluate(perr, dom) for perr in p_error_terms)
+    # Prepare two helper functions to compute the antiderivative remainder.
+    int_enclosure(poly_error_terms, domains) =
+        sum(evaluate(perr, domains) for perr in poly_error_terms)
     pe(tm::TaylorModelN) = polynomial(tm)[k:end]
-    return map((tmj) ->
-	       (int_enclosure(pe(tmj), domain) + remainder(tmj)) * tdom, ftm)
+    #= Compute the integral's remainder part:
+        (int_enclosure(pe) + I) * [0, t].
+      where pe represents the sum of all truncated (error)
+      terms of the polynomial integral result.
+    =#
+    return map(
+        (tmj) -> (int_enclosure(pe(tmj), domain) + remainder(tmj)) * tdom,
+        substitution_tms)
 end
 
 
