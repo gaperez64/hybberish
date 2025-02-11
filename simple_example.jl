@@ -110,7 +110,7 @@ function picard_tm_extension(vector_field_tms::Vector{T}, function_tms, domain, 
         sum(evaluate(perr, domains) for perr in poly_error_terms)
     pe(tm::TaylorModelN) = polynomial(tm)[k:end]
     #= Compute the integral's remainder part:
-        (int_enclosure(pe) + I) * [0, t].
+        (int_enclosure(pe) + I) * [t, t+\delta].
       where pe represents the sum of all truncated (error)
       terms of the polynomial integral result.
     =#
@@ -138,44 +138,46 @@ y, t = set_variables("y t", order=ord)
 # y(0) = [1, 1]
 # t(0) = [0, 0]
 vals = IntervalBox(interval(1), interval(0))
-doms = IntervalBox(domy, 0..0.5)
+doms = IntervalBox(domy, 0..0.1)
 
 # FIXME: The very first time step size is governed by the time interval component
 #  of the doms, NOT by the 'tstep' variable.
-tstep = doms[2].hi - doms[2].lo # The fixed time step size.
-scale = 2   # The scale factor for when contractiveness fails.
+tstep = doms[2].hi - doms[2].lo  # The fixed time step size.
+scale = 2  # The scale factor for when contractiveness fails.
 
-# FIXME: The second integration NEVER finds a contractive remainder for tstep=0.5!
-#  So, manually make it smaller for testing purposes.
-# tstep = 0.1
 
-for it = 0:2
-	# Step 0: Taylorize the dynamics
-	# We want to have a polynomial approximation of the dynamics centered around
-	# the midpoint of the current values.
-	ytm = TaylorModelN(y, interval(0), vals, doms)
-	println("ytm = ")
-	println(ytm)
-	ttm = TaylorModelN(t, interval(0), vals, doms)
-	# FIXME: Hack to allow for higher degree terms in the intermediate computation
-	set_variables("y t", order=ord*2)
-	ftm = f_dot(ytm, ttm)
-	# FIXME: We go back to the lower degree afterwards
-	set_variables("y t", order=ord)
-	println("taylorized vector field/dynamics:")
-	println(ftm)
-
-	# Step 1: Obtain the polynomial part of the Taylor model
-	p = tay_poly([polynomial(ftm)], ord)
-	println("polynomial part of TM:")
-	println(p)
-
-	# Step 2: Obtain the remainder/error interval of the TM
-	# Start Picard iteration, we need the candidate/guessed TM
+for _ = 0:10
+    # Step 0: Taylorize the dynamics
+    # We want to have a polynomial approximation of the dynamics centered around
+    # the midpoint of the current values.
+    ytm = TaylorModelN(y,                       # polynomial
+		       interval(0),             # error remainder
+    		       IntervalBox(mid(doms)),  # expansion point
+    		       doms)                    # domain hypercube
+    println("ytm = ")
+    println(ytm)
+    ttm = TaylorModelN(t, interval(0), IntervalBox(mid(doms)), doms)
+    # FIXME: Hack to allow for higher degree terms in the intermediate computation
+    set_variables("y t", order=ord*2)
+    ftm = f_dot(ytm, ttm)
+    # FIXME: We go back to the lower degree afterwards
+    set_variables("y t", order=ord)
+    println("taylorized vector field/dynamics:")
+    println(ftm)
+    
+    # Step 1: Obtain the polynomial part of the Taylor model
+    p = tay_poly([polynomial(ftm)], ord)
+    println("polynomial part of TM:")
+    println(p)
+    
+    # Step 2: Obtain the remainder/error interval of the TM
+    # Start Picard iteration, we need the candidate/guessed TM
     remainder_estimate = -0.1..0.1
     rems = nothing
     while true
-        candidate_tm = TaylorModelN(p[1], remainder_estimate, vals, doms)
+        candidate_tm = TaylorModelN(p[1], remainder_estimate,
+				    IntervalBox(mid(doms)),  # expansion point
+				    doms)
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM
         rems = picard_tm_extension([ftm], [candidate_tm, ttm], doms, ord)
@@ -196,29 +198,20 @@ for it = 0:2
         remainder_estimate *= 2
     end
 
-	# Step 3: Get the new local values (and interval box) and update domain for next step
-	# i.e. just change the domain of the time variable in doms
-	valid_tm = TaylorModelN(p[1], rems[1], vals, doms)
+    # Step 3: Get the new local values (and interval box) and update domain for next step
+    # i.e. just change the domain of the time variable in doms
+    valid_tm = TaylorModelN(p[1], rems[1],
+                            IntervalBox(mid(doms)),  # expansion point
+                            doms)
     tdom = doms[2] # The time domain
+    println("Full valid tm:")
+    println(valid_tm)
 
-    #= FIXME: The `evaluate(TaylorModelN, IntervalBox)` call asserts
-      `iscontained(Interval, TaylorModelN)` which is defined as
-
-          iscontained(a::Interval, tm::$TM) = a ⊆ centered_dom(tm)
-
-      Then `centered_dom(TaylorModelN)` is defined as
-
-          @inline centered_dom(tm::TaylorModelN) = domain(tm) .- expansion_point(tm)
-    =#
-    # FIXME: vals ⊆ centered_dom(valid_tm) MUST hold!
+    # NOTE: We are NOT evaluating valid_tm on vals because it complains about
+    # it not being in the centered domain. Instead we manually compute the new
+    # vals based on the polynomial part of valid_tm and its remainder.
+    global vals = IntervalBox(evaluate(polynomial(valid_tm), vals) + remainder(valid_tm),
+			      interval(tdom.hi))
     println("                     vals: ", vals)
-    println("         domain(valid_tm): ", domain(valid_tm))
-    println("expansion_point(valid_tm): ", expansion_point(valid_tm))
-    println("   centered_dom(valid_tm): ", centered_dom(valid_tm))
-
-	global vals = IntervalBox(evaluate(valid_tm, vals), interval(tdom.hi))
-    # FIXME: The y-component of vals keeps moving, while the doms' y-component
-    #  remains static. Because 'iscontained()' centers the dom, the vals leave
-    #  the centered dom much earlier than expected!
     global doms = IntervalBox(domy, tdom.hi..(tdom.hi + tstep))
 end
