@@ -1,0 +1,59 @@
+""" Multivariate Taylor model evaluation in N independent variables.
+
+    This module heavily draws from the TaylorModels.jl library by
+    Louis Benet and David P. Sanders.
+"""
+
+# TaylorSeries TaylorN evaluate:
+#       https://github.com/JuliaDiff/TaylorSeries.jl/blob/0298820a6d1f903185e20849c8178ffb0c1cd503/src/evaluate.jl#L257
+# TODO: What is the `sorting` parameter for HomogeneousPolynomial for?
+#       https://github.com/JuliaDiff/TaylorSeries.jl/blob/0298820a6d1f903185e20849c8178ffb0c1cd503/src/evaluate.jl#L307
+# TODO: Can I trick TaylorSeries' evaluate by making a view of a TaylorN that starts
+#       from some index other than 1?
+# TODO: Note that `evaluate` != `_evaluate`, mind the underscore.
+#       `_evaluate` loops over all HomogenisPolynomials. Why?
+#       https://github.com/JuliaDiff/TaylorSeries.jl/blob/0298820a6d1f903185e20849c8178ffb0c1cd503/src/evaluate.jl#L319
+# TODO: When is Horner form / Horner's method applied? See `_horner!`?
+#       But `_horner!` is in-place for Taylor1? Maybe it's implemented
+#       in-line and out-of-place for TaylorN?
+# TODO: OR implement the generation of the too-large order terms as a generator?
+#    ==> Add our own Horner's method implementation that uses that generator?
+#        BUT this is another point of failure, because we trust TaylorSeries'
+#        implementation is correct, but my own not so much. 
+#       See:
+#       https://github.com/JuliaDiff/TaylorSeries.jl/blob/0298820a6d1f903185e20849c8178ffb0c1cd503/src/evaluate.jl#L370
+
+
+
+# Evaluates the TMN on an interval, or array with proper dimension;
+# the computation includes the remainder
+
+"""Evaluate a TaylorModel on an interval box."""
+function evaluate(tm::TaylorModelN{N,T,S}, a::IntervalBox{N,S}) where {N,T,S}
+    @assert iscontained(a, tm)
+    return polynomial(tm)(a) + remainder(tm)
+end
+
+"""Evaluate a TaylorModel on an interval box."""
+(tm::TaylorModelN{N,T,S})(a::IntervalBox{N,S}) where {N,T,S} = evaluate(tm, a)
+
+"""Broadcast evaluation using the same IntervalBox over a vector of TaylorModelN."""
+evaluate(tmv::Vector{TaylorModelN{N,T,S}}, a::IntervalBox{N,S}) where {N,T,S} =
+    IntervalBox( [ tmv[i](a) for i in eachindex(tmv) ] )
+
+"""Evaluate a TaylorModel on a vector of values.
+
+    The values may be of any type ::R with which TaylorModelN defines
+    arithmetic operations. This includes other TaylorModelN objects, i.e.
+        op(::TaylorModelN, ::R)
+"""
+function evaluate(tm::TaylorModelN{N,T,S}, a::AbstractVector{R}) where {N,T,S,R}
+    @assert iscontained(a, tm)
+    return polynomial(tm)(a) + remainder(tm)
+end
+
+"""Evaluate a TaylorModelN using function-call-like syntax."""
+(tm::TaylorModelN{N,T,S})(a::AbstractVector{R}) where {N,T,S,R} = evaluate(tm, a)
+
+"""Evaluate a TaylorModelN over its entire domain using function-call-like syntax."""
+(tm::TaylorModelN{N,T,S})() where {N,T,S} = evaluate(tm, domain(tm))

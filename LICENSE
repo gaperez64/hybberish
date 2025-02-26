@@ -1,6 +1,8 @@
 MIT License
 
-Copyright (c) 2023 Guillermo A. Perez
+Copyright (c) 2023 Guillermo A. Perez, Thomas Gueutal
+
+The subdirectory "taylor_models" contains a separate license, since most of the code contained there was copied and subsequently adapted from the TaylorModels.jl library.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
