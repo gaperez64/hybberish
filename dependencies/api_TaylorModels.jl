@@ -22,7 +22,7 @@ tn = TaylorModelN(POLYNOMIAL, REMAINDER, DOMAIN)
 @assert(POLYNOMIAL == polynomial(tn))
 @assert(REMAINDER == remainder(tn))
 @assert(DOMAIN == domain(tn))
-println("## Test TaylorModelN getters:")
+println("## Test TaylorModelN getters")
 println("get_order(tn): $(get_order(tn))")
 println("polynomial(tn): $(polynomial(tn))")
 println("remainder(tn): $(remainder(tn))")
@@ -37,7 +37,7 @@ println()
 
 # Every Taylor model displays their order via Big-O representation!
 displayBigO(true)
-println("## Test TaylorModelN fixorder:")
+println("## Test TaylorModelN fixorder")
 
 x, y = set_variables("x y", order=3)
 tx::TaylorModelN = TaylorModelN(x, 0..0, IntervalBox(-1..1, -2..2))
@@ -87,19 +87,19 @@ println()
 #
 
 # Test TaylorModelN `show` and `pretty_print`.
-println("## Test TaylorModelN printing:")
+println("## Test TaylorModelN printing")
 println(tn)
 println()
 
 # Test TaylorModelN `iterate`.
-println("## Test TaylorModelN iteration:")
+println("## Test TaylorModelN iteration")
 for e in tn
     println(e)
 end
 println()
 
 # Test TaylorModelN `getindex`.
-println("## Test TaylorModelN index access:")
+println("## Test TaylorModelN index access")
 for idx in eachindex(tn)
     @assert(tn[idx] == polynomial(tn)[idx])
     println("getindex(tn, $idx): $(tn[idx])")
@@ -107,7 +107,7 @@ end
 println()
 
 # Test remaining auxiliary functions.
-println("## Test TaylorModelN axiliaries:")
+println("## Test TaylorModelN axiliaries")
 @assert(firstindex(tn) == 0)
 @assert(lastindex(tn) == ORDER)
 @assert(eachindex(tn) == 0:ORDER)
@@ -118,6 +118,62 @@ println("lastindex(tn): $(lastindex(tn))")
 println("eachindex(tn): $(eachindex(tn))")
 println("length(tn): $(length(tn))")
 println("size(tn): $(size(tn))")
+println()
+
+
+
+#
+# Specify which exponentiation implementation is used:
+# a custom `^` function or `Base.#^`?
+#
+
+# Setup.
+println("## Check if there is custom TaylorModelN exponentiation (^)")
+
+xx, yy = set_variables("x y", order=16)
+xx, yy = get_variables(8)
+tx = TaylorModelN(xx, -0.5..0.5, IntervalBox(-0.5..0.5, -4..4))
+ty = TaylorModelN(xx*yy, -1..1,  IntervalBox(-0.5..0.5, -4..4))
+
+
+#= Note the following call stack of functions in `Base.intfuncs.jl`.
+
+  (1)   Base.literal_pow(f::typeof(^), x, ::Val{p})
+  (2)   Base.:^(x::Number, p::Integer)
+  (3)   Base.power_by_squaring(x_, p::Integer; mul=*)
+
+  Function (1) represents expression x^p where p is a strictly positive
+  literal exponent and x is the Taylor model. Note that the chosen literal_pow
+  implementation does not have type restrictions on x, which is why this
+  version is called on the TaylorModelN x; it is the fallthrough implementation
+  of literal_pow.
+
+  Function (2) requires `x <: Number`. Note that a TaylorModelN object x
+  satisfies `x <: AbstractSeries{T <: Number} <: Number` by definition of
+  the TaylorModelN struct.
+
+  Function (3) implements the literal exponentiation procedure by unrolling it
+  into a sequence of multiplications. By defining the Taylor model product `*`
+  we avoid the need to also define the exponent operator `^`.
+=#
+
+# Specify some pre-consitions / assumptions.
+@assert(typeof(tx) <: Number) # TaylorModelN <: Number
+
+# We assume a custom TaylorModelN exponentiation DOES NOT exist; we expect
+# a call stack of Base functions to implement exponentiation.
+result = tx^4
+@assert(result == Base.literal_pow(^, tx, Base.Val(4)))
+@assert(result == Base.:^(tx, 4))
+@assert(result == Base.power_by_squaring(tx, 4))
+
+# Test a more complex expression, where a function encodes an ODE expression.
+"""A simple ode function."""
+ode(x, y) = 4 + x^4 * y
+result = ode(tx, ty)
+actual = 4 + Base.literal_pow(^, tx, Base.Val(4)) * ty
+@assert(result == actual)
+
 println()
 
 
@@ -250,7 +306,7 @@ println()
 displayBigO(true)
 set_variables("x y", order=ORDER)
 tn = TaylorModelN(POLYNOMIAL, REMAINDER, DOMAIN)
-println("## Test TaylorModelN fixorder in arithmetic:")
+println("## Test TaylorModelN fixorder in arithmetic")
 
 # The order of the objects differs, lower both of them to be the same order.
 # This may result in truncation + bounding of the truncated part.
