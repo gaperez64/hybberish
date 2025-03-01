@@ -179,6 +179,45 @@ println()
 
 
 #
+# Explicitly enforce the lack of a TaylorModelN division (/) implementation.
+# This prevents a user from looking for an implementation of the / operator,
+# which does not exist.
+#
+
+# Setup.
+println("## Explicitly enforce the lack of TaylorModelN division (/)")
+
+xx, yy = set_variables("x y", order=16)
+xx, yy = get_variables(8)
+tx = TaylorModelN(xx, -0.5..0.5, IntervalBox(-0.5..0.5, -4..4))
+ty = TaylorModelN(xx*yy, -1..1,  IntervalBox(-0.5..0.5, -4..4))
+
+try
+  1 / ty
+  @assert(false) # Should never reach here.
+catch e
+  println("1 / TM    does not resolve: $e")
+end
+
+try
+  tx / 1
+  @assert(false) # Should never reach here.
+catch e
+  println("TM / 1    does not resolve: $e")
+end
+
+try
+  tx / ty
+  @assert(false) # Should never reach here.
+catch e
+  println("TM / TM   does not resolve: $e")
+end
+
+println()
+
+
+
+#
 # Test TaylorModelN arithmetic.
 #
 
