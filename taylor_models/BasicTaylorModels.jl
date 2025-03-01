@@ -25,10 +25,11 @@ import Base: show
 
 import Base: ==, +, -, *, /, ^, in, zero, one
 
-import TaylorSeries: pretty_print, get_order, evaluate
+import TaylorSeries: pretty_print, get_order, evaluate, promote
 
 
 include("constructors.jl")
+include("promotion.jl")
 include("auxiliary.jl")
 include("arithmetic.jl")
 include("evaluate.jl")
