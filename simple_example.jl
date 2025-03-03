@@ -1,5 +1,4 @@
-using TaylorSeries  # Uses IntervalArithmetic
-using TaylorModels  # Version req'd: https://github.com/gaperez64/taylormodels.jl
+include("taylor_models/BasicTaylorModels.jl")
 
 
 # NOTE: Assumes the last variable is t
@@ -98,7 +97,6 @@ function picard_tm_extension(vector_field_tms::Vector{T}, function_tms, domain, 
         ((tm, err),) -> TaylorModelN(
             polynomial(tm),      # r
             remainder(tm) + err, # K + I
-            tm.x0, # Retain the expansion point.
             domain),
         zip(substitution_tms, ode_remainders))
 
@@ -150,13 +148,12 @@ for _ = 0:10
     # Step 0: Taylorize the dynamics
     # We want to have a polynomial approximation of the dynamics centered around
     # the midpoint of the current values.
-    ytm = TaylorModelN(y,                       # polynomial
-		       interval(0),             # error remainder
-    		       IntervalBox(mid(doms)),  # expansion point
-    		       doms)                    # domain hypercube
+    ytm = TaylorModelN(y, # polynomial
+            interval(0),  # error remainder
+    		doms)         # domain hypercube
     println("ytm = ")
     println(ytm)
-    ttm = TaylorModelN(t, interval(0), IntervalBox(mid(doms)), doms)
+    ttm = TaylorModelN(t, interval(0), doms)
     # FIXME: Hack to allow for higher degree terms in the intermediate computation
     set_variables("y t", order=ord*2)
     ftm = f_dot(ytm, ttm)
@@ -175,9 +172,7 @@ for _ = 0:10
     remainder_estimate = -0.1..0.1
     rems = nothing
     while true
-        candidate_tm = TaylorModelN(p[1], remainder_estimate,
-				    IntervalBox(mid(doms)),  # expansion point
-				    doms)
+        candidate_tm = TaylorModelN(p[1], remainder_estimate, doms)
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM
         rems = picard_tm_extension([ftm], [candidate_tm, ttm], doms, ord)
@@ -200,9 +195,7 @@ for _ = 0:10
 
     # Step 3: Get the new local values (and interval box) and update domain for next step
     # i.e. just change the domain of the time variable in doms
-    valid_tm = TaylorModelN(p[1], rems[1],
-                            IntervalBox(mid(doms)),  # expansion point
-                            doms)
+    valid_tm = TaylorModelN(p[1], rems[1], doms)
     tdom = doms[2] # The time domain
     println("Full valid tm:")
     println(valid_tm)
