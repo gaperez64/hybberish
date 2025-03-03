@@ -19,13 +19,11 @@
 using TaylorSeries, IntervalArithmetic
 
 import Base: iterate, size, eachindex, firstindex, lastindex,
-    length, getindex, show
-
-import Base: show
+    length, getindex, show, promote
 
 import Base: ==, +, -, *, /, ^, in, zero, one
 
-import TaylorSeries: pretty_print, get_order, evaluate, promote
+import TaylorSeries: pretty_print, get_order, evaluate
 
 
 include("constructors.jl")
