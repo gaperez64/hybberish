@@ -141,8 +141,11 @@ function *(a::TaylorModelN, b::TaylorModelN)
     # FIXME: Does the sorting relate to one possible Horner form?
     bound_negl = sum( sort!(bound_negl_arr, by=abs2) )
     bound = remainder_product(a, b, aux, bound_negl)
+    product = TaylorModelN(product_pol, bound, domain(a))
 
-    return TaylorModelN(product_pol, bound, domain(a))
+    # The resulting TM must propagate the lowest operand polynomial order.
+    @assert get_order(product) == product_order
+    return product
 end
 
 """Compute the remainder part of the Taylor model product formula.
