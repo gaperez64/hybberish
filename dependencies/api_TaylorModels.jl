@@ -22,11 +22,13 @@ tn = TaylorModelN(POLYNOMIAL, REMAINDER, DOMAIN)
 @assert(POLYNOMIAL == polynomial(tn))
 @assert(REMAINDER == remainder(tn))
 @assert(DOMAIN == domain(tn))
+@assert(constant_term(tn) == constant_term(polynomial(tn)))
 println("## Test TaylorModelN getters")
 println("get_order(tn): $(get_order(tn))")
 println("polynomial(tn): $(polynomial(tn))")
 println("remainder(tn): $(remainder(tn))")
 println("domain(tn): $(domain(tn))")
+println("constant_term(tn): $(constant_term(tn))")
 println()
 
 
