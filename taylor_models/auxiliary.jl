@@ -79,4 +79,5 @@ end
 @inline eachindex(a::TaylorModelN) = eachindex(polynomial(a))
 @inline length(a::TaylorModelN) = length(polynomial(a))
 @inline size(a::TaylorModelN) = size(polynomial(a))
-getindex(a::TaylorModelN, n::Int) = getindex(polynomial(a), n)
+@inline getindex(a::TaylorModelN, n::Int) = getindex(polynomial(a), n)
+@inline constant_term(a::TaylorModelN) = constant_term(polynomial(a))

@@ -23,7 +23,7 @@ import Base: iterate, size, eachindex, firstindex, lastindex,
 
 import Base: ==, +, -, *, /, ^, in, zero, one
 
-import TaylorSeries: pretty_print, get_order, evaluate
+import TaylorSeries: pretty_print, get_order, evaluate, constant_term
 
 
 include("constructors.jl")
