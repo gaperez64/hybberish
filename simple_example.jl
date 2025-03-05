@@ -3,7 +3,7 @@ include("taylor_models/BasicTaylorModels.jl")
 
 # NOTE: Assumes the last variable is t
 """Generate the Taylor polynomial approximation part of a Taylor model for the
-   given function and up to the given degree via Lie derivatives.
+   given dynamics and up to the given degree via Lie derivatives.
 """
 function tay_poly(f::Vector{TaylorN{N}}, k::Integer) where {N <: Number}
     vars = get_variables()
@@ -79,6 +79,7 @@ function picard_tm_extension(vector_field_tms::Vector{T}, function_tms, domain, 
     =#
     #= Step (2.1), perform p(q, J) = (r, K) =#
     # FIXME: Hack to allow for higher degree terms in the intermediate computation
+    # TODO: Is this still needed though?
     y, t = set_variables("y t", order=k*2)
     substitution_tms = map((fj) -> evaluate(fj, function_tms), ode_polynomials)
     y, t = set_variables("y t", order=k)
@@ -127,6 +128,7 @@ f_dot(y, t) = -y - sin(t) + cos(t)
 #    one
 # c. Work with order 4
 ord = 4
+# TODO: Is the domain still needed?
 domy = -3..3 # FIXME: Widened this from -2..2 because iscontained() failed in step 3.
 
 # Taylor variables (from TaylorSeries library)
@@ -136,6 +138,7 @@ y, t = set_variables("y t", order=ord)
 # y(0) = [1, 1]
 # t(0) = [0, 0]
 vals = IntervalBox(interval(1), interval(0))
+# TODO: Is the domain still needed?
 doms = IntervalBox(domy, 0..0.1)
 
 # FIXME: The very first time step size is governed by the time interval component
@@ -144,6 +147,10 @@ tstep = doms[2].hi - doms[2].lo  # The fixed time step size.
 scale = 2  # The scale factor for when contractiveness fails.
 
 
+# TODO: The steps are not in proper order since we should taylorize the
+# dynamics after having guessed an error interval for the last theorem in the
+# writeup to be applicable (mainly because the domain of the dynamics is only
+# known then)
 for _ = 0:10
     # Step 0: Taylorize the dynamics
     # We want to have a polynomial approximation of the dynamics centered around
@@ -155,6 +162,7 @@ for _ = 0:10
     println(ytm)
     ttm = TaylorModelN(t, interval(0), doms)
     # FIXME: Hack to allow for higher degree terms in the intermediate computation
+    # TODO: Is this still needed?
     set_variables("y t", order=ord*2)
     ftm = f_dot(ytm, ttm)
     # FIXME: We go back to the lower degree afterwards
