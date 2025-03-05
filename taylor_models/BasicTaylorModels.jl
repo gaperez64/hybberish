@@ -21,7 +21,9 @@ using TaylorSeries, IntervalArithmetic
 import Base: iterate, size, eachindex, firstindex, lastindex,
     length, getindex, show, promote
 
-import Base: ==, +, -, *, /, ^, in, zero, one
+import Base: ==, +, -, *, /, ^, in, zero, one,
+    inv, sqrt, exp, log, sin, cos, tan,
+    asin, acos, atan, sinh, cosh, tanh
 
 import TaylorSeries: pretty_print, get_order, evaluate, constant_term
 
@@ -31,4 +33,6 @@ include("promotion.jl")
 include("auxiliary.jl")
 include("arithmetic.jl")
 include("evaluate.jl")
+include("bounds.jl")
+include("rpa_functions.jl")
 include("show.jl")

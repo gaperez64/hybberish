@@ -57,3 +57,28 @@ end
 
 """Evaluate a TaylorModelN over its entire domain using function-call-like syntax."""
 (tm::TaylorModelN{N,T,S})() where {N,T,S} = evaluate(tm, domain(tm))
+
+"""Substitute a TaylorModelN into a Taylor1.
+
+    Note that the Taylor1 is not a Talor model, and consequently
+    it **does not** include a remainder part.
+
+    @param[in] polg The Taylor1 polynomial to substitute into.
+    @param[in]  tmf The value to substitute.
+    @return The substitution result.
+"""
+function _evaluate(polg::Taylor1{T}, tmf::TaylorModelN{N,T,S}) where{N,T,S}
+    _order = get_order(tmf)
+    @assert _order == get_order(polg)
+
+    tmres = TaylorModelN(zero(constant_term(polg)), _order, domain(tmf))
+    @inbounds for k = _order:-1:0
+        tmres = tmres * tmf
+        tmres = tmres + polg[k]
+    end
+
+    # Returned result does not include a remainder related to polg.
+    return tmres
+end
+
+(tm::Taylor1)(x::TaylorModelN) = _evaluate(tm, x)
