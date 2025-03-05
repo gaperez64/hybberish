@@ -5,8 +5,8 @@ include("taylor_models/BasicTaylorModels.jl")
 """Generate the Taylor polynomial approximation part of a Taylor model for the
    given dynamics and up to the given degree via Lie derivatives.
 """
-function tay_poly(f::Vector{TaylorN{N}}, k::Integer) where {N <: Number}
-    vars = get_variables()
+function tay_poly(f::Vector{TaylorN{N}}, k::Integer, vars) where {N <: Number}
+    @assert k <= minimum([get_order(v) for v in vars])
     t = vars[end]
     # Let's pad f with a 1 at the end for t
     fp1 = copy(f)
@@ -78,11 +78,7 @@ function picard_tm_extension(vector_field_tms::Vector{T}, function_tms, domain, 
       The normal Picard operator expresses this as f(g(x, t), t).
     =#
     #= Step (2.1), perform p(q, J) = (r, K) =#
-    # FIXME: Hack to allow for higher degree terms in the intermediate computation
-    # TODO: Is this still needed though?
-    y, t = set_variables("y t", order=k*2)
     substitution_tms = map((fj) -> evaluate(fj, function_tms), ode_polynomials)
-    y, t = set_variables("y t", order=k)
     #= Step (2.2), compute (r, K) + I = r + K + I = (r, K + I)
       Add the error of aproximating the true vector field. Here we have NOT
       yet reached where we can use formula Xin Chen (p42, antiderivative formula)
@@ -126,11 +122,17 @@ f_dot(y, t) = -y - sin(t) + cos(t)
 # a. Take delta_t = 1
 # b. Construct a flowpipe consisting of 4 Taylor models, including the initial
 #    one
-# c. Work with order 4
+# c. Work with order 4 (truncation degree / polynomial degree).
 ord = 4
+# Double the truncation degree to obtain the TaylorSeries max order.
+# This accounts for order-related assertions applicable to Taylor
+# series arithmetic.
+ord_max = 2*ord
 
 # Taylor variables (from TaylorSeries library)
-y, t = set_variables("y t", order=ord)
+set_variables("y t", order=ord_max)
+vars = get_variables(ord)
+y, t = vars
 
 # Initial state variable bounds and domain
 # y(0) = [1, 1]
@@ -145,30 +147,30 @@ for _ = 0:10
     # Step 0: Taylorize the dynamics
     # We want to have a polynomial approximation of the dynamics centered around
     # the midpoint of the current values.
-    # TODO: is this hack still needed?
-    y, t = get_variables("y t", order=ord*2)
     fpoly = f_dot(y, t)
-    set_variables("y t", order=ord)
     println("taylorized vector field/dynamics:")
     println(fpoly)
     
     # Step 1: Obtain the polynomial part of the Taylor model
-    p = tay_poly([fpoly], ord)
+    p::Vector{TaylorN} = tay_poly([fpoly], ord, vars) # TODO: pass `vars` with half max order + `assert min(get_order.(vars))`
     println("polynomial part of TM:")
     println(p)
     
     # Step 2: Obtain the remainder/error interval of the TM
-
     rems = nothing
-    doms = IntervalBox(vals[1], vals[2].lo..(vals[2].lo+tstep))
+    tdom = vals[2].lo..(vals[2].lo+tstep) # [t0, t0+δ]
+    doms = IntervalBox(vals[1], tdom)
     while true
         # Start Picard iteration, we need the candidate/guessed TM
         remainder_estimate = -0.1..0.1
         # based on the estimate, we want the flowpipe to be used as the domain for
         # the taylorization of the dynamics
-        y, t = get_variables("y t", order=ord*2)
         # FIXME: assuming the domain of time is a degenerate interval
-        fpipe = IntervalBox((p(doms) + remainder_estimate)..., vals[2].lo..(vals[2].lo+tstep))  # This is F_i in the maths
+        # `fpipe` is F_i in the maths.
+        fpipe = IntervalBox([
+            p_i(doms) + remainder_estimate
+            for p_i in p
+        ]..., tdom)
         ytm = TaylorModelN(y, # polynomial
                 interval(0),  # error remainder
                 fpipe # domain hypercube
@@ -182,7 +184,7 @@ for _ = 0:10
         println(ftm)
         # FIXME/TODO: DO we want to drop the order of the ytm and ttm now?
 
-        candidate_tm = TaylorModelN(p[1], remainder_estimate, doms)
+        candidate_tm = TaylorModelN(p[1], remainder_estimate, fpipe)
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM
         rems = picard_tm_extension([ftm], [candidate_tm, ttm], doms, ord)
@@ -217,4 +219,5 @@ for _ = 0:10
     # vals based on the polynomial part of valid_tm and its remainder.
     global vals = IntervalBox(valid_tm(doms)..., doms[2])
     println("                     vals: ", vals)
+    println("\n=================================\n")
 end
