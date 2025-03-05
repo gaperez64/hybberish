@@ -181,13 +181,36 @@ end
 # Division
 #
 
-# TODO: implement division => which definition to follow? Xin Chen?
-# ==> No division, because horner form?
+const ERR_TMN_DIV = "Unimplemented; TaylorModelN division is redundant as "*
+                    "we Taylorize the dynamics which removes all divisions."
+
+/(a::TaylorModelN, b::TaylorModelN) = throw(ERR_TMN_DIV)
+/(b::T, a::TaylorModelN) where {T <: TS.NumberNotSeries} = throw(ERR_TMN_DIV)
+/(a::TaylorModelN, b::T) where {T <: TS.NumberNotSeries} = throw(ERR_TMN_DIV)
+
 
 
 #
 # Powers
 #
 
-# TODO: implement powers => which definition to follow? Xin Chen?
-# ==> No exponent, because horner form?
+""" Make explicit that TaylorModelN exp (^) is handled by Base functions
+    by mimicking the Base exp (^) function.
+
+    We depend on the following Base library functions.
+    - `Base.literal_pow(f::typeof(^), x, ::Val{p})`
+    - `Base.:^(x::Number, p::Integer)`
+    - `Base.power_by_squaring(x_, p::Integer; mul=*)`
+
+    Since we overload `Base.:^(::Number, ::Integer)` with an implementation
+    for a subtype, i.e. `TaylorModelN <: Number`, julia's dispatch mechanism
+    does not allow us to call the overloaded function directly. We must instead
+    mimic the overloaded function's implementation, but for the subtype.
+"""
+function ^(x::TaylorModelN, p::Integer)
+    # Assert the supertype to show that we mimic the Base exp (^) function:
+    # `Base.:^(x::Number, p::Integer)`
+    @assert typeof(x) <: Number
+    # Make explicit the dependence on the Base library function.
+    return Base.power_by_squaring(x, p)
+end
