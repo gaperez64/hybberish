@@ -128,8 +128,6 @@ f_dot(y, t) = -y - sin(t) + cos(t)
 #    one
 # c. Work with order 4
 ord = 4
-# TODO: Is the domain still needed?
-domy = -3..3 # FIXME: Widened this from -2..2 because iscontained() failed in step 3.
 
 # Taylor variables (from TaylorSeries library)
 y, t = set_variables("y t", order=ord)
@@ -137,49 +135,53 @@ y, t = set_variables("y t", order=ord)
 # Initial state variable bounds and domain
 # y(0) = [1, 1]
 # t(0) = [0, 0]
-vals = IntervalBox(interval(1), interval(0))
-# TODO: Is the domain still needed?
-doms = IntervalBox(domy, 0..0.1)
+vals = IntervalBox(interval(1), interval(0))  # This is D_i in the maths
 
-# FIXME: The very first time step size is governed by the time interval component
-#  of the doms, NOT by the 'tstep' variable.
-tstep = doms[2].hi - doms[2].lo  # The fixed time step size.
+tstep = 0.1  # The fixed time step size.
 scale = 2  # The scale factor for when contractiveness fails.
 
 
-# TODO: The steps are not in proper order since we should taylorize the
-# dynamics after having guessed an error interval for the last theorem in the
-# writeup to be applicable (mainly because the domain of the dynamics is only
-# known then)
 for _ = 0:10
     # Step 0: Taylorize the dynamics
     # We want to have a polynomial approximation of the dynamics centered around
     # the midpoint of the current values.
-    ytm = TaylorModelN(y, # polynomial
-            interval(0),  # error remainder
-    		doms)         # domain hypercube
-    println("ytm = ")
-    println(ytm)
-    ttm = TaylorModelN(t, interval(0), doms)
-    # FIXME: Hack to allow for higher degree terms in the intermediate computation
-    # TODO: Is this still needed?
-    set_variables("y t", order=ord*2)
-    ftm = f_dot(ytm, ttm)
-    # FIXME: We go back to the lower degree afterwards
+    # TODO: is this hack still needed?
+    y, t = get_variables("y t", order=ord*2)
+    fpoly = f_dot(y, t)
     set_variables("y t", order=ord)
     println("taylorized vector field/dynamics:")
-    println(ftm)
+    println(fpoly)
     
     # Step 1: Obtain the polynomial part of the Taylor model
-    p = tay_poly([polynomial(ftm)], ord)
+    p = tay_poly([fpoly], ord)
     println("polynomial part of TM:")
     println(p)
     
     # Step 2: Obtain the remainder/error interval of the TM
-    # Start Picard iteration, we need the candidate/guessed TM
-    remainder_estimate = -0.1..0.1
+
     rems = nothing
+    doms = IntervalBox(vals[1], vals[2].lo..(vals[2].lo+tstep))
     while true
+        # Start Picard iteration, we need the candidate/guessed TM
+        remainder_estimate = -0.1..0.1
+        # based on the estimate, we want the flowpipe to be used as the domain for
+        # the taylorization of the dynamics
+        y, t = get_variables("y t", order=ord*2)
+        # FIXME: assuming the domain of time is a degenerate interval
+        fpipe = IntervalBox((p(doms) + remainder_estimate)..., vals[2].lo..(vals[2].lo+tstep))  # This is F_i in the maths
+        ytm = TaylorModelN(y, # polynomial
+                interval(0),  # error remainder
+                fpipe # domain hypercube
+               )
+        ttm = TaylorModelN(t, # polynomial
+                interval(0),  # error remainder
+                fpipe # domain hypercube
+               )
+        ftm = f_dot(ytm, ttm)
+        println("poly version of dynamics, now with error")
+        println(ftm)
+        # FIXME/TODO: DO we want to drop the order of the ytm and ttm now?
+
         candidate_tm = TaylorModelN(p[1], remainder_estimate, doms)
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM
@@ -201,18 +203,18 @@ for _ = 0:10
         remainder_estimate *= 2
     end
 
+    # FIXME: plot fpipe at this point
+    #
     # Step 3: Get the new local values (and interval box) and update domain for next step
     # i.e. just change the domain of the time variable in doms
     valid_tm = TaylorModelN(p[1], rems[1], doms)
-    tdom = doms[2] # The time domain
+    doms = IntervalBox(doms[1], doms[2].hi..doms[2].hi)
     println("Full valid tm:")
     println(valid_tm)
 
     # NOTE: We are NOT evaluating valid_tm on vals because it complains about
     # it not being in the centered domain. Instead we manually compute the new
     # vals based on the polynomial part of valid_tm and its remainder.
-    global vals = IntervalBox(evaluate(polynomial(valid_tm), vals) + remainder(valid_tm),
-			      interval(tdom.hi))
+    global vals = IntervalBox(valid_tm(doms)..., doms[2])
     println("                     vals: ", vals)
-    global doms = IntervalBox(domy, tdom.hi..(tdom.hi + tstep))
 end
