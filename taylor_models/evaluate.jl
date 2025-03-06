@@ -41,15 +41,24 @@ end
 evaluate(tmv::Vector{TaylorModelN{N,T,S}}, a::IntervalBox{N,S}) where {N,T,S} =
     IntervalBox( [ tmv[i](a) for i in eachindex(tmv) ] )
 
-"""Evaluate a TaylorModel on a vector of values.
-
-    The values may be of any type ::R with which TaylorModelN defines
-    arithmetic operations. This includes other TaylorModelN objects, i.e.
-        op(::TaylorModelN, ::R)
-"""
+"""Evaluate a TaylorModel on any vector of values."""
 function evaluate(tm::TaylorModelN{N,T,S}, a::AbstractVector{R}) where {N,T,S,R}
     @assert iscontained(a, tm)
     return polynomial(tm)(a) + remainder(tm)
+end
+
+"""Evaluate a TaylorModelN on a vector of TaylorModelN values.
+
+   This is a special case of evaluation, it corresponds to composition.
+"""
+function evaluate(tm::TaylorModelN{N,T,S}, a::Vector{TaylorModelN{N,T,S}})::TaylorModelN{N,T,S} where {N,T,S}
+    @assert iscontained(a, tm)
+    composed = polynomial(tm)(a)
+    return TaylorModelN(
+        polynomial(composed),
+        remainder(composed) + remainder(tm),
+        domain(composed)
+    )
 end
 
 """Evaluate a TaylorModelN using function-call-like syntax."""
