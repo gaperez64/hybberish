@@ -3,6 +3,56 @@
 
 include("../taylor_models/BasicTaylorModels.jl")
 
+
+#
+# Clarify some quirks of the TaylorSeries dependency.
+#
+
+x, y = set_variables("x y", order=10)
+x3 = get_variables(3)[1]
+y4 = get_variables(4)[2]
+
+
+# We expect that the TaylorSeries evaluate function does not play nice when
+# given inputs of different orders.
+# Use the `evaluate` function interface.
+try
+  expr = x^2 * y
+  vals = [ x3, y4 ]
+
+  # The input orders must not all be the same
+  orders = get_order.(vals)
+  @assert ! all( orders[1] .== orders )
+
+  expr(vals)
+
+  # Should never reach here.
+  @assert false
+catch
+  println("## Fail TaylorN `(x::TaylorN)(v::Vector{TaylorN})` due to differing input orders")
+end
+
+# We expect that the TaylorSeries evaluate function does not play nice when
+# given inputs of different orders.
+# Call the TaylorSeries `evaluate` function directly.
+try
+  expr = x^2 * y
+  vals = [ x3, y4 ]
+
+  # The input orders must not all be the same
+  orders = get_order.(vals)
+  @assert ! all( orders[1] .== orders )
+
+  evaluate(expr, vals)
+
+  # Should never reach here.
+  @assert false
+catch
+  println("## Fail TaylorN `evaluate(x::TaylorN, v::Vector{TaylorN})` due to differing input orders")
+end
+
+
+
 #
 # Test TaylorModelN construction.
 #
@@ -648,8 +698,8 @@ ty = TaylorModelN(x*y, -1..1, IntervalBox(0.5..0.5, -2..2))
 # Show how to combine TaylorModelN evaluation and TaylorSeries set_variables.
 #
 
-const MAX_ORDER = 8
-const ACT_ORDER = Int(MAX_ORDER // 2)
+const ACT_ORDER = 4
+const MAX_ORDER = 2*ACT_ORDER
 
 # Set the maximum order to 2K.
 # This is stored internally by TaylorSeries and is accessible via get_order().
