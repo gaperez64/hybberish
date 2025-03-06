@@ -1,12 +1,31 @@
 include("taylor_models/BasicTaylorModels.jl")
 
 
-# NOTE: Assumes the last variable is t
-"""Generate the Taylor polynomial approximation part of a Taylor model for the
-   given dynamics and up to the given degree via Lie derivatives.
+"""Generate the Taylor polynomial approximation of the true flow specified by
+   given dynamics (ODEs) up to the given degree via Lie derivatives.
+
+   We require TaylorN representations of the variables to be supplied by the
+   caller. This allows the caller to decide their order; the variables' orders
+   influence the orders of the output polynomials.
+
+   @param[in]    f The Taylorized dynamics (ODEs).
+   @param[in]    k The degree (order) of the resulting polynomials.
+   @param[in] vars The TaylorN objects representing the variables.
+                   Assume the last element represents the time variable.
+   @return The polynomial approximations of the true flow.
 """
-function tay_poly(f::Vector{TaylorN{N}}, k::Integer, vars) where {N <: Number}
-    @assert k <= minimum([get_order(v) for v in vars])
+function tay_poly(f::Vector{TaylorN{N}}, k::Integer, vars::Vector{TaylorN{N}}) where {N <: Number}
+    vars_orders = get_order.(vars)
+    # The function `evaluate(::TaylorN, ::Vector{TaylorN})` does not play nice
+    # with different orders for the substitution values. So, require all orders
+    # to be the same.
+    @assert all( vars_orders[1] .== vars_orders )
+    # Taylor series arithmetic propagates the lowest order of its operands.
+    # To generate order k polynomials, all variables must be at least order k.
+    @assert all( k .<= vars_orders )
+    # The variables contain an additional last component: the time variable.
+    @assert length(f) == length(vars)-1
+
     t = vars[end]
     # Let's pad f with a 1 at the end for t
     fp1 = copy(f)
@@ -152,7 +171,7 @@ for _ = 0:10
     println(fpoly)
     
     # Step 1: Obtain the polynomial part of the Taylor model
-    p::Vector{TaylorN} = tay_poly([fpoly], ord, vars) # TODO: pass `vars` with half max order + `assert min(get_order.(vars))`
+    p::Vector{TaylorN} = tay_poly([fpoly], ord, vars)
     println("polynomial part of TM:")
     println(p)
     
@@ -166,7 +185,7 @@ for _ = 0:10
         # based on the estimate, we want the flowpipe to be used as the domain for
         # the taylorization of the dynamics
         # FIXME: assuming the domain of time is a degenerate interval
-        # `fpipe` is F_i in the maths.
+        # NOTE: `fpipe` is F_i in the maths.
         fpipe = IntervalBox([
             p_i(doms) + remainder_estimate
             for p_i in p
@@ -182,13 +201,17 @@ for _ = 0:10
         ftm = f_dot(ytm, ttm)
         println("poly version of dynamics, now with error")
         println(ftm)
-        # FIXME/TODO: DO we want to drop the order of the ytm and ttm now?
 
-        candidate_tm = TaylorModelN(p[1], remainder_estimate, fpipe)
+        candidate_ttm = TaylorModelN(t, interval(0), doms)
+        candidate_tm = TaylorModelN(p[1], remainder_estimate, doms)
         # Then we take the TM extension of the approx'd vector field composed
-        # with the candidate TM
-        rems = picard_tm_extension([ftm], [candidate_tm, ttm], doms, ord)
-        break
+        # with the candidate TM.
+        rems = picard_tm_extension([ftm], [candidate_tm, candidate_ttm], doms, ord)
+
+
+        break # FIXME: Delete this! This allows non-contractive remainders!
+
+
         println("error interval part of TM:")
         if all(issubset.(rems, [remainder(candidate_tm)]))
             print(rems)
