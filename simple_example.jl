@@ -80,56 +80,45 @@ end
     @param[in] vector_field_tms The TM representation F of the vector field f.
     @param[in]     function_tms The TM representation G of the function g.
     @param[in]           domain The domains of all ODE variables, including time.
-    @param[in]                k The Taylor polynomial and truncation order.
+    @param[in]                k The truncation order; truncate terms of order > k.
     @return The remainders of the TM result of the TM extension of the Picard
      operator; the interval vector K.
 """
-function picard_tm_extension(vector_field_tms::Vector{T}, function_tms, domain, k) where T <: TaylorModelN
-    #= Step (1), setup. =#
-    ode_polynomials::Vector{TaylorN} = polynomial.(vector_field_tms)
-    ode_remainders::Vector{Interval} = remainder.(vector_field_tms)
-    # FIXME: Is a copy needed? f(g(x,t),t) has side effects?
-    function_tms = copy(function_tms)
+function picard_tm_extension(
+        vector_field_tms::Vector{TaylorModelN{N,T,S}},
+        function_tms::Vector{TaylorModelN{N,T,S}},
+        k::Integer) where {N,T,S}
 
-    #= Step (2), perform the substitution operation part of the
-      TM extension of Picard operator:
+    # TM arithmetic is only defined for TMs with the same domains.
+    fdomains = domain.(function_tms)
+    @assert all( (fdomains[1],) .== fdomains )
+    # The function components additionally specify a time component.
+    @assert length(vector_field_tms) == length(function_tms)-1
+
+    # FIXME: Once again we assume the t interval is the last one
+    tdom = domain(function_tms[1]).v[end]
+
+    #= Step (1), perform the composition operation of the
+      TM extension of Picard operator, which  accounts for errors
+      coming from the dynamics having been approximated by polynomials.
         (p, I) \circ (q, J) = p(q, J) + I = (r, K) + I = (r, K + I)
       The normal Picard operator expresses this as f(g(x, t), t).
     =#
-    #= Step (2.1), perform p(q, J) = (r, K) =#
-    substitution_tms = map((fj) -> evaluate(fj, function_tms), ode_polynomials)
-    #= Step (2.2), compute (r, K) + I = r + K + I = (r, K + I)
-      Add the error of aproximating the true vector field. Here we have NOT
-      yet reached where we can use formula Xin Chen (p42, antiderivative formula)
-      we are still just accounting for errors coming from the dynamics having
-      been approximated by polynomials. Here we're instead using the formula
-      for the error of TM composition:
-        (p, I) \circ (q, J)
-        = p(q, J) + I
-        = (r, K) + I
-        = (r, K + I)
-    =#
-    substitution_tms = map(
-        ((tm, err),) -> TaylorModelN(
-            polynomial(tm),      # r
-            remainder(tm) + err, # K + I
-            domain),
-        zip(substitution_tms, ode_remainders))
+    substitution_tms = [fj(function_tms) for fj in vector_field_tms]
 
-    #= Step (3), apply the antiderivative formula. =#
-    # FIXME: Once again we assume the t interval is the last one
-    tdom = domain.v[end]
-    # Prepare two helper functions to compute the antiderivative remainder.
-    int_enclosure(poly_error_terms, domains) =
-        sum(evaluate(perr, domains) for perr in poly_error_terms)
-    pe(tm::TaylorModelN) = polynomial(tm)[k:end]
+    #= Step (2), apply the antiderivative formula. =#
+    """Compute the interval enclosure of the truncated terms."""
+    intpe(tm::TaylorModelN, domains::IntervalBox) = sum(
+        evaluate(perr, domains) for perr in polynomial(tm)[k+1:end];
+        init=0
+    )
     #= Compute the integral's remainder part:
-        (int_enclosure(pe) + I) * [t, t+\delta].
+        (Int(pe) + I) * \delta
       where pe represents the sum of all truncated (error)
       terms of the polynomial integral result.
     =#
     return map(
-        (tmj) -> (int_enclosure(pe(tmj), domain) + remainder(tmj)) * tdom,
+        (tmj) -> (intpe(tmj, domain(tmj)) + remainder(tmj)) * (tdom.hi - tdom.lo),
         substitution_tms)
 end
 
@@ -206,7 +195,7 @@ for _ = 0:10
         candidate_tm = TaylorModelN(p[1], remainder_estimate, doms)
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM.
-        rems = picard_tm_extension([ftm], [candidate_tm, candidate_ttm], doms, ord)
+        rems = picard_tm_extension([ftm], [candidate_tm, candidate_ttm], ord)
 
 
         break # FIXME: Delete this! This allows non-contractive remainders!

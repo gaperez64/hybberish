@@ -657,10 +657,9 @@ end
 tx = TaylorModelN(x2, -0.5..0.5, IntervalBox(-0.5..0.5, -4..4))
 ty = TaylorModelN(x2*y2, -1..1,  IntervalBox(-0.5..0.5, -4..4))
 tz = t([tx, ty])
-values = [0, 4]
-ix = interval(values[1])
-iy = interval(values[2])
-expect = (-1..1) + (1..1)*ix + (1..1)*ix*iy + remainder(tz)
+values = [-0.5, 4]
+ix, iy = values
+expect = ix + ix*iy + remainder(tz)
 # The Taylor model resulting from the substitution inherits the common domain
 # of the substitution values, not the domain of the Taylor model that is
 # substituted into!
