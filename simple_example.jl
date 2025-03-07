@@ -79,16 +79,18 @@ end
 
     @param[in] vector_field_tms The TM representation F of the vector field f.
     @param[in]     function_tms The TM representation G of the function g.
-    @param[in]           domain The domains of all ODE variables, including time.
-    @param[in]                k The truncation order; truncate terms of order > k.
     @return The remainders of the TM result of the TM extension of the Picard
      operator; the interval vector K.
 """
 function picard_tm_extension(
         vector_field_tms::Vector{TaylorModelN{N,T,S}},
-        function_tms::Vector{TaylorModelN{N,T,S}},
-        k::Integer) where {N,T,S}
+        function_tms::Vector{TaylorModelN{N,T,S}}) where {N,T,S}
 
+    func_orders = get_order.(function_tms)
+    # The function `evaluate(::TaylorN, ::Vector{TaylorN})` does not play nice
+    # with different orders for the substitution values. So, require all orders
+    # to be the same.
+    @assert all( func_orders[1] .== func_orders )
     # TM arithmetic is only defined for TMs with the same domains.
     fdomains = domain.(function_tms)
     @assert all( (fdomains[1],) .== fdomains )
@@ -106,19 +108,22 @@ function picard_tm_extension(
     =#
     substitution_tms = [fj(function_tms) for fj in vector_field_tms]
 
-    #= Step (2), apply the antiderivative formula. =#
-    """Compute the interval enclosure of the truncated terms."""
-    intpe(tm::TaylorModelN, domains::IntervalBox) = sum(
-        evaluate(perr, domains) for perr in polynomial(tm)[k+1:end];
-        init=0
-    )
-    #= Compute the integral's remainder part:
+    #= Step (2), apply the antiderivative formula.
         (Int(pe) + I) * \delta
-      where pe represents the sum of all truncated (error)
-      terms of the polynomial integral result.
+      where `pe` represents the truncated terms, `Int(pe)` is its interval
+      enclosure and `\delta` is the time step.
+      Every TaylorModelN object `tm` specifies its own polynomial order `d`.
+      This is functionally the truncation order of that Taylor model.
+      Consequently, the integral operation would only make the
+      HomogeneousPolynomial `pe = polynomial(tm)[end]` exceed the truncation order,
+      since that polynomial contains all terms of order exactly `d`.
+      If we truncate before we apply the integral, then `pe` corresponds exactly to
+      the terms to truncate.
     =#
+    """Truncated term interval enclosure for truncation before integration."""
+    intpe(tm::TaylorModelN) = evaluate(polynomial(tm)[end], domain(tm))
     return map(
-        (tmj) -> (intpe(tmj, domain(tmj)) + remainder(tmj)) * (tdom.hi - tdom.lo),
+        (tmj) -> (intpe(tmj) + remainder(tmj)) * (tdom.hi - tdom.lo),
         substitution_tms)
 end
 
@@ -195,7 +200,7 @@ for _ = 0:10
         candidate_tm = TaylorModelN(p[1], remainder_estimate, doms)
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM.
-        rems = picard_tm_extension([ftm], [candidate_tm, candidate_ttm], ord)
+        rems = picard_tm_extension([ftm], [candidate_tm, candidate_ttm])
 
 
         break # FIXME: Delete this! This allows non-contractive remainders!
