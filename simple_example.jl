@@ -150,13 +150,16 @@ y, t = vars
 # Initial state variable bounds and domain
 # y(0) = [1, 1]
 # t(0) = [0, 0]
-vals = IntervalBox(interval(1), interval(0))  # This is D_i in the maths
+init = IntervalBox(interval(1), interval(0))
+vals = deepcopy(init)  # This is D_i in the maths
 
-tstep = 0.1  # The fixed time step size.
+tstep = 0.01  # The fixed time step size.
 scale = 2  # The scale factor for when contractiveness fails.
 
+boxes::Vector{IntervalBox} = []
+nr_iterations = 10
 
-for _ = 0:10
+for _ = 1:nr_iterations
     # Step 0: Taylorize the dynamics
     # We want to have a polynomial approximation of the dynamics centered around
     # the midpoint of the current values.
@@ -171,7 +174,7 @@ for _ = 0:10
     
     # Step 2: Obtain the remainder/error interval of the TM
     rems = nothing
-    tdom = vals[2].lo..(vals[2].lo+tstep) # [t0, t0+δ]
+    tdom = vals[2].lo..(vals[2].lo+tstep) # [ti, ti+δ]
     doms = IntervalBox(vals[1], tdom)
     while true
         # Start Picard iteration, we need the candidate/guessed TM
@@ -235,6 +238,50 @@ for _ = 0:10
     # it not being in the centered domain. Instead we manually compute the new
     # vals based on the polynomial part of valid_tm and its remainder.
     global vals = IntervalBox(valid_tm(doms)..., doms[2])
+
+    push!(boxes, vals)
+
     println("                     vals: ", vals)
     println("\n=================================\n")
 end
+
+
+#
+# PLOTTING
+#
+
+include("euler.jl")
+include("plotting.jl")
+
+
+
+"""Construct the vector field of the given ODEs.
+
+	@param[out] du The vector field, the right-hand side of the ODEs.
+	@param[in]   u The ODE variables to use in construction.
+"""
+function ode_euler!(du, u, p, t)
+	y, = u
+	du[1] =  -y - sin(t) + cos(t)
+end
+
+
+# Start Forward Euler in the middle of the variable domains.
+euler_init_state = Vector(mid(init))
+step_sizes = [ tstep for _ in boxes ]
+
+# Evaluate Forward Euler.
+time_horizon::Float64 = nr_iterations * tstep
+euler_step = tstep / 10.0
+eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
+
+# Actual plotting
+vars_no_t = get_variable_names()[1:end-1]
+pltND = plot_boxes_ND(boxes, step_sizes, vars_no_t)
+plot!(pltND, eseries[1])
+
+println("Show plot ...")
+display(pltND)
+println("Press ENTER to continue.")
+readline()
+println("... done.")
