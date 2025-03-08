@@ -157,9 +157,10 @@ tstep = 0.01  # The fixed time step size.
 scale = 2  # The scale factor for when contractiveness fails.
 
 boxes::Vector{IntervalBox} = []
-nr_iterations = 10
+nr_iterations = 20
+nr_constractiveness_tries = 10
 
-for _ = 1:nr_iterations
+for iter = 1:nr_iterations
     # Step 0: Taylorize the dynamics
     # We want to have a polynomial approximation of the dynamics centered around
     # the midpoint of the current values.
@@ -176,7 +177,12 @@ for _ = 1:nr_iterations
     rems = nothing
     tdom = vals[2].lo..(vals[2].lo+tstep) # [ti, ti+δ]
     doms = IntervalBox(vals[1], tdom)
-    while true
+
+    # Find the contractive remainder.
+
+    # TODO: Extract the picard code into a separate routine so that remainder refinement can be implemented cleanly after finding the contractive remainder!!!
+
+    for ctry in 1:nr_constractiveness_tries
         # Start Picard iteration, we need the candidate/guessed TM
         remainder_estimate = -0.1..0.1
         # based on the estimate, we want the flowpipe to be used as the domain for
@@ -205,10 +211,6 @@ for _ = 1:nr_iterations
         # with the candidate TM.
         rems = picard_tm_extension([ftm], [candidate_tm, candidate_ttm])
 
-
-        break # FIXME: Delete this! This allows non-contractive remainders!
-
-
         println("error interval part of TM:")
         if all(issubset.(rems, [remainder(candidate_tm)]))
             print(rems)
@@ -220,9 +222,20 @@ for _ = 1:nr_iterations
             print(rems)
             print(" NOT SUBSET ")
             println(remainder_estimate)
+
+            # TODO: It is probably cleaner and less bug-prone to put the "assert @false"
+            #       after the for-loop, behind another contractiveness check?
+            #       i.e. after the for-loop assert that rems is contractive?
+            if ctry == nr_constractiveness_tries
+                println()
+                println("Failed to find a contractive remainder after $nr_constractiveness_tries constractive tries.")
+                println("Failed in integration iteration $iter")
+                println()
+                @assert false
+            end
         end
 
-        remainder_estimate *= 2
+        remainder_estimate *= scale
     end
 
     # FIXME: plot fpipe at this point
