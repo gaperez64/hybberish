@@ -176,25 +176,27 @@ function tay_model_error(
     for ctry in 1:NR_CONTRACTIVENESS_TRIES
         J0 = IntervalBox(fill(J, length(p))...)
 
+        candidate_ttm = TaylorModelN(t, interval(0), doms)
+        candidate_tmv = [ TaylorModelN(pj, J, doms) for pj in p ]
+
         # based on the estimate, we want the flowpipe to be used as the domain for
         # the taylorization of the dynamics
         # FIXME: assuming the domain of time is a degenerate interval
         # NOTE: `fpipe` is F_i in the maths.
         fpipe = IntervalBox([ p_i(doms) + J for p_i in p ]..., tdom)
         vartms = [ TaylorModelN(v, interval(0), fpipe) for v in vars ]
-        # FIXME: The vector field function should be defined in a more general way.
-        #        It should take a vector that contains the variables and then
-        #        unopack that vector in the function at its own discretion.
-        ftm = vector_field_constructor(vartms...)
+
+        tm_type = typeof(candidate_ttm)
+        ftmv = Vector{tm_type}(undef, length(vartms)-1)
+        vector_field_constructor(ftmv, vartms)
         # TODO: Delete print statements.
         println("poly version of dynamics, now with error")
-        println(ftm)
+        println(ftmv)
 
-        candidate_ttm = TaylorModelN(t, interval(0), doms)
-        candidate_tmv = [ TaylorModelN(pj, J, doms) for pj in p ]
+
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM.
-        J1 = picard_tm_extension([ftm], vcat(candidate_tmv, candidate_ttm))
+        J1 = picard_tm_extension(ftmv, vcat(candidate_tmv, candidate_ttm))
 
         # Test contractiveness.
         if all(issubset.(J1, J0))
@@ -215,6 +217,16 @@ end
 
 
 # Dynamics
+"""Construct the dynamics.
+
+	@param[out] du The vector field, the right-hand side of the ODEs.
+	@param[in]   u The ODE variables to use in construction.
+"""
+function f_dot!(du::Vector, u::Vector)
+    y, t = u
+    du[1] = -y - sin(t) + cos(t)
+end
+# TODO: Delete old "f_dot".
 f_dot(y, t) = -y - sin(t) + cos(t)
 
 # Integration task specification
@@ -271,7 +283,7 @@ for iter = 1:nr_iterations
     # TODO: Extract the picard code into a separate routine so that remainder refinement can be implemented cleanly after finding the contractive remainder!!!
 
     hey_you_youre_finally_awake = tay_model_error(
-        f_dot, p, (-0.1..0.1), vars, doms,
+        f_dot!, p, (-0.1..0.1), vars, doms,
         nr_constractiveness_tries,
         nr_refinements,
         refinement_eps,
