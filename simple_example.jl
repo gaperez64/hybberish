@@ -127,6 +127,92 @@ function picard_tm_extension(
         substitution_tms)
 end
 
+"""Compute a safe remainder interval for the i-th flowpipe.
+
+    The TM extension of the Picard operator, Pf, can be used to
+    refine the remainder estimate of the i-th flowpipe.
+    Suppose we compute the TM (p, J_{0}) before refinement.
+    This function computes a safe remainder by first finding a
+    contractive remainder
+        (p, J_{m})  where m >= 0
+    and then continually applying refinement
+        Pf((pl, J_{j})) = (pl, J_{j+1})  for j = m, ..., n
+    to finally obtain the contractive, refined TM
+        (p, J_{n}).
+    Note that m, n are usually not known beforehand, but instead
+    become known when the contractiveness and refinement iteration
+    converge or fail.
+
+    @param[in] vector_field_constructor The vector field function.
+    @param[in] p The true flow Taylor polynomial approximations.
+    @param[in] J The initial remainder estimate.
+    @param[in] vars The variable objects to use.
+"""
+function tay_model_error(
+        vector_field_constructor::Function,
+        p::Vector,
+        J::Interval{S},
+        vars::Vector,
+        doms::IntervalBox{N,S},
+        NR_CONTRACTIVENESS_TRIES::Integer,
+        NR_REFINEMENTS::Integer,
+        REFINEMENT_EPS::Float64,
+        SCALE::Float64) where {N, S}
+
+    @assert NR_CONTRACTIVENESS_TRIES > 0
+    @assert NR_REFINEMENTS >= 0
+    @assert REFINEMENT_EPS > 0.0
+    @assert SCALE > 1.0
+
+    @assert length(p) == length(vars)-1
+
+    # Setup.
+    t = vars[end]
+    tdom = doms.v[end]
+    J0 = nothing
+    J1 = nothing
+
+    # Start Picard iteration, we need the candidate/guessed TM
+    for ctry in 1:NR_CONTRACTIVENESS_TRIES
+        J0 = IntervalBox(fill(J, length(p))...)
+
+        # based on the estimate, we want the flowpipe to be used as the domain for
+        # the taylorization of the dynamics
+        # FIXME: assuming the domain of time is a degenerate interval
+        # NOTE: `fpipe` is F_i in the maths.
+        fpipe = IntervalBox([ p_i(doms) + J for p_i in p ]..., tdom)
+        vartms = [ TaylorModelN(v, interval(0), fpipe) for v in vars ]
+        # FIXME: The vector field function should be defined in a more general way.
+        #        It should take a vector that contains the variables and then
+        #        unopack that vector in the function at its own discretion.
+        ftm = vector_field_constructor(vartms...)
+        # TODO: Delete print statements.
+        println("poly version of dynamics, now with error")
+        println(ftm)
+
+        candidate_ttm = TaylorModelN(t, interval(0), doms)
+        candidate_tmv = [ TaylorModelN(pj, J, doms) for pj in p ]
+        # Then we take the TM extension of the approx'd vector field composed
+        # with the candidate TM.
+        J1 = picard_tm_extension([ftm], vcat(candidate_tmv, candidate_ttm))
+
+        # Test contractiveness.
+        if all(issubset.(J1, J0))
+            # Contractiveness test succeeded, pass along the contractive (safe)
+            # remainder J1.
+            break
+        # Contractiveness failure condition reached: nr of retries exhausted.
+        elseif ctry == NR_CONTRACTIVENESS_TRIES
+            println("Could not find a contractive remainder.")
+            @assert false "Could not find a contractive remainder"
+        end
+
+        J = J * SCALE
+    end
+
+    return J1
+end
+
 
 # Dynamics
 f_dot(y, t) = -y - sin(t) + cos(t)
@@ -154,11 +240,13 @@ init = IntervalBox(interval(1), interval(0))
 vals = deepcopy(init)  # This is D_i in the maths
 
 tstep = 0.01  # The fixed time step size.
-scale = 2  # The scale factor for when contractiveness fails.
+scale = 2.0   # The scale factor for when contractiveness fails.
 
 boxes::Vector{IntervalBox} = []
 nr_iterations = 20
 nr_constractiveness_tries = 10
+nr_refinements = 5
+refinement_eps = 0.001
 
 for iter = 1:nr_iterations
     # Step 0: Taylorize the dynamics
@@ -181,6 +269,14 @@ for iter = 1:nr_iterations
     # Find the contractive remainder.
 
     # TODO: Extract the picard code into a separate routine so that remainder refinement can be implemented cleanly after finding the contractive remainder!!!
+
+    hey_you_youre_finally_awake = tay_model_error(
+        f_dot, p, (-0.1..0.1), vars, doms,
+        nr_constractiveness_tries,
+        nr_refinements,
+        refinement_eps,
+        scale)
+    println("##################### Generalized error = $hey_you_youre_finally_awake")
 
     for ctry in 1:nr_constractiveness_tries
         # Start Picard iteration, we need the candidate/guessed TM
@@ -237,6 +333,7 @@ for iter = 1:nr_iterations
 
         remainder_estimate *= scale
     end
+    println("########################## Inline error = $rems")
 
     # FIXME: plot fpipe at this point
     #
