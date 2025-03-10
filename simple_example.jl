@@ -122,9 +122,43 @@ function picard_tm_extension(
     =#
     """Truncated term interval enclosure for truncation before integration."""
     intpe(tm::TaylorModelN) = evaluate(polynomial(tm)[end], domain(tm))
-    return map(
+    return IntervalBox(map(
         (tmj) -> (intpe(tmj) + remainder(tmj)) * (tdom.hi - tdom.lo),
-        substitution_tms)
+        substitution_tms)...)
+end
+
+"""The common code needed to construct the inputs to 'picard_tm_extension'."""
+function construct_tmv(
+        p::Vector,
+        J::IntervalBox{M,S},
+        vars::Vector,
+        doms::IntervalBox{N,S},
+        vector_field_constructor::Function) where {N,M,S}
+
+    @assert length(J) == length(p)
+    @assert length(J) == length(doms)-1
+
+    t = vars[end]
+    tdom = doms.v[end]
+
+    candidate_ttm = TaylorModelN(t, interval(0), doms)
+    candidate_tmv = [ TaylorModelN(p_i, J_i, doms) for (p_i, J_i) in zip(p, J) ]
+
+    # based on the estimate, we want the flowpipe to be used as the domain for
+    # the taylorization of the dynamics
+    # FIXME: assuming the domain of time is a degenerate interval
+    # NOTE: `fpipe` is F_i in the maths.
+    fpipe = IntervalBox([ p_i(doms) + J_i for (p_i, J_i) in zip(p, J) ]..., tdom)
+    vartms = [ TaylorModelN(v, interval(0), fpipe) for v in vars ]
+
+    tm_type = typeof(candidate_ttm)
+    ftmv = Vector{tm_type}(undef, length(vartms)-1)
+    vector_field_constructor(ftmv, vartms)
+    # TODO: Delete print statements.
+    println("poly version of dynamics, now with error")
+    println(ftmv)
+
+    return ftmv, vcat(candidate_tmv, candidate_ttm)
 end
 
 """Compute a safe remainder interval for the i-th flowpipe.
@@ -147,6 +181,11 @@ end
     @param[in] p The true flow Taylor polynomial approximations.
     @param[in] J The initial remainder estimate.
     @param[in] vars The variable objects to use.
+    @param[in] doms The previous interval inintial set, with updated time domain???
+    @param[in] NR_CONTRACTIVENESS_TRIES The max number of contractiveness tries to attempt.
+    @param[in] NR_REFINEMENTS The max number of refinements to perform.
+    @param[in] REFINEMENT_EPS Quit refinement early if the improvement falls below this threshold.
+    @param[in] SCALE The contractiveness widening scalar factor.
 """
 function tay_model_error(
         vector_field_constructor::Function,
@@ -167,36 +206,19 @@ function tay_model_error(
     @assert length(p) == length(vars)-1
 
     # Setup.
-    t = vars[end]
-    tdom = doms.v[end]
     J0 = nothing
     J1 = nothing
+    Jn = nothing
 
     # Start Picard iteration, we need the candidate/guessed TM
     for ctry in 1:NR_CONTRACTIVENESS_TRIES
         J0 = IntervalBox(fill(J, length(p))...)
 
-        candidate_ttm = TaylorModelN(t, interval(0), doms)
-        candidate_tmv = [ TaylorModelN(pj, J, doms) for pj in p ]
-
-        # based on the estimate, we want the flowpipe to be used as the domain for
-        # the taylorization of the dynamics
-        # FIXME: assuming the domain of time is a degenerate interval
-        # NOTE: `fpipe` is F_i in the maths.
-        fpipe = IntervalBox([ p_i(doms) + J for p_i in p ]..., tdom)
-        vartms = [ TaylorModelN(v, interval(0), fpipe) for v in vars ]
-
-        tm_type = typeof(candidate_ttm)
-        ftmv = Vector{tm_type}(undef, length(vartms)-1)
-        vector_field_constructor(ftmv, vartms)
-        # TODO: Delete print statements.
-        println("poly version of dynamics, now with error")
-        println(ftmv)
-
+        ftmv, ctmv = construct_tmv(p, J0, vars, doms, vector_field_constructor)
 
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM.
-        J1 = picard_tm_extension(ftmv, vcat(candidate_tmv, candidate_ttm))
+        J1 = picard_tm_extension(ftmv, ctmv)
 
         # Test contractiveness.
         if all(issubset.(J1, J0))
@@ -212,7 +234,25 @@ function tay_model_error(
         J = J * SCALE
     end
 
-    return J1
+    # Perform remainder refinement to tighten the bounds.
+    Jn = J1
+    # TODO: Fix remainder refinement.
+    # for nr in 1:NR_REFINEMENTS
+    #     print("Refinement no. $nr")
+    #     Jprev = Jn
+    #     ftmv, ctmv = construct_tmv(p, Jn, vars, doms, vector_field_constructor)
+    #     Jn = picard_tm_extension(ftmv, ctmv)
+
+    #     @assert all(issubset.(Jn, Jprev)) "Refinement should only increase the bound tightness!"
+    #     max_improvement::Float64 = maximum(diam.(Jprev) - diam.(Jn))
+
+    #     println("  (max improvement=$max_improvement)")
+    #     if max_improvement < REFINEMENT_EPS
+    #         break
+    #     end
+    # end
+
+    return Jn
 end
 
 
@@ -257,7 +297,7 @@ scale = 2.0   # The scale factor for when contractiveness fails.
 boxes::Vector{IntervalBox} = []
 nr_iterations = 20
 nr_constractiveness_tries = 10
-nr_refinements = 5
+nr_refinements = 2
 refinement_eps = 0.001
 
 for iter = 1:nr_iterations
@@ -274,9 +314,9 @@ for iter = 1:nr_iterations
     println(p)
     
     # Step 2: Obtain the remainder/error interval of the TM
-    rems = nothing
     tdom = vals[2].lo..(vals[2].lo+tstep) # [ti, ti+δ]
     doms = IntervalBox(vals[1], tdom)
+    rems = nothing
 
     # Find the contractive remainder.
 
@@ -356,6 +396,7 @@ for iter = 1:nr_iterations
     println("Full valid tm:")
     println(valid_tm)
 
+    # TODO: Is this comment still relevant / accurate?
     # NOTE: We are NOT evaluating valid_tm on vals because it complains about
     # it not being in the centered domain. Instead we manually compute the new
     # vals based on the polynomial part of valid_tm and its remainder.
