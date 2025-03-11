@@ -297,11 +297,10 @@ scale = 2.0   # The scale factor for when contractiveness fails.
 
 boxes::Vector{IntervalBox} = []
 fboxes::Vector{IntervalBox} = []
-dboxes::Vector{IntervalBox} = []
 nr_iterations = 20
-nr_constractiveness_tries = 10
+nr_constractiveness_tries = 20
 nr_refinements = 10
-refinement_eps = 0.001
+refinement_eps = 0.01
 
 for iter = 1:nr_iterations
     # Step 0: Taylorize the dynamics
@@ -322,83 +321,16 @@ for iter = 1:nr_iterations
     rems = nothing
 
     # Find the contractive remainder.
-
-    # TODO: Extract the picard code into a separate routine so that remainder refinement can be implemented cleanly after finding the contractive remainder!!!
-
-    safe_rem, ffffpipe = tay_model_error(
+    safe_rems, fpipe = tay_model_error(
         f_dot!, p, (-0.1..0.1), vars, doms,
         nr_constractiveness_tries,
         nr_refinements,
         refinement_eps,
         scale)
-    println("##################### Generalized error = $safe_rem")
 
-    for ctry in 1:nr_constractiveness_tries
-        # Start Picard iteration, we need the candidate/guessed TM
-        remainder_estimate = -0.1..0.1
-        # based on the estimate, we want the flowpipe to be used as the domain for
-        # the taylorization of the dynamics
-        # FIXME: assuming the domain of time is a degenerate interval
-        # NOTE: `fpipe` is F_i in the maths.
-        fpipe = IntervalBox([
-            p_i(doms) + remainder_estimate
-            for p_i in p
-        ]..., tdom)
-        ytm = TaylorModelN(y, # polynomial
-                interval(0),  # error remainder
-                fpipe # domain hypercube
-               )
-        ttm = TaylorModelN(t, # polynomial
-                interval(0),  # error remainder
-                fpipe # domain hypercube
-               )
-        ftm = f_dot(ytm, ttm)
-        println("poly version of dynamics, now with error")
-        println(ftm)
-
-        candidate_ttm = TaylorModelN(t, interval(0), doms)
-        candidate_tm = TaylorModelN(p[1], remainder_estimate, doms)
-        # Then we take the TM extension of the approx'd vector field composed
-        # with the candidate TM.
-        rems = picard_tm_extension([ftm], [candidate_tm, candidate_ttm])
-
-        println("error interval part of TM:")
-        if all(issubset.(rems, [remainder(candidate_tm)]))
-            print(rems)
-            print(" SUBSET ")
-            println(remainder_estimate)
-            println("Contractive!")
-            break
-        else
-            print(rems)
-            print(" NOT SUBSET ")
-            println(remainder_estimate)
-
-            # TODO: It is probably cleaner and less bug-prone to put the "assert @false"
-            #       after the for-loop, behind another contractiveness check?
-            #       i.e. after the for-loop assert that rems is contractive?
-            if ctry == nr_constractiveness_tries
-                println()
-                println("Failed to find a contractive remainder after $nr_constractiveness_tries constractive tries.")
-                println("Failed in integration iteration $iter")
-                println()
-                @assert false
-            end
-        end
-
-        remainder_estimate *= scale
-    end
-    println("########################## Inline error = $rems")
-
-    # TODO: Actually use the remainder computed by the generalized
-    # version of the code.
-    rems = safe_rem
-
-    # FIXME: plot fpipe at this point
-    #
     # Step 3: Get the new local values (and interval box) and update domain for next step
     # i.e. just change the domain of the time variable in doms
-    valid_tm = TaylorModelN(p[1], rems[1], doms)
+    valid_tm = TaylorModelN(p[1], safe_rems[1], doms)
     doms = IntervalBox(doms[1], doms[2].hi..doms[2].hi)
     println("Full valid tm:")
     println(valid_tm)
@@ -410,8 +342,7 @@ for iter = 1:nr_iterations
     global vals = IntervalBox(valid_tm(doms)..., doms[2])
 
     push!(boxes, vals)
-    push!(fboxes, ffffpipe)
-    push!(dboxes, doms)
+    push!(fboxes, fpipe)
 
     println("                     vals: ", vals)
     println("\n=================================\n")
@@ -434,28 +365,40 @@ include("plotting.jl")
 """
 function ode_euler!(du, u, p, t)
 	y, = u
+    # This function implements the stable version of these ODEs.
+    # The unstable versions is: "y - sin(t) - cos(t)"
 	du[1] =  -y - sin(t) + cos(t)
 end
 
+#=
+    Note that the solution to the ODEs is "y(t) = cos(t)".
+    Given that we know the solution y(t) to the ODEs
+        y(t) = cos(t)
+        y'(t) = d(cos(t))/dt = - sin(t)
+    which we verify against the ODEs
+        y'(t) = -y(t) - sin(t) + cos(t)
+            = -(cos(t)) - sin(t) + cos(t)
+            = - sin(t)
+=#
 
 # Start Forward Euler in the middle of the variable domains.
 euler_init_state = Vector(mid(init))
-step_sizes = [ tstep for _ in boxes ]
+step_sizes::Vector{Float64} = [ tstep for _ in boxes ]
 
 # Evaluate Forward Euler.
 time_horizon::Float64 = nr_iterations * tstep
-euler_step = tstep / 10.0
+euler_step::Float64 = tstep / 10.0
 eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
 
 # Actual plotting
 vars_no_t = get_variable_names()[1:end-1]
 pltND1 = plot_boxes_ND(boxes, step_sizes, vars_no_t)
 pltND2 = plot_boxes_ND(fboxes, step_sizes, vars_no_t)
-pltND3 = plot_boxes_ND(dboxes, step_sizes, vars_no_t)
-plot!(pltND1, eseries[1], title="vals")
-plot!(pltND2, eseries[1], title="fpipe")
-plot!(pltND3, eseries[1], title="doms")
-pltND = plot(pltND1, pltND2, pltND3)
+plot!(pltND1, eseries[1], legend=true, title="vals", label="Stable ODE Forward Euler")
+plot!(pltND1, cos, label="cos(t)") # The ODE solution is "y(t) = cos(t)"
+plot!(pltND2, eseries[1], legend=true, title="fpipe", label="Stable ODE Forward Euler")
+plot!(pltND2, cos, label="cos(t)") # The ODE solution is "y(t) = cos(t)"
+pltND = plot(pltND1, pltND2)
 
 println("Show plot ...")
 display(pltND)
