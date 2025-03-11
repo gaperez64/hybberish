@@ -390,6 +390,10 @@ for iter = 1:nr_iterations
     end
     println("########################## Inline error = $rems")
 
+    # TODO: Actually use the remainder computed by the generalized
+    # version of the code.
+    rems = safe_rem
+
     # FIXME: plot fpipe at this point
     #
     # Step 3: Get the new local values (and interval box) and update domain for next step
@@ -447,10 +451,10 @@ eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
 vars_no_t = get_variable_names()[1:end-1]
 pltND1 = plot_boxes_ND(boxes, step_sizes, vars_no_t)
 pltND2 = plot_boxes_ND(fboxes, step_sizes, vars_no_t)
-pltND3 = plot_boxes_ND(fboxes, step_sizes, vars_no_t)
-plot!(pltND1, eseries[1])
-plot!(pltND2, eseries[1])
-plot!(pltND3, eseries[1])
+pltND3 = plot_boxes_ND(dboxes, step_sizes, vars_no_t)
+plot!(pltND1, eseries[1], title="vals")
+plot!(pltND2, eseries[1], title="fpipe")
+plot!(pltND3, eseries[1], title="doms")
 pltND = plot(pltND1, pltND2, pltND3)
 
 println("Show plot ...")
