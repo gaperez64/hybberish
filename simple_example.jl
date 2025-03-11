@@ -288,20 +288,37 @@ y, t = vars
 # y(0) = [1, 1]
 # t(0) = [0, 0]
 init = IntervalBox(interval(1), interval(0))
-vals = deepcopy(init)  # This is D_i in the maths
 
-tstep = 0.01  # The fixed time step size.
-scale = 2.0   # The scale factor for when contractiveness fails.
+# This rectangle represents the initial set of the current integration
+# iteration. Its time component should always be degenerate: [t_i, t_i].
+# This is D_i in the maths.
+vals = deepcopy(init)
+
+# The fixed time step size.
+tstep = 0.01
+# The scale factor for when contractiveness fails.
+scale = 2.0
+# The width threshold below which an interval is considered degenerate.
+# e.g. diam([-1, 1]) = 2 > threshold  =>  NOT degenerate!
+degen_threshold = 1.0e-15
 
 boxes::Vector{IntervalBox} = []
 fboxes::Vector{IntervalBox} = []
 nr_iterations = 20
-nr_constractiveness_tries = 20
-nr_refinements = 10
-refinement_eps = 0.01
+nr_contractiveness_tries = 1
+nr_refinements = 0
+refinement_eps = 0.001
+
 
 for iter = 1:nr_iterations
-    # Step 0: Taylorize the dynamics
+
+    # Get the time component of the initial set.
+    tdom = vals.v[end]
+    tdiam = diam(tdom)
+    @assert tdiam < degen_threshold "The time component of the initial set "*
+        "is not considered degenerate: width($tdom) = $tdiam > $degen_threshold."
+
+    # Step 0: Taylorize the dynamics.
     # We want to have a polynomial approximation of the dynamics centered around
     # the midpoint of the current values.
     VarType = typeof(vars[1])
@@ -310,17 +327,19 @@ for iter = 1:nr_iterations
     println("taylorized vector field/dynamics:")
     println(fpoly)
     
-    # Step 1: Obtain the polynomial part of the Taylor model
+    # Step 1: Obtain the polynomial part of the Taylor model.
     p::Vector{VarType} = tay_poly(fpoly, ord, vars)
     println("polynomial part of TM:")
     println(p)
     
-    # Step 2: Obtain the remainder/error interval of the TM
-    tdom = vals[2].lo..(vals[2].lo+tstep) # [ti, ti+δ]
-    doms = IntervalBox(vals[1], tdom)
-    rems = nothing
+    # Step 2: Obtain the safe remainder/error interval of the TM.
+    #
+    # This rectangle is the initial set stretched across the entire time
+    # step [ti, ti+δ] of this integration iteration. By definition it only
+    # differs from the initial set in its time component.
+    doms = IntervalBox(vals.v[1:end-1]...,  tdom.lo..(tdom.lo+tstep))
 
-    # Find the contractive remainder.
+    # Find the safe/contractive remainder.
     safe_rems, fpipe = tay_model_error(
         f_dot!, p, (-0.1..0.1), vars, doms,
         nr_contractiveness_tries,
