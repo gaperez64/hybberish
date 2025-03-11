@@ -158,7 +158,7 @@ function construct_tmv(
     println("poly version of dynamics, now with error")
     println(ftmv)
 
-    return ftmv, vcat(candidate_tmv, candidate_ttm)
+    return ftmv, vcat(candidate_tmv, candidate_ttm), fpipe
 end
 
 """Compute a safe remainder interval for the i-th flowpipe.
@@ -209,12 +209,13 @@ function tay_model_error(
     J0 = nothing
     J1 = nothing
     Jn = nothing
+    fpipe = nothing
 
     # Start Picard iteration, we need the candidate/guessed TM
     for ctry in 1:NR_CONTRACTIVENESS_TRIES
         J0 = IntervalBox(fill(J, length(p))...)
 
-        ftmv, ctmv = construct_tmv(p, J0, vars, doms, vector_field_constructor)
+        ftmv, ctmv, fpipe = construct_tmv(p, J0, vars, doms, vector_field_constructor)
 
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM.
@@ -240,7 +241,7 @@ function tay_model_error(
     # for nr in 1:NR_REFINEMENTS
     #     print("Refinement no. $nr")
     #     Jprev = Jn
-    #     ftmv, ctmv = construct_tmv(p, Jn, vars, doms, vector_field_constructor)
+    #     ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, vector_field_constructor)
     #     Jn = picard_tm_extension(ftmv, ctmv)
 
     #     @assert all(issubset.(Jn, Jprev)) "Refinement should only increase the bound tightness!"
@@ -252,7 +253,7 @@ function tay_model_error(
     #     end
     # end
 
-    return Jn
+    return Jn, fpipe
 end
 
 
@@ -274,7 +275,7 @@ f_dot(y, t) = -y - sin(t) + cos(t)
 # b. Construct a flowpipe consisting of 4 Taylor models, including the initial
 #    one
 # c. Work with order 4 (truncation degree / polynomial degree).
-ord = 4
+ord = 10
 # Double the truncation degree to obtain the TaylorSeries max order.
 # This accounts for order-related assertions applicable to Taylor
 # series arithmetic.
@@ -295,9 +296,11 @@ tstep = 0.01  # The fixed time step size.
 scale = 2.0   # The scale factor for when contractiveness fails.
 
 boxes::Vector{IntervalBox} = []
+fboxes::Vector{IntervalBox} = []
+dboxes::Vector{IntervalBox} = []
 nr_iterations = 20
 nr_constractiveness_tries = 10
-nr_refinements = 2
+nr_refinements = 10
 refinement_eps = 0.001
 
 for iter = 1:nr_iterations
@@ -322,13 +325,13 @@ for iter = 1:nr_iterations
 
     # TODO: Extract the picard code into a separate routine so that remainder refinement can be implemented cleanly after finding the contractive remainder!!!
 
-    hey_you_youre_finally_awake = tay_model_error(
+    safe_rem, ffffpipe = tay_model_error(
         f_dot!, p, (-0.1..0.1), vars, doms,
         nr_constractiveness_tries,
         nr_refinements,
         refinement_eps,
         scale)
-    println("##################### Generalized error = $hey_you_youre_finally_awake")
+    println("##################### Generalized error = $safe_rem")
 
     for ctry in 1:nr_constractiveness_tries
         # Start Picard iteration, we need the candidate/guessed TM
@@ -403,6 +406,8 @@ for iter = 1:nr_iterations
     global vals = IntervalBox(valid_tm(doms)..., doms[2])
 
     push!(boxes, vals)
+    push!(fboxes, ffffpipe)
+    push!(dboxes, doms)
 
     println("                     vals: ", vals)
     println("\n=================================\n")
@@ -440,8 +445,13 @@ eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
 
 # Actual plotting
 vars_no_t = get_variable_names()[1:end-1]
-pltND = plot_boxes_ND(boxes, step_sizes, vars_no_t)
-plot!(pltND, eseries[1])
+pltND1 = plot_boxes_ND(boxes, step_sizes, vars_no_t)
+pltND2 = plot_boxes_ND(fboxes, step_sizes, vars_no_t)
+pltND3 = plot_boxes_ND(fboxes, step_sizes, vars_no_t)
+plot!(pltND1, eseries[1])
+plot!(pltND2, eseries[1])
+plot!(pltND3, eseries[1])
+pltND = plot(pltND1, pltND2, pltND3)
 
 println("Show plot ...")
 display(pltND)
