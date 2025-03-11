@@ -229,7 +229,8 @@ function tay_model_error(
         # Contractiveness failure condition reached: nr of retries exhausted.
         elseif ctry == NR_CONTRACTIVENESS_TRIES
             println("Could not find a contractive remainder.")
-            @assert false "Could not find a contractive remainder"
+            @assert false "Could not find a contractive remainder after $ctry tries.\n"*
+                          "J0 = $J0\nJ1 = $J1\n==> J1 is not a subset of J0."
         end
 
         J = J * SCALE
@@ -257,7 +258,6 @@ function tay_model_error(
 end
 
 
-# Dynamics
 """Construct the dynamics.
 
 	@param[out] du The vector field, the right-hand side of the ODEs.
@@ -267,8 +267,6 @@ function f_dot!(du::Vector, u::Vector)
     y, t = u
     du[1] = -y - sin(t) + cos(t)
 end
-# TODO: Delete old "f_dot".
-f_dot(y, t) = -y - sin(t) + cos(t)
 
 # Integration task specification
 # a. Take delta_t = 1
@@ -306,12 +304,14 @@ for iter = 1:nr_iterations
     # Step 0: Taylorize the dynamics
     # We want to have a polynomial approximation of the dynamics centered around
     # the midpoint of the current values.
-    fpoly = f_dot(y, t)
+    VarType = typeof(vars[1])
+    fpoly = Vector{VarType}(undef, length(vars) - 1)
+    f_dot!(fpoly, vars)
     println("taylorized vector field/dynamics:")
     println(fpoly)
     
     # Step 1: Obtain the polynomial part of the Taylor model
-    p::Vector{TaylorN} = tay_poly([fpoly], ord, vars)
+    p::Vector{VarType} = tay_poly(fpoly, ord, vars)
     println("polynomial part of TM:")
     println(p)
     
@@ -323,7 +323,7 @@ for iter = 1:nr_iterations
     # Find the contractive remainder.
     safe_rems, fpipe = tay_model_error(
         f_dot!, p, (-0.1..0.1), vars, doms,
-        nr_constractiveness_tries,
+        nr_contractiveness_tries,
         nr_refinements,
         refinement_eps,
         scale)
