@@ -97,9 +97,6 @@ function picard_tm_extension(
     # The function components additionally specify a time component.
     @assert length(vector_field_tms) == length(function_tms)-1
 
-    # FIXME: Once again we assume the t interval is the last one
-    tdom = domain(function_tms[1]).v[end]
-
     #= Step (1), perform the composition operation of the
       TM extension of Picard operator, which  accounts for errors
       coming from the dynamics having been approximated by polynomials.
@@ -122,8 +119,10 @@ function picard_tm_extension(
     =#
     """Truncated term interval enclosure for truncation before integration."""
     intpe(tm::TaylorModelN) = evaluate(polynomial(tm)[end], domain(tm))
+    """Get the width of the time component of the TaylorModelN domain."""
+    dt(tm::TaylorModelN) = diam(domain(tm).v[end])
     return IntervalBox(map(
-        (tmj) -> (intpe(tmj) + remainder(tmj)) * (tdom.hi - tdom.lo),
+        (tmj) -> ( intpe(tmj) + remainder(tmj) ) * dt(tmj),
         substitution_tms)...)
 end
 
