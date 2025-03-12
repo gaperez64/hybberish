@@ -238,20 +238,20 @@ function tay_model_error(
     # Perform remainder refinement to tighten the bounds.
     Jn = J1
     # TODO: Fix remainder refinement.
-    # for nr in 1:NR_REFINEMENTS
-    #     print("Refinement no. $nr")
-    #     Jprev = Jn
-    #     ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, vector_field_constructor)
-    #     Jn = picard_tm_extension(ftmv, ctmv)
+    for nr in 1:NR_REFINEMENTS
+        print("Refinement no. $nr")
+        Jprev = Jn
+        ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, vector_field_constructor)
+        Jn = picard_tm_extension(ftmv, ctmv)
 
-    #     @assert all(issubset.(Jn, Jprev)) "Refinement should only increase the bound tightness!"
-    #     max_improvement::Float64 = maximum(diam.(Jprev) - diam.(Jn))
+        @assert all(issubset.(Jn, Jprev)) "Refinement should only increase the bound tightness!"
+        max_improvement::Float64 = maximum(diam.(Jprev) - diam.(Jn))
 
-    #     println("  (max improvement=$max_improvement)")
-    #     if max_improvement < REFINEMENT_EPS
-    #         break
-    #     end
-    # end
+        println("  (max improvement=$max_improvement)")
+        if max_improvement < REFINEMENT_EPS
+            break
+        end
+    end
 
     return Jn, fpipe
 end
@@ -305,7 +305,7 @@ boxes::Vector{IntervalBox} = []
 fboxes::Vector{IntervalBox} = []
 nr_iterations = 20
 nr_contractiveness_tries = 1
-nr_refinements = 0
+nr_refinements = 2
 refinement_eps = 0.001
 
 
@@ -326,11 +326,20 @@ for iter = 1:nr_iterations
     println("taylorized vector field/dynamics:")
     println(fpoly)
     
+    cvars = vcat(vars[1:end-1], (vars[end] + mid(vals.v[end])))
+    println("############################### cvars ($(length(cvars))) = $cvars")
+    fpoly = [poly(cvars) for poly in fpoly]
+
     # Step 1: Obtain the polynomial part of the Taylor model.
     p::Vector{VarType} = tay_poly(fpoly, ord, vars)
     println("polynomial part of TM:")
     println(p)
-    
+
+    cvars = vcat(vars[1:end-1], (vars[end] - mid(vals.v[end])))
+    println("############################### cvars ($(length(cvars))) = $cvars")
+    p = [poly(cvars) for poly in p]
+
+
     # Step 2: Obtain the safe remainder/error interval of the TM.
     #
     # This rectangle is the initial set stretched across the entire time
