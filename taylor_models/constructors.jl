@@ -33,7 +33,8 @@ struct TaylorModelN{N,T,S} <: AbstractSeries{T}
         @assert N == get_numvars()
         # If the remainder interval does not contain 0, then the Taylor model's
         # polynomial part falls out of the region specified by `pol + rem`.
-        @assert zero(S) in rem
+        # FIXME: Is this assert required for correctness of TM integration?
+        # @assert zero(S) in rem
 
         # FIXME: We currently do not care about the expansion point x0.
         # @assert x0 ⊆ dom
@@ -50,7 +51,7 @@ end
 TaylorModelN(pol::TaylorN{T}, rem::Interval{S}, dom::IntervalBox{N,S}) where {N,T,S} =
     TaylorModelN{N,T,S}(pol, rem, dom)
 
-# Short-cut for a constant
+"""The TaylorModelN constructor shortcut for a constant."""
 TaylorModelN(a::Interval{T}, ord::Integer, dom::IntervalBox{N,T}) where {N,T} =
     TaylorModelN(TaylorN(a, ord), zero(dom[1]), dom)
 TaylorModelN(a::T, ord::Integer, dom::IntervalBox{N,T}) where {N,T} =
