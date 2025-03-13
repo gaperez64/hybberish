@@ -73,3 +73,45 @@ function plot_boxes_ND(boxes::Vector{T}, time_steps::Array{Float64},
     # Compose the separate figures into a column of figures.
     return plot(plots..., layout=(length(variable_names), 1), kwargs...)
 end
+
+"""Plot a sequence of n-dimensional (nD) boxes as 2-dimensional (2D) boxes.
+
+    Assume the last component of each box is the time component,
+    which is used as the x-axis component. For a sequence of nD boxes
+        [(I_1, ..., I_n), ...]
+    plot the nD box (I_1, ..., I_n) as n-1 boxes
+        (I_n, I_1), ..., (I_n, I_(n-1)).
+
+    @param[in] boxes          The sequence of nD boxes to plot.
+    @param[in] variable_names The ordered name of the ODE variables.
+    @param[in] kwargs         Kwargs are passed to the generated plot.
+    @return The generated plot object.
+"""
+function plot_boxes_ND(
+        boxes::Vector{T},
+        variable_names::Array{String};
+        kwargs...) where T <: IntervalBox
+
+    @assert all(length.(boxes) .> 1) "Cannot generate 2D plots for 1D boxes."
+
+    nr_vars_no_t = length(variable_names) - 1
+    plots = []
+    for vidx in 1:nr_vars_no_t
+        # Assume the last component of the boxes and variable names
+        # correspond to the time dimension / component.
+        tname = variable_names[end]
+        vname = variable_names[vidx]
+
+        # For the i-th var, plot the i-th box component against time.
+        boxes2d = [ IntervalBox(box.v[end], box[vidx]) for box in boxes ]
+        plt = plot(
+            boxes2d;
+            xlabel=tname, ylabel=vname,
+            fillalpha=0.0, lc=:blue, legend=:false
+        )
+        push!(plots,  plt)
+    end
+
+    # Compose the separate figures into a column of figures.
+    return plot(plots..., layout=(nr_vars_no_t, 1); kwargs...)
+end

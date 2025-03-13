@@ -410,7 +410,6 @@ end
 
 # Start Forward Euler in the middle of the variable domains.
 euler_init_state = Vector(mid(init))
-step_sizes::Vector{Float64} = [ tstep for _ in boxes ]
 
 # Evaluate Forward Euler.
 time_horizon::Float64 = nr_iterations * tstep
@@ -418,12 +417,11 @@ euler_step::Float64 = tstep / 10.0
 eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
 
 # Actual plotting
-vars_no_t = get_variable_names()[1:end-1]
-pltND1 = plot_boxes_ND(boxes, step_sizes, vars_no_t)
-pltND2 = plot_boxes_ND(fboxes, step_sizes, vars_no_t)
-plot!(pltND1, eseries[1], legend=true, title="vals", label="Stable ODE Forward Euler")
+pltND1 = plot_boxes_ND(boxes, get_variable_names(), sgtitle="vals", legend=true)
+pltND2 = plot_boxes_ND(fboxes, get_variable_names(), sgtitle="fpipe", legend=true)
+plot!(pltND1, eseries[1], label="Stable ODE Forward Euler")
 plot!(pltND1, cos, label="cos(t)") # The ODE solution is "y(t) = cos(t)"
-plot!(pltND2, eseries[1], legend=true, title="fpipe", label="Stable ODE Forward Euler")
+plot!(pltND2, eseries[1], label="Stable ODE Forward Euler")
 plot!(pltND2, cos, label="cos(t)") # The ODE solution is "y(t) = cos(t)"
 pltND = plot(pltND1, pltND2)
 
