@@ -151,8 +151,11 @@ function construct_tmv(
     vartms = [ TaylorModelN(v, interval(0), fpipe) for v in vars ]
 
     tm_type = typeof(candidate_ttm)
-    ftmv = Vector{tm_type}(undef, length(vartms)-1)
+    ftmv = Vector{tm_type}(undef, length(vartms) - 1)
     vector_field_constructor(ftmv, vartms)
+    @assert(all([ isassigned(ftmv, idx) for idx in eachindex(ftmv) ]),
+        "The dynamics constructor did not assign all vector field components.")
+
     # TODO: Delete print statements.
     println("poly version of dynamics, now with error")
     println(ftmv)
@@ -327,6 +330,8 @@ for iter = 1:nr_iterations
     f_dot!(fpoly, vars)
     println("taylorized vector field/dynamics:")
     println(fpoly)
+    @assert(all([ isassigned(fpoly, idx) for idx in eachindex(fpoly) ]),
+        "The dynamics constructor did not assign all vector field components.")
     
     cvars = vcat(vars[1:end-1], (vars[end] + mid(vals.v[end])))
     println("############################### cvars ($(length(cvars))) = $cvars")
@@ -384,7 +389,7 @@ for iter = 1:nr_iterations
     println("#### DD = $(domain.(Di))")
 
     doms = IntervalBox(doms.v[1:end-1]..., doms.v[end].hi..doms.v[end].hi)
-    global vals = IntervalBox([Dij(init) for Dij in Di]..., doms[2])
+    global vals = IntervalBox([Dij(init) for Dij in Di]..., doms.v[end])
 
     push!(boxes, vals)
     push!(fboxes, fpipe)
