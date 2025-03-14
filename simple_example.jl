@@ -287,6 +287,8 @@ y, t = vars
 # y(0) = [1, 1]
 # t(0) = [0, 0]
 init = IntervalBox(interval(1), interval(0))
+D0 = map((var) -> TaylorModelN(var, 0..0, init), vars[1:end-1])
+Di = D0
 
 # This rectangle represents the initial set of the current integration
 # iteration. Its time component should always be degenerate: [t_i, t_i].
@@ -294,7 +296,7 @@ init = IntervalBox(interval(1), interval(0))
 vals = deepcopy(init)
 
 # The fixed time step size.
-tstep = 0.01
+tstep = 0.001
 # The scale factor for when contractiveness fails.
 scale = 2.0
 # The width threshold below which an interval is considered degenerate.
@@ -303,9 +305,9 @@ degen_threshold = 1.0e-15
 
 boxes::Vector{IntervalBox} = []
 fboxes::Vector{IntervalBox} = []
-nr_iterations = 20
+nr_iterations = 120
 nr_contractiveness_tries = 1
-nr_refinements = 2
+nr_refinements = 5
 refinement_eps = 0.001
 
 
@@ -357,16 +359,32 @@ for iter = 1:nr_iterations
 
     # Step 3: Get the new local values (and interval box) and update domain for next step
     # i.e. just change the domain of the time variable in doms
-    valid_tm = TaylorModelN(p[1], safe_rems[1], doms)
-    doms = IntervalBox(doms[1], doms[2].hi..doms[2].hi)
-    println("Full valid tm:")
-    println(valid_tm)
+    # Make sure all values are correctly shaped.
+    @assert length(p) == length(safe_rems) == length(Di) == (length(doms)-1)
 
-    # TODO: Is this comment still relevant / accurate?
-    # NOTE: We are NOT evaluating valid_tm on vals because it complains about
-    # it not being in the centered domain. Instead we manually compute the new
-    # vals based on the polynomial part of valid_tm and its remainder.
-    global vals = IntervalBox(valid_tm(doms)..., doms[2])
+    # Represent the current time step's right bound as a constant TaylorModelN.
+    # NOTE: The domain is unimportant, the composition later just has to succeed.
+    di = TaylorModelN(doms.v[end].hi, ord, domain(Di[1]))
+
+    # TaylorModelN composition will require uniform domains for input values.
+    @assert domain(di) == domain(Di[1]) ": $(domain(di)) != $(domain(Di[1]))"
+
+    Dj = []
+    for (pj, Ij) in zip(p, safe_rems)
+        # Di = (p(Di, δi), I)
+        # NOTE: The domain is unimportant, the composition just has to succeed.
+        tm = TaylorModelN(pj, Ij, fpipe)([Di..., di])
+
+        # Compute a Taylor model representation of the initial set.
+        # The domain here IS important!
+        push!(Dj, TaylorModelN(polynomial(tm), remainder(tm), init))
+    end
+    global Di = Dj
+    println("#### Di = $Di")
+    println("#### DD = $(domain.(Di))")
+
+    doms = IntervalBox(doms.v[1:end-1]..., doms.v[end].hi..doms.v[end].hi)
+    global vals = IntervalBox([Dij(init) for Dij in Di]..., doms[2])
 
     push!(boxes, vals)
     push!(fboxes, fpipe)
