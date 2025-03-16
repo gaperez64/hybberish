@@ -1,7 +1,7 @@
 """This file contains examples for our adaption of the TaylorModels.jl library.
 """
 
-include("../taylor_models/BasicTaylorModels.jl")
+include("../src/taylor_models/BasicTaylorModels.jl")
 
 
 #

@@ -1,4 +1,4 @@
-include("taylor_models/BasicTaylorModels.jl")
+include("src/taylor_models/BasicTaylorModels.jl")
 
 
 """Generate the Taylor polynomial approximation of the true flow specified by
