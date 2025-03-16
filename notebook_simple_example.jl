@@ -167,7 +167,8 @@ begin
 euler_init_state = Vector(mid(init_values))
 
 # Evaluate Forward Euler.
-euler_step::Float64 = tstep / 10.0
+euler_step_ratio::Integer = 10
+euler_step::Float64 = tstep / euler_step_ratio
 eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
 
 end
@@ -186,7 +187,7 @@ nr_boxes = length(boxes) # TODO: Comment this line if you want to truncate
 truncated_boxes = boxes[1:nr_boxes]
 truncated_fboxes = fboxes[1:nr_boxes]
 truncated_eseries = [
-	series[1:nr_boxes]
+	series[1:nr_boxes*euler_step_ratio]
 	for series in eseries
 ]
 
