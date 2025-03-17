@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.1
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
@@ -15,9 +15,9 @@ end
 begin
 	using Plots
 	using TaylorModels
-	include("plotting.jl")
-	include("euler.jl")
-	include("tm_integration.jl")
+	include("../src/plotting.jl")
+	include("../src/euler.jl")
+	include("../src/old/tm_integration.jl")
 end
 
 # ╔═╡ 28be9778-a531-11ef-225c-691fbd9f45d1

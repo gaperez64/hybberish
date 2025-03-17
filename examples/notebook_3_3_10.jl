@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.3
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
@@ -15,9 +15,9 @@ end
 begin
 	using Plots
 	using TaylorModels
-	include("plotting.jl")
-	include("euler.jl")
-	include("tm_integration.jl")
+	include("../src/plotting.jl")
+	include("../src/euler.jl")
+	include("../src/old/tm_integration.jl")
 end
 
 # ╔═╡ 6b2d0d14-a438-11ef-11d9-e9ba654fb47e
@@ -129,7 +129,7 @@ end
 
 # ╔═╡ 1191638c-a1da-41df-81e7-66b7dd4b7191
 begin
-	include("scripts/clean_intervals_3_3_10.jl")  # Import most recent known boxes
+	include("../scripts/clean_intervals_3_3_10.jl")  # Import most recent known boxes
 
 	USE_LOCAL_HORIZON = false 	# Boolean flag, 
 	known_boxes = copy(get_clean_boxes()) 	# Check intersection between computed and known boxes

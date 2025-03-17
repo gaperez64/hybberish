@@ -15,13 +15,13 @@ end
 begin
 	using Plots
 	using TaylorModels
-	include("plotting.jl")
-	include("euler.jl")
-	include("tm_integration.jl")
+	include("../src/plotting.jl")
+	include("../src/euler.jl")
+	include("../src/old/tm_integration.jl")
 end
 
 # ╔═╡ 8f29564c-a24b-42a3-a27e-748c65b12bee
-include("plotting.jl")
+include("../src/plotting.jl")
 
 # ╔═╡ e1e1828e-4c76-4645-99c7-597eddcd4bbb
 """Construct the vector field of the given ODEs.
@@ -97,7 +97,7 @@ end
 begin
 	# Write output to disk
 	filename::String = "TMJets_k$(k)_t$(time_horizon)_dt$(TIME_STEP_SIZE)_R$(NR_REFINEMENTS)"
-	open("output/$filename.txt", "w") do io
+	open("../output/$filename.txt", "w") do io
 		for b in draw_boxes
 			write(io, "$b\n")
 		end

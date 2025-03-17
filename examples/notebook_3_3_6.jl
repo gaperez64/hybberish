@@ -16,12 +16,12 @@ begin
 	using Plots
 	using TaylorSeries
 	using IntervalArithmetic
-	include("tm_integration.jl")
-	include("euler.jl")
+	include("../src/old/tm_integration.jl")
+	include("../src/euler.jl")
 end
 
 # ╔═╡ 039988bf-1261-495d-b3de-be812378168f
-include("plotting.jl")
+include("../src/plotting.jl")
 
 # ╔═╡ 0edfc1f9-9744-468e-bf3c-1b1f41b588b0
 md"""

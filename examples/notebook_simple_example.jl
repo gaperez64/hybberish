@@ -23,9 +23,9 @@ end
 
 # ╔═╡ cfd3f8bc-60dd-47cf-83ba-1f776e3544d6
 begin
-    include("plotting.jl")
-    include("euler.jl")
-    include("src/tm_integration.jl")
+    include("../src/plotting.jl")
+    include("../src/euler.jl")
+    include("../src/tm_integration.jl")
 end
 
 # ╔═╡ f0f2d653-0905-4a55-abcd-fefd266b8933

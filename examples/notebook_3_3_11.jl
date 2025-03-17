@@ -15,10 +15,10 @@ end
 begin
 	using Plots
 	using TaylorModels
-	include("plotting.jl")
-	include("euler.jl")
-	include("tm_integration.jl")
-	include("ode_shifting.jl")
+	include("../src/plotting.jl")
+	include("../src/euler.jl")
+	include("../src/old/tm_integration.jl")
+	include("../src/old/ode_shifting.jl")
 end
 
 # ╔═╡ 9ef48c3e-a529-11ef-3721-1330db209c3b

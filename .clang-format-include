@@ -1,5 +1,0 @@
-# All files in src and its subdirs
-src/**/*
-
-# All test files too
-tests/*
