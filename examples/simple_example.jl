@@ -1,4 +1,4 @@
-include("src/tm_integration.jl")
+include("../src/tm_integration.jl")
 
 
 """Construct the dynamics.
