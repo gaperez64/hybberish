@@ -71,8 +71,8 @@ boxes, fboxes = tm_integration(
 # PLOTTING
 #
 
-include("euler.jl")
-include("plotting.jl")
+include("../src/euler.jl")
+include("../src/plotting.jl")
 
 
 
