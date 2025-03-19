@@ -54,6 +54,113 @@ end
 
 
 #
+# Clarify quirks of the TaylorSeries + IntervalArithmetic combination.
+#
+
+#
+# Test `TaylorSeries.normalize_taylor`.
+#
+
+println("## Test 'TaylorSeries.normalize_taylor'")
+
+b = -3..3
+t1 = Taylor1([4, 3, 2, 1])
+# Perform an affine transformation of the variable 't' so that
+# the given domain 'b' is mapped to the transformede domain -1..1
+t1n = TaylorSeries.normalize_taylor(t1, b, true)
+
+# Point-wise, the use of a affine transformation means the
+# evaluation results should be the same.
+@assert t1(b.lo) == t1n(-1)
+@assert t1(mid(b)) == t1n(0)
+@assert t1(b.hi) == t1n(1)
+# For an affine transformation given a symmetric box centered on zero,
+# the interval evaluation results happen to be the same.
+@assert t1(b) == t1n(-1..1)
+
+
+b = 4..10
+t1 = Taylor1([4, 3, 2, 1])
+t1n = TaylorSeries.normalize_taylor(t1, b, true)
+
+# Point-wise, the use of a affine transformation means the
+# evaluation results should be the same.
+@assert t1(b.lo) == t1n(-1)
+@assert t1(mid(b)) == t1n(0)
+@assert t1(b.hi) == t1n(1)
+@assert t1(b) != t1n(-1..1)
+#= Here the evaluations are NOT the same! Interval arithmetic is OVERAPPROXIMATE,
+   so the interval-based evaluation result turns out different from the point-wise
+   evaluation result.
+
+          b = [4, 10]
+         t1 =  4 + 3 t + 2 t² + 1 t³ + 𝒪(t⁴)
+        t1n = normalize_taylor(t1, b)
+            =  466.0 + 534.0 t + 207.0 t² + 27.0 t³ + 𝒪(t⁴)
+
+   Compare evaluations of [4, 10] VS [-1, 1].
+      a) Evaluating t1 at the lower bound of [4, 10] should produce the
+         same result at evaluating t1n at the lower bound of [-1, 1].
+         This follows immediately from the use of the affine (linear)
+         transformation to transform t1 into t1n.
+      b) The exact same holds for evaluating t1 at the upper bound of [4, 10]
+         producing the same result as evaluating t1n at the upper bound of [-1, 1].
+      c) Because interval arithmetic is OVERAPPROXIMATE, the same does NOT necessarily
+         hold, though it could, when evaluating t1 on [4, 10] entirely, and
+         evaluating t1n on [-1, 1] entirely.
+
+         t1(4) = 4 + 3*4 + 2*4^2 + 1*4^3
+               = 4 + 12  + 32    + 64
+               = 112
+       t1n(-1) = 466 + 534*-1 + 207*(-1)^2 + 27*(-1)^3
+               = 466 - 534    + 207        - 27
+               = 112
+       ==> t1(4) == t1n(-1)
+
+    t1([4,10]) = 4 + 3*[4,10] + 2*[4,10]^2 + 1*[4,10]^3
+               = [4,4] + [3,3]*[4,10] + [2,2]*[4,10]^2 + [1,1]*[4,10]^3
+               = [4,4] + [3,3]*[4,10] + [2,2]*[16,100] + [1,1]*[64, 1000]
+               = [4,4] + [12, 30]     + [32, 200]      + [64, 1000]
+               = [112, 1234]
+   t1n([-1,1]) = 466 + 534*[-1,1] + 207*[-1,1]^2 + 27*[-1,1]^3
+               = 466 + 534*[-1,1] + 207*[0,1]    + 27*[-1,1]
+               = [466,466] + [-534,534] + [0, 207] + [-27,27]
+               = [-95, 1234]
+       ==> t1([4,10]) != t1n([-1,1])
+=#
+
+set_variables("x y", order=10)
+b = IntervalBox(-2..2, -4..4)
+tn = TaylorN(4 + x + y + y*x^2)
+tnn = TaylorSeries.normalize_taylor(tn, b, true)
+
+# Point-wise, the use of a affine transformation means the
+# evaluation results should be the same.
+@assert tn([b[1].lo, b[2].lo]) == tnn([-1, -1])
+@assert tn(mid(b)) == tnn([0, 0])
+@assert tn([b[1].hi, b[2].hi]) == tnn([1, 1])
+# Symmetric boxes centered on zero result in the same interval
+# evaluation results.
+@assert tn(b) == tnn([-1..1, -1..1])
+
+
+# Affine transformation: map each component to [-1, 1]
+b = IntervalBox(-5..1, 4..10)
+tn = TaylorN(4 + x + y + y*x^2)
+tnn = TaylorSeries.normalize_taylor(tn, b, true)
+
+# Point-wise, the use of a affine transformation means the
+# evaluation results should be the same.
+@assert tn([b[1].lo, b[2].lo]) == tnn([-1, -1])
+@assert tn(mid(b)) == tnn([0, 0])
+@assert tn([b[1].hi, b[2].hi]) == tnn([1, 1])
+# Interval arithmetic is overapproximate; the interval evaluation
+# results are not equal in this particular case.
+@assert tn(b) != tnn([-1..1, -1..1])
+
+
+
+#
 # Test TaylorModelN construction.
 #
 const ORDER = 3
