@@ -8,29 +8,20 @@
 #       https://github.com/JuliaDiff/TaylorSeries.jl/blob/0298820a6d1f903185e20849c8178ffb0c1cd503/src/evaluate.jl#L257
 # TODO: What is the `sorting` parameter for HomogeneousPolynomial for?
 #       https://github.com/JuliaDiff/TaylorSeries.jl/blob/0298820a6d1f903185e20849c8178ffb0c1cd503/src/evaluate.jl#L307
-# TODO: Can I trick TaylorSeries' evaluate by making a view of a TaylorN that starts
-#       from some index other than 1?
 # TODO: Note that `evaluate` != `_evaluate`, mind the underscore.
-#       `_evaluate` loops over all HomogenisPolynomials. Why?
+#       `_evaluate` loops over all HomogeneousPolynomials. Why?
 #       https://github.com/JuliaDiff/TaylorSeries.jl/blob/0298820a6d1f903185e20849c8178ffb0c1cd503/src/evaluate.jl#L319
 # TODO: When is Horner form / Horner's method applied? See `_horner!`?
 #       But `_horner!` is in-place for Taylor1? Maybe it's implemented
 #       in-line and out-of-place for TaylorN?
-# TODO: OR implement the generation of the too-large order terms as a generator?
-#    ==> Add our own Horner's method implementation that uses that generator?
-#        BUT this is another point of failure, because we trust TaylorSeries'
-#        implementation is correct, but my own not so much. 
-#       See:
-#       https://github.com/JuliaDiff/TaylorSeries.jl/blob/0298820a6d1f903185e20849c8178ffb0c1cd503/src/evaluate.jl#L370
 
 
-
-# Evaluates the TMN on an interval, or array with proper dimension;
-# the computation includes the remainder
 
 """Evaluate a TaylorModel on an interval box."""
 function evaluate(tm::TaylorModelN{N,T,S}, a::IntervalBox{N,S}) where {N,T,S}
-    @assert iscontained(a, tm)
+    @assert(iscontained(a, tm),
+        "The evaluation values are not subset of the evaluated TaylorModelN's domain."*
+        "\na ⊈ domain(tm) : $a ⊈ $(domain(tm))")
     return polynomial(tm)(a) + remainder(tm)
 end
 
@@ -43,7 +34,9 @@ evaluate(tmv::Vector{TaylorModelN{N,T,S}}, a::IntervalBox{N,S}) where {N,T,S} =
 
 """Evaluate a TaylorModel on any vector of values."""
 function evaluate(tm::TaylorModelN{N,T,S}, a::AbstractVector{R}) where {N,T,S,R}
-    @assert iscontained(a, tm)
+    @assert(iscontained(a, tm),
+        "The evaluation values are not subset of the evaluated TaylorModelN's domain."*
+        "\na ∉ domain(tm) : $a ∉ $(domain(tm))")
     return polynomial(tm)(a) + remainder(tm)
 end
 
@@ -52,7 +45,9 @@ end
    This is a special case of evaluation, it corresponds to composition.
 """
 function evaluate(tm::TaylorModelN{N,T,S}, a::Vector{TaylorModelN{N,T,S}})::TaylorModelN{N,T,S} where {N,T,S}
-    @assert iscontained(a, tm)
+    @assert(iscontained(a, tm),
+        "The evaluation values are not subset of the evaluated TaylorModelN's domain."*
+        "\na ⊈ domain(tm) : Range(a) ⊈ $(domain(tm))\na = $a")
     composed = polynomial(tm)(a)
     return TaylorModelN(
         polynomial(composed),
