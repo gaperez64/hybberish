@@ -279,6 +279,29 @@ println("length(tn): $(length(tn))")
 println("size(tn): $(size(tn))")
 println()
 
+# Test TaylorModelN `constant_polynomial`.
+println("## Test TaylorModelN contant polynomial getter")
+x, y = set_variables("x y", order=5)
+expr = 1.3 + x - 4.0*y + x*y - 4.7*x^2
+
+# For a TaylorN, the function should return the constant term as a TaylorN.
+computed = constant_polynomial(expr)
+actual = TaylorN(1.3, 5)
+@assert computed == actual "$computed != $actual"
+
+# Given a vector, expect the function to just be applied elementwise.
+computed = constant_polynomial([ expr, expr ])
+actual = [ TaylorN(1.3, 5), TaylorN(1.3, 5) ]
+@assert computed == actual "$computed != $actual"
+
+# The fallthrough is the identity function.
+computed = constant_polynomial(7)
+actual = 7
+@assert computed == actual "$computed != $actual"
+
+println("constant_polynomial(expr): $(computed)")
+println()
+
 
 
 #
@@ -381,7 +404,8 @@ println()
 #
 
 # Setup.
-set_variables("x y", order=ORDER)
+set_variables("x y", order=2*ORDER)
+x, y = get_variables(ORDER)
 tn = TaylorModelN(POLYNOMIAL, REMAINDER, DOMAIN)
 
 # Test unary + operator.

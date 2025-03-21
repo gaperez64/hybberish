@@ -81,3 +81,17 @@ end
 @inline size(a::TaylorModelN) = size(polynomial(a))
 @inline getindex(a::TaylorModelN, n::Int) = getindex(polynomial(a), n)
 @inline constant_term(a::TaylorModelN) = constant_term(polynomial(a))
+
+
+
+"""
+    constant_polynomial(a)
+
+Returns the constant part of `a` as a polynomial `TaylorN`.
+The fallback behavior is to return `a` itself.
+"""
+constant_polynomial(a::TaylorN) = TaylorN(a[0], a.order)
+
+constant_polynomial(a::Vector{T}) where {T<:Number} = constant_polynomial.(a)
+
+constant_polynomial(a::Number) = a
