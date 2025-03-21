@@ -1,5 +1,39 @@
+using LinearAlgebra
+
 include("taylor_models/BasicTaylorModels.jl")
 
+
+"""Create the identity map of an interval box.
+
+    The identity map is a Taylor model vector (p, I) so that `p(box) + I = box`.
+    In more general terms, (p, I) represents the identity function `id(x) = x`.
+    Practically, the result is a vector of identity functions
+        (p, I) = [
+            (p_1, I_1),
+            ...,
+            (p_n, I_n)
+        ]
+    where `(p_j, I_j)([x_1, ..., x_n]) = x_j` is the j-th identity function.
+
+    Note that we require the variable objects and domains to be passed.
+    Due to constraints on TaylorModelN arithmetic, these must be known
+    Explicitly at the time of construction of the identity map.
+
+    @param[in] vars The ODE variable objects to construct the polynomial part.
+    @param[in] doms The domains to assign the identity map Taylor models.
+    @return The identity map.
+"""
+function id(vars::Vector{TaylorN{T}}, doms::IntervalBox{N,S})::Vector{TaylorModelN{N,T,S}} where {N,T,S}
+    @assert(length(vars) == length(doms),
+        "Each variable must specify its domain for the identity map.")
+    return [
+        # Choose `(p, I) = (x, [0, 0])`  so that  `(p, I)(b) = b + [0, 0] = b`.
+        # This is exactly the identity map `id(b) = b`.
+        # This property should also hold for Taylor model composition.
+        TaylorModelN(var, 0..0, doms)
+        for var in vars
+    ]
+end
 
 """Generate the Taylor polynomial approximation of the true flow specified by
    given dynamics (ODEs) up to the given degree via Lie derivatives.
