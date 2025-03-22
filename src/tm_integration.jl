@@ -35,6 +35,24 @@ function id(vars::Vector{TaylorN{T}}, doms::IntervalBox{N,S})::Vector{TaylorMode
     ]
 end
 
+"""Compute a scaling matrix S that bounds `Rng(S*tmv)` within box [-1, 1]^n.
+
+    Scaling matrix S is a diagonal matrix by definition. Suppose S is nxn=3x3.
+            | s_1   0    0  |
+        S = |  0   s_2   0  |
+            |  0    0   s_3 |
+    Then the scaling factor s_i is chosen so scaling the i-th component
+    of the Taylor model vector by this factor bounds its range within [-1, 1],
+    `Rng(s_i * tmv[i]) in [-1, 1]`.
+
+    @param[in] tmv The Taylor models whose range to bound within [-1, 1].
+    @return The scaling matrix S.
+"""
+function scale(tmv::Vector{TaylorModelN{N,T,S}})::Matrix{T} where {N,T,S}
+    # Suppose `Rng(tm_i) = [a, b]` then `s_i = 1 / max{ abs(a), abs(b) }`.
+    return diagm([ 1.0 / mag(tm()) for tm in tmv ])
+end
+
 """Generate the Taylor polynomial approximation of the true flow specified by
    given dynamics (ODEs) up to the given degree via Lie derivatives.
 
