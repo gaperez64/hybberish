@@ -135,53 +135,6 @@ display(polys_lin_map)
 
 
 #
-# TODO: Test some stuff, DELETE DELETE DELETE DELETE DELETE !!!!!!!!!!!!!!!!!!!
-#
-
-k = 5
-set_variables("a b", order=2*k)
-vars = get_variables(k)
-a, b = vars
-
-# Define the needed components for this sub step.
-dom = IntervalBox(-1..1, -1..1)
-Ur = [
-    TaylorModelN( 0.0513858a + 0.0142500b + 0.0000462190a^2,
-        (-8.25368e-5)..(1.07014e-4), dom),
-    TaylorModelN( 0.0487051b + 0.000245691a^2,
-        (-1.87213e-4)..(1.67575e-4), dom)
-]
-Ul = [
-    TaylorModelN( 0.904667 + 0.982762a - 0.184876b, 0..0, dom),
-    TaylorModelN( -0.909333 + 0.184876a + 0.982762b, 0..0, dom)
-]
-
-
-# TODO: \/ Move the code into steps (IV)+(V) \/
-# TODO: \/ Move the code into steps (IV)+(V) \/
-# Using Ur computes S^-1. Invert it to find S, transpose is not possible.
-Sinv = scale(Ur)
-S = inv(Sinv)
-# Convert the matrices to linear map Taylor models.
-S = linear_map(S, dom, vars)
-Sinv = linear_map(Sinv, dom, vars)
-
-# TODO: Ul = "tm_left", Ur = "tm_right"
-
-# Recompute Ul and Ur via Taylor model compositions.
-Ul = [tm(S) for tm in Ul]    # Ul := Ul(S)
-Ur = [tm(Ur) for tm in Sinv] # Ur := S^(-1)(Ur)
-
-# Perform composition of the scaling matrix converted to a linear map
-# into the left model, which applies the scaling matrix!
-println("Ul(scale(Ur)^-1) = "); display(Ul); println()
-println("scale(Ur)(Ur) = "); display(Ur); println()
-# TODO: /\ Move the code into steps (IV)+(V) /\
-# TODO: /\ Move the code into steps (IV)+(V) /\
-
-
-
-#
 # TODO: Implement algo 6.1 part 2.
 #
 
@@ -232,6 +185,7 @@ println("scale(Ur)(Ur) = "); display(Ur); println()
 
     @param[in] tmv_left The left Taylor models that were integrated in step 1.
     @param[in] tmv_right The right Taylor models that were untouched in step 1.
+    @param[in] vars The space (ODE) variable objects.
     @param[in] bound_range A boolean switch for choosing how to satisfy the
                            inclusion property. If true, then recompute the
                            variable domains. If false, then use a scaling matrix.
@@ -240,6 +194,7 @@ println("scale(Ur)(Ur) = "); display(Ur); println()
 function precondition(
         tmv_left::Vector{TaylorModelN{N,T,S}},
         tmv_right::Vector{TaylorModelN{N,T,S}},
+        vars::Vector{TaylorN{T}},
         bound_range::Bool) where {N,T,S}
 
     println("## Inputs")
@@ -248,6 +203,8 @@ function precondition(
     println("Urj ="); display(tmv_right); println()
     println("domain(Urj) ="); display(domain.(tmv_right)); println("\n\n")
 
+    # We rely on unmodified variables to construct linear maps.
+    @assert vars == get_variables() "The variables must be unmodified."
     @assert length(tmv_left) == length(tmv_right) "Vector length mismatch."
 
     # Require all domains to be equal within a TaylorModelN vector.
@@ -265,37 +222,31 @@ function precondition(
     tmv_left = normalize_taylor(tmv_left)
 
     println("## Normalized Inputs")
-    println("Uljp1 ="); display(tmv_left)
+    println("LEFT ="); display(tmv_left)
     display(domain(tmv_left[1])); println()
-    println("Urj ="); display(tmv_right)
+    println("RIGHT ="); display(tmv_right)
     display(domain(tmv_right[1])); println("\n\n")
 
     # Note, Julia's broadcasting for vectors will be heavily used
     # explicitly (broadcasting operator) and implicitly (function that
     # operate on vectors) to avoid excessive for loops or list comprehension.
     #
-    # Unpack the TaylorMovelN vector into vectors of its components.
-    polys_left::Vector{TaylorN{T}} = [ polynomial(tm) for tm in tmv_left ]
-    rems_left::Vector{Interval{S}} = [ remainder(tm) for tm in tmv_left ]
-    polys_right::Vector{TaylorN{T}} = [ polynomial(tm) for tm in tmv_right ]
-    rems_right::Vector{Interval{S}} = [ remainder(tm) for tm in tmv_right ]
     # We asserted that the domains within a TaylorModelN vec were the same.
     # So one domain object per vector suffices.
     dom_left::IntervalBox{N,S} = domain(tmv_left[1])
-    dom_right::IntervalBox{N,S} = domain(tmv_right[1])
 
-    # We will overwrite these variables with intermediate values.
-    # Explicitly set the to nothing now, to fail early in case of bugs.
-    tmv_left = nothing
-    tmv_right = nothing
 
     # (I)
     # Compute the QR factorization of the linear part of U_{l,j+1}
     # Each matrix row corresponds to one of the polynomials' linear terms.
     # FIXME: `stack` requires Julia 1.9+. Add an explicit Julia version requirement?
-    linear_coeffs::Matrix{T} = stack([p[1].coeffs for p in polys_left], dims=1)
+    linear_coeffs::Matrix{T} = stack([p[1].coeffs for p in polynomial.(tmv_left)], dims=1)
     Q::Matrix{T} = Matrix(qr(linear_coeffs).Q)
-    Q = [0.982762 -0.184876; 0.184876 0.982762] # TODO: Delete, this is a test
+
+    # TODO: Delete this!
+    # The Q matrix computed in the example has the same as the once computed above,
+    # but the signs of some of the numbers are different.
+    Q = [0.982762 -0.184876; 0.184876 0.982762]
 
     println("## (I)")
     println("linear coeffs ="); display(linear_coeffs); println()
@@ -304,102 +255,60 @@ function precondition(
     # (II)
     #
     # Shift (add) all non-constant terms AND remainders of U_{l,j+1} to U_{r,j}.
-    polys_right += linear_polynomial(polys_left) + nonlinear_polynomial(polys_left)
-    rems_right += rems_left
-    polys_left = constant_polynomial(polys_left)
-    rems_left = zero(rems_left)
+    tmv_shift  = tmv_left - constant_polynomial(tmv_left)
+    tmv_right += tmv_shift
+    tmv_left  -= tmv_shift
+    # The remainders were shifted from left to right, so set left's to zero.
+    # In interval arithmetic generally `[a, b] - [a, b] != [0, 0]`.
+    tmv_left = [ TaylorModelN(tm, 0..0) for tm in tmv_left ]
+
     println("## (II.1)")
-    println("Uljp1 polys ="); display(polys_left); println()
-    println("Urj polys ="); display(polys_right); println("\n\n")
+    println("LEFT  ="); display(tmv_left); println()
+    println("RIGHT ="); display(tmv_right); println("\n\n")
+
     # Make Q the linear part of U_{l, j+1}.
-    @assert length(polys_left) == size(Q)[1]
-    porder = get_order(polys_left[1]) # FIXME: The Homo pol pulls down the TaylorN order if I don't do this.
-    polys_left += [
-        # Cast the linear coefficients to a polynomial object.
-        TaylorN(HomogeneousPolynomial(coeffs, 1), porder)
-        for coeffs::Vector{T} in eachrow(Q)
-    ]
+    tmv_left += linear_map(Q, dom_left, vars)
+
     println("## (II.2)")
-    println("Uljp1 polys ="); display(polys_left); println("\n\n")
+    println("LEFT ="); display(tmv_left); println("\n\n")
+
     # Apply Q^-1 on U_{r,j}.
-    # FIXME: Does multiplication by a matrix not involve constant?
     QT::Matrix{T} = transpose(Q)
-    # polys_right = QT*polys_right # FIXME: If the QT TM composition does not work, then uncomment this???
-    # rems_right  = QT*rems_right # FIXME: If the QT TM composition does not work, then uncomment this???
-    
-    # TODO: perform composition to apply Q^T???????????????????
-    # TODO: Then what arbitrary domain to choose for the Q^T linear map?
-    # TODO: Don't forget to carry the unit box [-1, 1]^n as domain of the
-    #       result for the subsequent steps of the algo!
-    #       ==> That is done automatically because dom_right is unit box????
-    tmv_right = [
-        TaylorModelN(p, r, dom_right)
-        for (p, r) in zip(polys_right, rems_right)
-    ]
     # FIXME: Use an arbitrary domain. See a fixme below for more info.
     #        The linear map's domain is NOT involved in remainder computation;
     #        This linear map is just a vehicle for TM evaluation.
     arbitrary_domain = IntervalBox([tm() for tm in tmv_right]...)
     QT_tmv = linear_map(QT, arbitrary_domain, vars)
-    tmv_right = [tm(tmv_right) for tm in QT_tmv]
-    polys_right = [ polynomial(tm) for tm in tmv_right ]
-    rems_right = [ remainder(tm) for tm in tmv_right ]
+    tmv_right = [ tm(tmv_right) for tm in QT_tmv ]
 
     println("## (II.3)")
     println("Q^T ="); display(QT); println()
-    println("Urj polys ="); display(polys_right); println("\n\n")
-
+    println("RIGHT ="); display(tmv_right); println("\n\n")
 
     if bound_range
         # (III)
         #
         # Bound the range of the new U_{r,j}.
         # In other words, modify the domain of the independent variables.
-        dom_left = IntervalBox([
-            # FIXME: Construct a TaylorModelN just to make use of its evaluation interface.
-            #        Performing the evaluation manually is easy, but going through the TaylorModelN
-            #        interface is more future proof.
-            # Not passing a value implicitly uses the domain as value for the
-            # `TaylorModelN.evaluate` call.
-            TaylorModelN(pr, rr, dom_right)()
-            for (pr, rr) in zip(polys_right, rems_right)
-        ]...)
-
-        # Compose the components into Taylor models.
-        tmv_left = [
-            TaylorModelN(p, r, dom_left)
-            for (p, r) in zip(polys_left, rems_left)
-        ]
-        tmv_right = [
-            TaylorModelN(p, r, dom_right)
-            for (p, r) in zip(polys_right, rems_right)
-        ]
+        dom_left = IntervalBox([tm() for tm in tmv_right]...)
+        tmv_left = [ TaylorModelN(tm, dom_left) for tm in tmv_left ]
 
     else
-        # Compose the components into Taylor models.
-        tmv_left = [
-            TaylorModelN(p, r, dom_left)
-            for (p, r) in zip(polys_left, rems_left)
-        ]
-        tmv_right = [
-            TaylorModelN(p, r, dom_right)
-            for (p, r) in zip(polys_right, rems_right)
-        ]
-
         # (IV)
         # Apply a scaling matrix S_(j+1) on U_{r,j} such that each component of the
         # range of U_{r,j+1} := S_(j+1)^-1 ◦ U_{r,j} is contained in [-1, 1] and
         # spans [-1, 1] approximately.
         Sinv = scale(tmv_right)
         # Convert the matrix to an equivalent form: a linear map Taylor model vector.
-        # FIXME: We really don't care about the domain this linear map!
-        #   ==> To satisfy the requirement of the composition "g(f(x))" that
-        #   the range of "f(x)" must be contained in the domain of "g", we sadly
-        #   have to provide some arbitrary domain value that satisfies the
-        #   requirement.
-        #   ==> Cheat by making the range of the TMs domain of the linear map.
-        #   The "iscontained" check will exactly check that the range is contained
-        #   in the domain, so this choice of domain will always work.
+        #= 
+           FIXME: We really don't care about the domain this linear map!
+           ==> To satisfy the requirement of the composition "g(f(x))" that
+           the range of "f(x)" must be contained in the domain of "g", we sadly
+           have to provide some arbitrary domain value that satisfies the
+           requirement.
+           ==> Cheat by making the range of the TMs domain of the linear map.
+           The "iscontained" check will exactly check that the range is contained
+           in the domain, so this choice of domain will always work. =#
         arbitrary_domain = IntervalBox([tm() for tm in tmv_right]...)
         Sinv_tmv = linear_map(Sinv, arbitrary_domain, vars)
         # Compute U_{r,j+1} := S ◦ U_{r,j} so that each component of the range of
@@ -410,10 +319,11 @@ function precondition(
         # (V)
         S_ = inv(Sinv)
         # Convert the matrix to an equivalent form: a linear map Taylor model vector.
-        # FIXME: Will this linear map domain ever trigger an "iscontained" assertion?
-        # The domain of this linear map matters. It will be composed into
-        # another Taylor model, so the map will be involved in Taylor model
-        # arithmetic and as such influences the computed remainders.
+        #=
+          FIXME: Will this linear map domain ever trigger an "iscontained" assertion?
+          The domain of this linear map matters. It will be composed into
+          another Taylor model, so the map will be involved in Taylor model
+          arithmetic and as such influences the computed remainders. =#
         S_tmv = linear_map(S_, unit_box, vars)
         # Set U_{l, j+1} := U_{l, j+1} ◦ S_(j+1)
         tmv_left = [tm(S_tmv) for tm in tmv_left]
@@ -471,7 +381,7 @@ Ur0 = id([0 * v for v in vars], IntervalBox(fill(-1..1, length(dom))...))
 
 # TODO: For now ignore Ul0, just plug in the values from the example
 # in the paper.
-Uljp1, Urjp1 = precondition(Uljp1, Ur0, false)
+Uljp1, Urjp1 = precondition(Uljp1, Ur0, vars, false)
 
 println("domain(Uljp1) ="); display(domain.(Uljp1)); println()
 println("Uljp1 ="); display(Uljp1); println()
