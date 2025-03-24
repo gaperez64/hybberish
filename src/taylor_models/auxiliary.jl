@@ -95,3 +95,9 @@ constant_polynomial(a::TaylorN) = TaylorN(a[0], a.order)
 constant_polynomial(a::Vector{T}) where {T<:Number} = constant_polynomial.(a)
 
 constant_polynomial(a::Number) = a
+
+constant_polynomial(a::TaylorModelN) = constant_polynomial(polynomial(a))
+
+linear_polynomial(a::TaylorModelN) = linear_polynomial(polynomial(a))
+
+nonlinear_polynomial(a::TaylorModelN) = nonlinear_polynomial(polynomial(a))

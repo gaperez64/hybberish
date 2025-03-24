@@ -57,6 +57,16 @@ TaylorModelN(a::Interval{T}, ord::Integer, dom::IntervalBox{N,T}) where {N,T} =
 TaylorModelN(a::T, ord::Integer, dom::IntervalBox{N,T}) where {N,T} =
     TaylorModelN(TaylorN(a, ord), zero(dom[1]), dom)
 
+"""The TaylorModelN constructor shortcut for overwriting the remainder."""
+TaylorModelN(a::TaylorModelN{N,T,S}, rem::Interval{S}) where {N,T,S} =
+    TaylorModelN(polynomial(a), rem, domain(a))
+
+"""The TaylorModelN constructor shortcut for overwriting the domain."""
+TaylorModelN(a::TaylorModelN{N,T,S}, dom::IntervalBox{N,T}) where {N,T,S} =
+    TaylorModelN(polynomial(a), remainder(a), dom)
+
+
+
 #
 # Getter functions.
 #

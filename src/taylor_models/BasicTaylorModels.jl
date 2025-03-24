@@ -25,7 +25,8 @@ import Base: ==, +, -, *, /, ^, in, zero, one,
     inv, sqrt, exp, log, sin, cos, tan,
     asin, acos, atan, sinh, cosh, tanh
 
-import TaylorSeries: pretty_print, get_order, evaluate, constant_term
+import TaylorSeries: pretty_print, get_order, evaluate, constant_term,
+    linear_polynomial, nonlinear_polynomial
 
 
 include("constructors.jl")
