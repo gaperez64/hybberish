@@ -4,12 +4,15 @@
 include("../src/tm_integration.jl")
 
 
+"""Generate the unit IntervalBox [-1, 1]^n where n = length(a)."""
+unitbox(a) = IntervalBox(fill(-1..1, length(a)))
+
 """Normalize the polynomials via affine transformation so that the domains become [-1, 1]^n."""
 normalize_taylor(tmv::Vector{TaylorModelN{N,T,S}}) where {N,T,S} = [
     TaylorModelN(
         TaylorSeries.normalize_taylor(polynomial(tm), domain(tm)),
         remainder(tm),
-        IntervalBox(fill(-1..1, length(domain(tm)))...)
+        unitbox(domain(tm))
     )
     for tm in tmv
 ]
@@ -213,10 +216,9 @@ function precondition(
     @assert allequal(domain.(tmv_right)) "All right TM domains must be equal."
 
     # TODO: At what point should the normalization of domain occur?
-    unit_box = IntervalBox(fill(-1..1, length(vars))...)
-    @assert(all([domain(tm) != unit_box for tm in tmv_left]),
+    @assert(all([domain(tm) != unitbox(vars) for tm in tmv_left]),
         "The left Taylor models must NOT have normalized domains as a convention.")
-    @assert(all([domain(tm) == unit_box for tm in tmv_right]),
+    @assert(all([domain(tm) == unitbox(vars) for tm in tmv_right]),
         "The right Taylor models MUST have normalized domain by definition.")
 
     tmv_left = normalize_taylor(tmv_left)
@@ -324,7 +326,7 @@ function precondition(
           The domain of this linear map matters. It will be composed into
           another Taylor model, so the map will be involved in Taylor model
           arithmetic and as such influences the computed remainders. =#
-        S_tmv = linear_map(S_, unit_box, vars)
+        S_tmv = linear_map(S_, unitbox(vars), vars)
         # Set U_{l, j+1} := U_{l, j+1} ◦ S_(j+1)
         tmv_left = [tm(S_tmv) for tm in tmv_left]
     end
@@ -377,7 +379,7 @@ Uljp1 = [
 ]
 # FIXME: Is this even a correct identity map?
 #        Because the variables are just 0 constants!
-Ur0 = id([0 * v for v in vars], IntervalBox(fill(-1..1, length(dom))...))
+Ur0 = id([0 * v for v in vars], unitbox(dom))
 
 # TODO: For now ignore Ul0, just plug in the values from the example
 # in the paper.
