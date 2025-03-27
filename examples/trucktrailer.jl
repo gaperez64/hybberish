@@ -28,14 +28,19 @@ function vector_field!(du::Vector, u::Vector)
 	du[6] = zero(u[6])  # dtheta0 remains constant
 end
 
+"""Run a number of trucktrailer TM integration iterations.
+
+    @return The vector of generated initial set rectangles.
+            Return ::Nothing in case of an exception.
+"""
 function ttintegration(;
-        x::Interval   = 0.00..0.00,
-        y::Interval   = 0.25..0.25,
+        x::Interval       = 0.00..0.00,
+        y::Interval       = 0.25..0.25,
         theta0::Interval  = 1.57..1.57,
         theta1::Interval  = 1.57..1.57,
-        v0::Interval  = 0.10..0.30,
+        v0::Interval      = 0.10..0.30,
         dtheta0::Interval = 0.20..0.40,
-        t::Interval   = 0.00..0.00,
+        t::Interval       = 0.00..0.00,
         truncation_degree::Integer=4,
         time_step_size::Float64=0.01,
         nr_integration_iterations::Integer=1)
@@ -62,9 +67,9 @@ function ttintegration(;
     # Specify time as a finite time horizon.
     time_horizon::Float64 = nr_iterations * tstep
 
-    # The scale factor for when contractiveness fails.
+    # The number of times to reattempt the contractiveness test if it fails.
     nr_contractiveness_tries = 10
-    # The number of refinements to perform at most.
+    # The number of safe remainder refinements to perform at most.
     nr_refinements = 10
     # Quit refinement early if the improvement a single refinement
     # provides falls below this threshold.
@@ -74,33 +79,92 @@ function ttintegration(;
     scale_factor = 2.0
 
 
-    boxes::Vector{IntervalBox} = []
-    fboxes::Vector{IntervalBox} = []
+    # The list of initial sets produced by TM integration.
+    # Each initial set is represented as a box / rectangle.
+    initial_sets::Vector{IntervalBox} = []
     try
         # Suppress the 'println' statements 
-        redirect_stdout(devnull)
-
-        boxes, fboxes = tm_integration(
-            vector_field!,
-            initial,
-            ord,
-            (-0.1..0.1),
-            time_horizon,
-            tstep,
-            nr_contractiveness_tries,
-            nr_refinements,
-            SCALE=scale_factor,
-            REFINEMENT_EPS=refinement_eps
-        )
-
-        redirect_stdout(stdout)
+        redirect_stdout(devnull) do
+            initial_sets, _ = tm_integration(
+                vector_field!,
+                initial,
+                ord,
+                (-0.1..0.1),
+                time_horizon,
+                tstep,
+                nr_contractiveness_tries,
+                nr_refinements,
+                SCALE=scale_factor,
+                REFINEMENT_EPS=refinement_eps
+            )
+        end
 
     catch e
-        redirect_stdout(stdout)
-        throw("TM Integration failed with the following exception: $e")
+        @error "TM Integration failed with the following exception: $e"
+        return nothing
     end
 
-    return boxes, fboxes
+    return initial_sets
+end
+
+"""Run one singular trucktrailer TM integration iteration.
+
+    @return The components (x, y, θ0, θ1) of the result initial set rectangle.
+            Return ::Nothing in case of an exception.
+"""
+function ttintegration(
+        x::Interval,
+        y::Interval,
+        theta0::Interval,
+        theta1::Interval,
+        v0::Interval,
+        dtheta0::Interval,
+        t::Interval,
+        time_step_size::Float64)
+    # Run the more general version of this function to generate the
+    # singular initial set rectangle for ONE iteration.
+    boxes = ttintegration(
+        x=x,y=y,theta0=theta0,theta1=theta1,v0=v0,dtheta0=dtheta0,t=t,
+        time_step_size=time_step_size,
+        nr_integration_iterations=1)
+
+    if boxes isa Nothing
+        return nothing
+    end
+
+    # Extract the components (x, y, θ0, θ1) of the first / resulting
+    # initial set rectangle.
+    return IntervalBox(boxes[1][1:4]...)
+end
+
+"""Parse the ARGS builtin global, expecting all arguments to be intervals
+    of the form a..b where a and b are floats.
+
+    @param[out] input The parsed input intervals. Should be initialized with
+                      default values.
+"""
+function parse_input_intervals!(input::Vector{I})::Nothing where {I<:Interval}
+    args = ARGS
+
+    # There cannot be more input args than the number of variables
+    # that tructrailer supports.
+    if length(ARGS) > length(input)
+        @warn "Truncating redundant input arguments."
+        args = args[1:length(input)]
+    end
+
+    # Parse string representations of intervals into actual intervals.
+    #
+    # Strip all whitespace characters.
+    args = [replace(a, ' ' => "") for a in ARGS]
+    # Parse the inputs as intervals.
+    for (idx, a) in enumerate(args)
+        bounds = split(a, "..")
+        @assert(length(bounds) == 2,
+            "Could not split an input on '..' to obtain the lo and hi.")
+        lo, hi = bounds
+        input[idx] = interval(parse(Float64, lo), parse(Float64, hi))
+    end
 end
 
 
@@ -109,15 +173,36 @@ end
 # If the script is called from the CLI, then run this code.
 if abspath(PROGRAM_FILE) == @__FILE__
 
-    println("Call TM integration ...")
-    # TODO: Call this function to compute one trucktrailer initial set!
-    boxes::Vector{IntervalBox},
-    fboxes::Vector{IntervalBox} = ttintegration()
-    println("... done!")
+    # Specify default values of the variable domains for the CLI.
+    input::Vector{Interval{Float64}} = [
+        0.00..0.00, # x
+        0.25..0.25, # y
+        1.57..1.57, # θ0
+        1.57..1.57, # θ1
+        0.10..0.30, # v0
+        0.20..0.40, # dθ0
+        0.00..0.00  # t
+    ]
 
-    @assert length(boxes) > 0 "Expected at least one box as output."
-    box = boxes[begin]
+    if length(ARGS) > 7
+        @error "Redundant arguments are not allowed, to prevent typos in the "*
+               "input. Specify at most 7 interval arguments. Only leave "*
+               "whitespace between input arguments."
+        exit(0)
+    end
 
-    println("### The computed initial set ###"); display(box); println()
+    # Parse the CLI arguments and overwrite zero or more elements of the
+    # default input values.
+    try
+        parse_input_intervals!(input)
+
+        # Run TM integration: obtain the initial set for the first four variables.
+        result = ttintegration(input..., 0.01)
+        @assert result !== nothing "TM integration failed."
+        x, y, theta0, theta1 = result
+        println("(x, y, θ0, θ1) = $((x, y, theta0, theta1))")
+    catch e
+        @error "Input parsing OR TM integration failed: $e"
+    end
 end
 
