@@ -188,7 +188,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
         @error "Redundant arguments are not allowed, to prevent typos in the "*
                "input. Specify at most 7 interval arguments. Only leave "*
                "whitespace between input arguments."
-        exit(0)
+        exit(1)
     end
 
     # Parse the CLI arguments and overwrite zero or more elements of the
@@ -203,6 +203,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
         println("(x, y, θ0, θ1) = $((x, y, theta0, theta1))")
     catch e
         @error "Input parsing OR TM integration failed: $e"
+        exit(1)
     end
 end
 
