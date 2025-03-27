@@ -46,7 +46,7 @@ nr_refinements = 5
 refinement_eps = 0.001
 # The scale factor with which to widen the initial safe remainder
 # estimate when the contractiveness check fails.
-scale = 2.0
+scale_factor = 2.0
 
 
 
@@ -61,7 +61,7 @@ boxes, fboxes = tm_integration(
     tstep,
     nr_contractiveness_tries,
     nr_refinements,
-    SCALE=scale,
+    SCALE=scale_factor,
     REFINEMENT_EPS=refinement_eps
 )
 
