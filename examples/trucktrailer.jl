@@ -31,10 +31,10 @@ end
 function ttintegration(;
         x::Interval   = 0.00..0.00,
         y::Interval   = 0.25..0.25,
-        θ0::Interval  = 1.57..1.57,
-        θ1::Interval  = 1.57..1.57,
+        theta0::Interval  = 1.57..1.57,
+        theta1::Interval  = 1.57..1.57,
         v0::Interval  = 0.10..0.30,
-        dθ0::Interval = 0.20..0.40,
+        dtheta0::Interval = 0.20..0.40,
         t::Interval   = 0.00..0.00,
         truncation_degree::Integer=4,
         time_step_size::Float64=0.01,
@@ -45,13 +45,13 @@ function ttintegration(;
 
     # Initial state variable bounds and domain.
     initial = [
-        ("x",   x),
-        ("y",   y),
-        ("θ0",  θ0),
-        ("θ1",  θ1),
-        ("v0",  v0),
-        ("dθ0", dθ0),
-        ("t",   t),
+        ("x",       x),
+        ("y",       y),
+        ("theta0",  theta0),
+        ("theta1",  theta1),
+        ("v0",      v0),
+        ("dtheta0", dtheta0),
+        ("t",       t),
     ]
     init_values = IntervalBox([e[2] for e in initial])
 
