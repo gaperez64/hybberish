@@ -113,10 +113,10 @@ end
                      If rows is ::Nothing, then process the entire input.
 """
 function ttintegration(ipath::String, opath::String, tstep::Float64; rows=nothing)::Nothing
-    # The input file must exist.
-    !isfile(ipath) && return nothing
-    # The output dir must exist, but the output file may not yet.
-    !isdir(dirname(opath)) && return nothing
+    @assert isfile(ipath) "The input file path does not exist: $ipath"
+    @assert !isempty(opath) "The output file path is empty."
+    @assert((isdir(dirname(opath)) || isempty(dirname(opath))),
+        "The directory '$(dirname(opath))' in output path '$opath' does not exist.")
 
     # Create the output file if it does not exist.
     touch(opath)
