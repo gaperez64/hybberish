@@ -3,6 +3,38 @@ using LinearAlgebra
 include("taylor_models/BasicTaylorModels.jl")
 
 
+"""Generate the unit IntervalBox [-1, 1]^n where n = length(a)."""
+unitbox(a) = IntervalBox(fill(-1..1, length(a)))
+
+"""Normalize the polynomials via affine transformation so that the domains become [-1, 1]^n."""
+normalize_taylor(tmv::Vector{TaylorModelN{N,T,S}}) where {N,T,S} = [
+    TaylorModelN(
+        TaylorSeries.normalize_taylor(polynomial(tm), domain(tm)),
+        remainder(tm),
+        unitbox(domain(tm))
+    )
+    for tm in tmv
+]
+
+"""Construct the TM representation of a Matrix linear map.
+
+    A linear map Matrix is equivalently a linear Taylor model (p, I) with
+    the zero constant part and zero remainder. In other words, p is only
+    allowed to contain terms of exactly order 1, and I = [0, 0].
+
+    Instead of an explicit order value, make use of the variable TaylorN
+    objects to implicitly construct a TaylorN of the correct order.
+    The vars MUST be the variable objects currently in use.
+"""
+function linear_map(linear_coeffs::Matrix{T}, dom::IntervalBox{N,S}, vars::Vector{TaylorN{T}}) where {N,T,S}
+    @assert length(vars) == length(dom) == size(linear_coeffs)[1]
+    return [
+        TaylorModelN(
+            dot(coeffs, vars), 0..0, dom)
+        for coeffs::Vector{T} in eachrow(linear_coeffs)
+    ]
+end
+
 """Create the identity map of an interval box.
 
     The identity map is a Taylor model vector (p, I) so that `p(box) + I = box`.
@@ -24,7 +56,7 @@ include("taylor_models/BasicTaylorModels.jl")
     @return The identity map.
 """
 function id(vars::Vector{TaylorN{T}}, doms::IntervalBox{N,S})::Vector{TaylorModelN{N,T,S}} where {N,T,S}
-    @assert(length(vars) == length(doms),
+    @assert(length(vars) <= length(doms),
         "Each variable must specify its domain for the identity map.")
     return [
         # Choose `(p, I) = (x, [0, 0])`  so that  `(p, I)(b) = b + [0, 0] = b`.

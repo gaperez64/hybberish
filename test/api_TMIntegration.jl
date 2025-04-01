@@ -4,38 +4,6 @@
 include("../src/tm_integration.jl")
 
 
-"""Generate the unit IntervalBox [-1, 1]^n where n = length(a)."""
-unitbox(a) = IntervalBox(fill(-1..1, length(a)))
-
-"""Normalize the polynomials via affine transformation so that the domains become [-1, 1]^n."""
-normalize_taylor(tmv::Vector{TaylorModelN{N,T,S}}) where {N,T,S} = [
-    TaylorModelN(
-        TaylorSeries.normalize_taylor(polynomial(tm), domain(tm)),
-        remainder(tm),
-        unitbox(domain(tm))
-    )
-    for tm in tmv
-]
-
-"""Construct the TM representation of a Matrix linear map.
-
-    A linear map Matrix is equivalently a linear Taylor model (p, I) with
-    the zero constant part and zero remainder. In other words, p is only
-    allowed to contain terms of exactly order 1, and I = [0, 0].
-"""
-# Instead of an explicit order value, make use of the variable TaylorN
-# objects to implicitly construct a TaylorN of the correct order.
-# The vars MUST be the variable objects currently in use.
-function linear_map(linear_coeffs::Matrix{T}, dom::IntervalBox{N,S}, vars::Vector{TaylorN{T}}) where {N,T,S}
-    @assert length(vars) == length(dom) == size(linear_coeffs)[1]
-    return [
-        TaylorModelN(
-            dot(coeffs, vars), 0..0, dom)
-        for coeffs::Vector{T} in eachrow(linear_coeffs)
-    ]
-end
-
-
 
 #
 # Test TM integration TaylorModelN identity map auxiliary function.
@@ -197,14 +165,7 @@ display(polys_lin_map)
 function precondition(
         tmv_left::Vector{TaylorModelN{N,T,S}},
         tmv_right::Vector{TaylorModelN{N,T,S}},
-        vars::Vector{TaylorN{T}},
-        bound_range::Bool) where {N,T,S}
-
-    println("## Inputs")
-    println("Uljp1 ="); display(tmv_left); println()
-    println("domain(Uljp1) ="); display(domain.(tmv_left)); println()
-    println("Urj ="); display(tmv_right); println()
-    println("domain(Urj) ="); display(domain.(tmv_right)); println("\n\n")
+        vars::Vector{TaylorN{T}}) where {N,T,S}
 
     # We rely on unmodified variables to construct linear maps.
     @assert vars == get_variables() "The variables must be unmodified."
@@ -215,28 +176,9 @@ function precondition(
     @assert allequal(domain.(tmv_left)) "All left TM domains must be equal."
     @assert allequal(domain.(tmv_right)) "All right TM domains must be equal."
 
-    # TODO: At what point should the normalization of domain occur?
-    @assert(all([domain(tm) != unitbox(vars) for tm in tmv_left]),
-        "The left Taylor models must NOT have normalized domains as a convention.")
-    @assert(all([domain(tm) == unitbox(vars) for tm in tmv_right]),
-        "The right Taylor models MUST have normalized domain by definition.")
-
+    # FIXME: Should normalization occur inside this function, or outside?
     tmv_left = normalize_taylor(tmv_left)
-
-    println("## Normalized Inputs")
-    println("LEFT ="); display(tmv_left)
-    display(domain(tmv_left[1])); println()
-    println("RIGHT ="); display(tmv_right)
-    display(domain(tmv_right[1])); println("\n\n")
-
-    # Note, Julia's broadcasting for vectors will be heavily used
-    # explicitly (broadcasting operator) and implicitly (function that
-    # operate on vectors) to avoid excessive for loops or list comprehension.
-    #
-    # We asserted that the domains within a TaylorModelN vec were the same.
-    # So one domain object per vector suffices.
     dom_left::IntervalBox{N,S} = domain(tmv_left[1])
-
 
     # (I)
     # Compute the QR factorization of the linear part of U_{l,j+1}
@@ -245,120 +187,116 @@ function precondition(
     linear_coeffs::Matrix{T} = stack([p[1].coeffs for p in polynomial.(tmv_left)], dims=1)
     Q::Matrix{T} = Matrix(qr(linear_coeffs).Q)
 
-    # TODO: Delete this!
-    # The Q matrix computed in the example has the same as the once computed above,
-    # but the signs of some of the numbers are different.
-    Q = [0.982762 -0.184876; 0.184876 0.982762]
-
-    println("## (I)")
-    println("linear coeffs ="); display(linear_coeffs); println()
-    println("Q ="); display(Q); println("\n\n")
+    # FIXME: Ad hoc: modify the domain of tmv_right in anticipation that the
+    # composition with the QT TMs will result in the domain we set in these
+    # lines will actually be induced by the composition.
+    tmv_right = [ TaylorModelN(tm, dom_left) for tm in tmv_right ]
 
     # (II)
     #
     # Shift (add) all non-constant terms AND remainders of U_{l,j+1} to U_{r,j}.
-    tmv_shift  = tmv_left - constant_polynomial(tmv_left)
-    tmv_right += tmv_shift
-    tmv_left  -= tmv_shift
+    tmv_shift = tmv_left - constant_polynomial(tmv_left)
+    tmv_right = [ tm(tmv_right) for tm in tmv_shift ]
+    tmv_left -= tmv_shift
     # The remainders were shifted from left to right, so set left's to zero.
     # In interval arithmetic generally `[a, b] - [a, b] != [0, 0]`.
     tmv_left = [ TaylorModelN(tm, 0..0) for tm in tmv_left ]
 
-    println("## (II.1)")
-    println("LEFT  ="); display(tmv_left); println()
-    println("RIGHT ="); display(tmv_right); println("\n\n")
-
     # Make Q the linear part of U_{l, j+1}.
     tmv_left += linear_map(Q, dom_left, vars)
-
-    println("## (II.2)")
-    println("LEFT ="); display(tmv_left); println("\n\n")
 
     # Apply Q^-1 on U_{r,j}.
     QT::Matrix{T} = transpose(Q)
     # FIXME: Use an arbitrary domain. See a fixme below for more info.
     #        The linear map's domain is NOT involved in remainder computation;
     #        This linear map is just a vehicle for TM evaluation.
-    arbitrary_domain = IntervalBox([tm() for tm in tmv_right]...)
+    # FIXME: Don't use arbitrary domain! Use the domain of the left Taylor models
+    # specifically, because Q originates from the left Taylor Models?
+    arbitrary_domain = IntervalBox([tm() for tm in tmv_right]...) # FIXME: but QT originates from Ul, so why not dom_left?????
     QT_tmv = linear_map(QT, arbitrary_domain, vars)
     tmv_right = [ tm(tmv_right) for tm in QT_tmv ]
 
-    println("## (II.3)")
-    println("Q^T ="); display(QT); println()
-    println("RIGHT ="); display(tmv_right); println("\n\n")
+    # (III)
+    #
+    # Bound the range of the new U_{r,j}.
+    # In other words, modify the domain of the independent variables.
+    # (IV)
+    # Apply a scaling matrix S_(j+1) on U_{r,j} such that each component of the
+    # range of U_{r,j+1} := S_(j+1)^-1 ◦ U_{r,j} is contained in [-1, 1] and
+    # spans [-1, 1] approximately.
+    Sinv = scale(tmv_right)
+    # Convert the matrix to an equivalent form: a linear map Taylor model vector.
+    #=
+        FIXME: We really don't care about the domain this linear map!
+        ==> To satisfy the requirement of the composition "g(f(x))" that
+        the range of "f(x)" must be contained in the domain of "g", we sadly
+        have to provide some arbitrary domain value that satisfies the
+        requirement.
+        ==> Cheat by making the range of the TMs domain of the linear map.
+        The "iscontained" check will exactly check that the range is contained
+        in the domain, so this choice of domain will always work. =#
+    arbitrary_domain = IntervalBox([tm() for tm in tmv_right]...)
+    Sinv_tmv = linear_map(Sinv, arbitrary_domain, vars)
+    # Compute U_{r,j+1} := S ◦ U_{r,j} so that each component of the range of
+    # the composition is contained in [-1, 1].
+    # FIXME: But, does the range also span approximately [-1, 1]?
+    tmv_right = [ tm(tmv_right) for tm in Sinv_tmv ]
 
-    if bound_range
-        # (III)
-        #
-        # Bound the range of the new U_{r,j}.
-        # In other words, modify the domain of the independent variables.
-        dom_left = IntervalBox([tm() for tm in tmv_right]...)
-        tmv_left = [ TaylorModelN(tm, dom_left) for tm in tmv_left ]
+    # (V)
+    S_ = inv(Sinv)
+    # Convert the matrix to an equivalent form: a linear map Taylor model vector.
+    #=
+        FIXME: Will this linear map domain ever trigger an "iscontained" assertion?
+        The domain of this linear map matters. It will be composed into
+        another Taylor model, so the map will be involved in Taylor model
+        arithmetic and as such influences the computed remainders. =#
+    S_tmv = linear_map(S_, unitbox(vars), vars)
+    # Set U_{l, j+1} := U_{l, j+1} ◦ S_(j+1)
+    tmv_left = [ tm(S_tmv) for tm in tmv_left ]
 
-    else
-        # (IV)
-        # Apply a scaling matrix S_(j+1) on U_{r,j} such that each component of the
-        # range of U_{r,j+1} := S_(j+1)^-1 ◦ U_{r,j} is contained in [-1, 1] and
-        # spans [-1, 1] approximately.
-        Sinv = scale(tmv_right)
-        # Convert the matrix to an equivalent form: a linear map Taylor model vector.
-        #= 
-           FIXME: We really don't care about the domain this linear map!
-           ==> To satisfy the requirement of the composition "g(f(x))" that
-           the range of "f(x)" must be contained in the domain of "g", we sadly
-           have to provide some arbitrary domain value that satisfies the
-           requirement.
-           ==> Cheat by making the range of the TMs domain of the linear map.
-           The "iscontained" check will exactly check that the range is contained
-           in the domain, so this choice of domain will always work. =#
-        arbitrary_domain = IntervalBox([tm() for tm in tmv_right]...)
-        Sinv_tmv = linear_map(Sinv, arbitrary_domain, vars)
-        # Compute U_{r,j+1} := S ◦ U_{r,j} so that each component of the range of
-        # the composition is contained in [-1, 1].
-        # FIXME: But, does the range also span approximately [-1, 1]?
-        tmv_right = [tm(tmv_right) for tm in Sinv_tmv]
-        
-        # (V)
-        S_ = inv(Sinv)
-        # Convert the matrix to an equivalent form: a linear map Taylor model vector.
-        #=
-          FIXME: Will this linear map domain ever trigger an "iscontained" assertion?
-          The domain of this linear map matters. It will be composed into
-          another Taylor model, so the map will be involved in Taylor model
-          arithmetic and as such influences the computed remainders. =#
-        S_tmv = linear_map(S_, unitbox(vars), vars)
-        # Set U_{l, j+1} := U_{l, j+1} ◦ S_(j+1)
-        tmv_left = [tm(S_tmv) for tm in tmv_left]
-    end
+    println("Range(tmv_right) ="); display(IntervalBox([tm() for tm in tmv_right]...)); println();
+
+    # For practical purposes, the range of each component of the right
+    # Taylor models should be contained in [-1, 1].
+    # FIXME: Make the check approximate, we need to account for
+    #        over-approximate arithmetic resulting in range bounds
+    #        that are inside [-1, 1] with a small tolerance.
+    @assert all(tm -> isapprox(mag(tm()), 1.0, atol=0.01), tmv_right)
 
     return tmv_left, tmv_right
 end
 
 
 
-k = 10
+# k = 10
 set_variables("x y", order=2*k)
 vars = get_variables(k)
 
-# TODO: Construct U_{l,0} and U_{r,0}
-# TODO Use  0.051  as bound instead of 0.O5 to trick the precondition
-# assertion below. IntervalArithmetic is being annoying.
-initial_dom = IntervalBox(-0.051..0.051, -0.051..0.051)
-Ul0 = id(vars, initial_dom) # TODO: Is this how to construct Ul0????
-Ul0 = scale(Ul0)*Ul0 # FIXME: Is it even allowed to scale the initial set???
+initial_dom = IntervalBox(0.95..1.05, -1.05..(-0.95))
+initial_mid = mid(initial_dom)
+initial_dom = IntervalBox((initial_dom.v - initial_mid)...)
+shifted_vars = [v+i for (v,i) in zip(vars, initial_mid)]
 
-# TODO: normalize (TaylorSeries.normalize_taylor) these TMs?
-#       Because it should have domains [-1, 1]^n ???
+# The right TMs are an identity map in the space (ODE) variables.
 Ur0 = id(vars, initial_dom)
-Ur0 = normalize_taylor(Ur0)
+# The left TMs are the Taylor model representation of the interval initial set.
+Ul0 = id(shifted_vars, initial_dom)
 
-rng = IntervalBox([tm() for tm in Ul0]...)
+println("### Initial TM vectors.")
+println("Ul ="); display(Ul0); println()
+println("Ur ="); display(Ur0); println()
+println("domain(Ul) ="); display(domain.(Ul0)); println()
+println("domain(Ur) ="); display(domain.(Ur0)); println()
+
+
+
+rng = IntervalBox([tm() for tm in Ur0]...)
 # Explicitly enforce equal domains so we can pick the domain of a TM.
 @assert allequal(domain.(Ur0)) "All domains must be equal."
 # Verify that the composition of Ul0 and Ur0 is validly preconditioned.
-# The composition is called preconditioned iff, `Rng(Ul0) ⊆ domain(Ur0)`.
+# The composition is called preconditioned iff, `Rng(Ur0) ⊆ domain(Ul0)`.
 # FIXME: Cite definition 5.2 in M. NEHER.
-@assert issubset(rng, domain(Ur0[1])) "$rng SUBEQ $(domain(Ur0[1]))"
+@assert issubset(rng, domain(Ul0[1])) "$rng SHOULD SUBSETEQ $(domain(Ul0[1]))"
 
 
 
@@ -367,7 +305,7 @@ rng = IntervalBox([tm() for tm in Ul0]...)
 # These Taylor models should be the ones from the example above Algorithm 6.1
 # in the paper by Neher, M. et al.
 dom = IntervalBox(-0.05..0.05, -0.05..0.05)
-Uljp1 = [
+Ul1 = [
     TaylorModelN(
          0.904667 + 1.01*x + 0.10*y,
          (-5.09307e-5)..(7.86167e-5),
@@ -377,15 +315,39 @@ Uljp1 = [
         (-1.75707e-4)..(1.60933e-4),
         dom),
 ]
-# FIXME: Is this even a correct identity map?
-#        Because the variables are just 0 constants!
-Ur0 = id([0 * v for v in vars], unitbox(dom))
+Ul1, Ur1 = precondition(Ul1, Ur0, vars)
 
-# TODO: For now ignore Ul0, just plug in the values from the example
-# in the paper.
-Uljp1, Urjp1 = precondition(Uljp1, Ur0, vars, false)
 
-println("domain(Uljp1) ="); display(domain.(Uljp1)); println()
-println("Uljp1 ="); display(Uljp1); println()
-println("domain(Urjp1) ="); display(domain.(Urjp1)); println()
-println("Urjp1 ="); display(Urjp1); println()
+println("#### Preconditioning output ITERATION 1")
+println("domain(Ul1) ="); display(domain.(Ul1)); println()
+println("Ul1 ="); display(Ul1); println()
+println("range(Ul1) ="); display([tm() for tm in Ul1]); println()
+println("domain(Ur1) ="); display(domain.(Ur1)); println()
+println("Ur1 ="); display(Ur1); println()
+println("range(Ur1) ="); display([tm() for tm in Ur1]); println()
+
+
+# The integrated left taylor model, the result of naive TM integration.
+# These Taylor models should be the ones from the example above Algorithm 6.1
+# in the paper by Neher, M. et al.
+dom = IntervalBox(-1..1, -1..1)
+Ul2 = [
+    TaylorModelN(
+         0.817551 + 0.0664561*x - 0.00433580*y,
+         (-5.72276e-5)..(9.15947e-5),
+         dom),
+    TaylorModelN(
+        -0.835195 + 0.0233831*x + 0.0471479*y +0.000418026*x^2 -
+            0.000117424*x*y + 0.00000824612*y^2,
+        (-1.80914e-4)..(1.80850e-4),
+        dom),
+]
+Ul2, Ur2 = precondition(Ul2, Ur1, vars)
+
+println("#### Preconditioning output ITERATION 2")
+println("domain(Ul2) ="); display(domain.(Ul2)); println()
+println("Ul2 ="); display(Ul2); println()
+println("range(Ul2) ="); display([tm() for tm in Ul2]); println()
+println("domain(Ur2) ="); display(domain.(Ur2)); println()
+println("Ur2 ="); display(Ur2); println()
+println("range(Ur2) ="); display([tm() for tm in Ur2]); println()
