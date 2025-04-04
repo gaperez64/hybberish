@@ -27,10 +27,12 @@ normalize_taylor(tmv::Vector{TaylorModelN{N,T,S}}) where {N,T,S} = [
     The vars MUST be the variable objects currently in use.
 """
 function linear_map(linear_coeffs::Matrix{T}, dom::IntervalBox{N,S}, vars::Vector{TaylorN{T}}) where {N,T,S}
-    @assert length(vars) == length(dom) == size(linear_coeffs)[1]
+    @assert(length(vars) == size(linear_coeffs)[1],
+        "Each linear expression must have one component for each var.")
+    @assert(length(vars) <= length(dom),
+        "Each var must define a domain component.")
     return [
-        TaylorModelN(
-            dot(coeffs, vars), 0..0, dom)
+        TaylorModelN(dot(coeffs, vars), 0..0, dom)
         for coeffs::Vector{T} in eachrow(linear_coeffs)
     ]
 end

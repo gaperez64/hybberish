@@ -111,19 +111,13 @@ display(polys_lin_map)
 
 """Perform step 2 of Algorithm 6.1 (QR Preconditioned Taylor model method).
 
-    This routine follows section 3.3.2 of Xin Chen's thesis, and makes use of
+    This routine draw from section 3.3.2 of Xin Chen's thesis, and makes use of
     the references cited there by Xin Chen.
-        1) [Loh92] R. J. Lohner. Computation of guaranteed enclosures for the
-                   solutions of ordinary initial and boundary value problems.
-                   In J. R. Cash et al., editor, Computational ordinary
-                   differential equations, pages 425-435. Clarendon Press,
-                   1992.
-        2) [MB05]  K. Makino and M. Berz. Suppression of the wrapping effect by
+        1) [MB05]  K. Makino and M. Berz. Suppression of the wrapping effect by
                    taylor modelbased verified integrators: Long-term
                    stabilization by preconditioning. International Journal of
                    Differential Equations and Applications, 10(4):353-384,
                    2005.
-
 
     Also see "6. Preconditioned Quadratic Example." and
     "Algorithm 6.1 (QR preconditioned Taylor model method)"in the paper:
@@ -131,35 +125,9 @@ display(polys_lin_map)
         On Taylor model based integration of ODEs. SIAM J. Numerical Analysis.
         45. 236-262. 10.1137/050638448.
 
-
-    Additionally, we take inspiration from the preconditioning in Flowstar.
-    See the TaylorModelVec class constructor, which implements preconditioning.
-    https://github.com/chenxin415/flowstar/blob/b85a3211748cb77b736fe4ad42ee02d8d2b81148/flowstar-toolbox/TaylorModel.h#L2838
-
-        TaylorModelVec<DATA_TYPE>::TaylorModelVec(const std::vector<Interval> & box, std::vector<Interval> & domain)
-
-
-    There algorithm recomputes the left and right Taylor model vectors.
-    It must ensure that the inclusion property holds; the true flow must
-    be contained in the recomputed left Taylor model vector.
-    There are two possible solutions to ensure the inclusion property.
-        1) Bound the right Taylor models.
-           We can recompute the domain of the space (ODE) variables so
-           that the inclusion property holds.
-        2) Modify the left and right Taylor models via a scaling matrix
-           so that the inclusion property holds.
-
-
-    inclusion of the true flow in the left Taylor models.
-    If true, bound the domain of the right model to recompute
-    the domain of the left mode.
-
     @param[in] tmv_left The left Taylor models that were integrated in step 1.
     @param[in] tmv_right The right Taylor models that were untouched in step 1.
-    @param[in] vars The space (ODE) variable objects.
-    @param[in] bound_range A boolean switch for choosing how to satisfy the
-                           inclusion property. If true, then recompute the
-                           variable domains. If false, then use a scaling matrix.
+    @param[in] vars The space (ODE) variable objects, plus the time variable object.
     @return The pair of preconditioned left and right Taylor model vectors.
 """
 function precondition(
@@ -176,9 +144,20 @@ function precondition(
     @assert allequal(domain.(tmv_left)) "All left TM domains must be equal."
     @assert allequal(domain.(tmv_right)) "All right TM domains must be equal."
 
+    # Assume the last variable represents time t.
+    t = vars[end]
+    vars_no_t = vars[1:end-1]
+    # NOTE: We assume that neither the left nor right Taylor models contain
+    # time variable t in the polynomial parts. So whatever the value of or
+    # whatever the modifications made to the time domains, it does not affect
+    # the intermediate or final values for preconditioning.
+    timedoml = domain(tmv_left[1]).v[end]
+    unitdom = unitbox(vars)
+
     # FIXME: Should normalization occur inside this function, or outside?
     tmv_left = normalize_taylor(tmv_left)
-    dom_left::IntervalBox{N,S} = domain(tmv_left[1])
+    # Construct a dummy TM because TM composition requires one TM per variable.
+    ttm = TaylorModelN(t, 0..0, unitdom)
 
     # (I)
     # Compute the QR factorization of the linear part of U_{l,j+1}
@@ -188,22 +167,21 @@ function precondition(
     Q::Matrix{T} = Matrix(qr(linear_coeffs).Q)
 
     # FIXME: Ad hoc: modify the domain of tmv_right in anticipation that the
-    # composition with the QT TMs will result in the domain we set in these
-    # lines will actually be induced by the composition.
-    tmv_right = [ TaylorModelN(tm, dom_left) for tm in tmv_right ]
+    # composition with the QT TMs will induce this domain.
+    tmv_right = [ TaylorModelN(tm, unitdom) for tm in tmv_right ]
 
     # (II)
     #
     # Shift (add) all non-constant terms AND remainders of U_{l,j+1} to U_{r,j}.
     tmv_shift = tmv_left - constant_polynomial(tmv_left)
-    tmv_right = [ tm(tmv_right) for tm in tmv_shift ]
+    tmv_right = [ tm(vcat(tmv_right, ttm)) for tm in tmv_shift ]
     tmv_left -= tmv_shift
     # The remainders were shifted from left to right, so set left's to zero.
     # In interval arithmetic generally `[a, b] - [a, b] != [0, 0]`.
     tmv_left = [ TaylorModelN(tm, 0..0) for tm in tmv_left ]
 
     # Make Q the linear part of U_{l, j+1}.
-    tmv_left += linear_map(Q, dom_left, vars)
+    tmv_left += linear_map(Q, unitdom, vars_no_t)
 
     # Apply Q^-1 on U_{r,j}.
     QT::Matrix{T} = transpose(Q)
@@ -212,9 +190,9 @@ function precondition(
     #        This linear map is just a vehicle for TM evaluation.
     # FIXME: Don't use arbitrary domain! Use the domain of the left Taylor models
     # specifically, because Q originates from the left Taylor Models?
-    arbitrary_domain = IntervalBox([tm() for tm in tmv_right]...) # FIXME: but QT originates from Ul, so why not dom_left?????
-    QT_tmv = linear_map(QT, arbitrary_domain, vars)
-    tmv_right = [ tm(tmv_right) for tm in QT_tmv ]
+    arbitrary_domain = IntervalBox([tm() for tm in tmv_right]..., ttm())
+    QT_tmv = linear_map(QT, arbitrary_domain, vars_no_t)
+    tmv_right = [ tm(vcat(tmv_right, ttm)) for tm in QT_tmv ]
 
     # (III)
     #
@@ -235,12 +213,12 @@ function precondition(
         ==> Cheat by making the range of the TMs domain of the linear map.
         The "iscontained" check will exactly check that the range is contained
         in the domain, so this choice of domain will always work. =#
-    arbitrary_domain = IntervalBox([tm() for tm in tmv_right]...)
-    Sinv_tmv = linear_map(Sinv, arbitrary_domain, vars)
+    arbitrary_domain = IntervalBox([tm() for tm in tmv_right]..., ttm())
+    Sinv_tmv = linear_map(Sinv, arbitrary_domain, vars_no_t)
     # Compute U_{r,j+1} := S ◦ U_{r,j} so that each component of the range of
     # the composition is contained in [-1, 1].
     # FIXME: But, does the range also span approximately [-1, 1]?
-    tmv_right = [ tm(tmv_right) for tm in Sinv_tmv ]
+    tmv_right = [ tm(vcat(tmv_right, ttm)) for tm in Sinv_tmv ]
 
     # (V)
     S_ = inv(Sinv)
@@ -250,11 +228,21 @@ function precondition(
         The domain of this linear map matters. It will be composed into
         another Taylor model, so the map will be involved in Taylor model
         arithmetic and as such influences the computed remainders. =#
-    S_tmv = linear_map(S_, unitbox(vars), vars)
+    S_tmv = linear_map(S_, unitdom, vars_no_t)
     # Set U_{l, j+1} := U_{l, j+1} ◦ S_(j+1)
-    tmv_left = [ tm(S_tmv) for tm in tmv_left ]
+    tmv_left = [ tm(vcat(S_tmv, ttm)) for tm in tmv_left ]
 
     println("Range(tmv_right) ="); display(IntervalBox([tm() for tm in tmv_right]...)); println();
+
+    # Retain the input time components.
+    tmv_left  = [
+        TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
+        for tm in tmv_left
+    ]
+    tmv_right = [
+        TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
+        for tm in tmv_right
+    ]
 
     # For practical purposes, the range of each component of the right
     # Taylor models should be contained in [-1, 1].
@@ -268,19 +256,26 @@ end
 
 
 
-# k = 10
-set_variables("x y", order=2*k)
+k=5
+set_variables("x y t", order=2*k)
 vars = get_variables(k)
+x, y, t = vars
 
-initial_dom = IntervalBox(0.95..1.05, -1.05..(-0.95))
+# The time domain should not matter for preconditioning.
+# The inputs to preconditioning should have fixed the time variable t=t_(n+1),
+# to that time variable t does not appear in the polynomial parts of TMs.
+bogus_time_domain = (-Inf)..(Inf)
+
+initial_dom = IntervalBox(0.95..1.05, -1.05..(-0.95), bogus_time_domain)
 initial_mid = mid(initial_dom)
 initial_dom = IntervalBox((initial_dom.v - initial_mid)...)
+@assert length(vars) == length(initial_dom) "Length mismatch."
 shifted_vars = [v+i for (v,i) in zip(vars, initial_mid)]
 
 # The right TMs are an identity map in the space (ODE) variables.
-Ur0 = id(vars, initial_dom)
+Ur0 = id(vars[1:end-1], initial_dom)
 # The left TMs are the Taylor model representation of the interval initial set.
-Ul0 = id(shifted_vars, initial_dom)
+Ul0 = id(shifted_vars[1:end-1], initial_dom)
 
 println("### Initial TM vectors.")
 println("Ul ="); display(Ul0); println()
@@ -296,15 +291,15 @@ rng = IntervalBox([tm() for tm in Ur0]...)
 # Verify that the composition of Ul0 and Ur0 is validly preconditioned.
 # The composition is called preconditioned iff, `Rng(Ur0) ⊆ domain(Ul0)`.
 # FIXME: Cite definition 5.2 in M. NEHER.
-@assert issubset(rng, domain(Ul0[1])) "$rng SHOULD SUBSETEQ $(domain(Ul0[1]))"
-
+dom = IntervalBox(domain(Ul0[1]).v[1:2]...)
+@assert issubset(rng, dom) "$rng SHOULD SUBSETEQ $(dom)"
 
 
 
 # The integrated left taylor model, the result of naive TM integration.
 # These Taylor models should be the ones from the example above Algorithm 6.1
 # in the paper by Neher, M. et al.
-dom = IntervalBox(-0.05..0.05, -0.05..0.05)
+dom = IntervalBox(-0.05..0.05, -0.05..0.05, bogus_time_domain)
 Ul1 = [
     TaylorModelN(
          0.904667 + 1.01*x + 0.10*y,
@@ -330,7 +325,7 @@ println("range(Ur1) ="); display([tm() for tm in Ur1]); println()
 # The integrated left taylor model, the result of naive TM integration.
 # These Taylor models should be the ones from the example above Algorithm 6.1
 # in the paper by Neher, M. et al.
-dom = IntervalBox(-1..1, -1..1)
+dom = IntervalBox(-1..1, -1..1, bogus_time_domain)
 Ul2 = [
     TaylorModelN(
          0.817551 + 0.0664561*x - 0.00433580*y,
