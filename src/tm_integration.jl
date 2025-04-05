@@ -79,12 +79,20 @@ end
     of the Taylor model vector by this factor bounds its range within [-1, 1],
     `Rng(s_i * tmv[i]) in [-1, 1]`.
 
+    Note that `Rng(tmv[i]) = [0, 0]` would result in `s_i = 1/0 = Inf`.
+    Since `[0, 0] in [-1, 1]` already holds, default to `s_i = 1` instead.
+    All other degenerate interval ranges `Rng(tmv[i]) = [a, a]` where `a != 0`
+    result in `s_i = 1/a != Inf` so that no ad hoc correction is needed.
+
     @param[in] tmv The Taylor models whose range to bound within [-1, 1].
     @return The scaling matrix S.
 """
 function scale(tmv::Vector{TaylorModelN{N,T,S}})::Matrix{T} where {N,T,S}
+    # The case where `Rng(tmv[i]) == [0, 0]` would result in `s_i = 1/0 = Inf`.
+    # Since `[0, 0] in [-1, 1]` already, default to `s_i = 1` instead.
+    nozero = v -> v==0 ? 1.0 : v
     # Suppose `Rng(tm_i) = [a, b]` then `s_i = 1 / max{ abs(a), abs(b) }`.
-    return diagm([ 1.0 / mag(tm()) for tm in tmv ])
+    return diagm([ 1.0 / nozero(mag(tm())) for tm in tmv ])
 end
 
 """Perform step 2 of Algorithm 6.1 (QR Preconditioned Taylor model method).
