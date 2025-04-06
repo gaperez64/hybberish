@@ -885,8 +885,9 @@ function tm_integration_QR(
         #       so the preconditioned domain must remain degenerate?
         #       e.g. [a, a]*x + y = [(a*x)+y, (a*x)+y]
         #   ==> For a=0, meaning interval [0, 0], we have [(0*x)+y, (0*x)+y] = [y, y]
+        # FIXME: Evaluating using the initial domain seems wrong.
         doms = IntervalBox(doms.v[1:end-1]..., doms.v[end].hi..doms.v[end].hi)
-        vals = IntervalBox([(Dlij(Drprev))(vals) for Dlij in Dli]..., doms.v[end])
+        vals = IntervalBox([(Dlij(Drprev))(init) for Dlij in Dli]..., doms.v[end])
 
         push!(boxes, vals)
         push!(fboxes, fpipe)
