@@ -52,7 +52,7 @@ scale_factor = 2.0
 
 boxes::Vector{IntervalBox} = []
 fboxes::Vector{IntervalBox} = []
-boxes, fboxes = tm_integration(
+boxes, fboxes = tm_integration_QR(
     f_dot!,
     initial,
     ord,

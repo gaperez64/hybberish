@@ -235,7 +235,7 @@ function precondition(
     # FIXME: Make the check approximate, we need to account for
     #        over-approximate arithmetic resulting in range bounds
     #        that are inside [-1, 1] with a small tolerance.
-    @assert all(tm -> isapprox(mag(tm()), 1.0, atol=0.01), tmv_right)
+    @assert all(rng -> -1.01 < rng.lo && rng.hi < 1.01, [tm() for tm in tmv_right])
 
     return tmv_left, tmv_right
 end
@@ -668,6 +668,241 @@ function tm_integration(
         push!(fboxes, fpipe)
 
         println("                     vals: ", vals)
+        println("\n=================================\n")
+    end
+
+    return boxes, fboxes
+end
+
+
+
+"""The standard TM integration algorithm.
+
+    Compute an overapproximation of the true flow of the
+    system of ODEs represented by the given vector field,
+    as a sequence of flowpipes over partial time horizons
+    [0, δi] of the full time horizon [0, Δ].
+
+    @param[in] vector_field_constructor A constructor for the TM vector
+                                        representation of the vector field.
+    @param[in]                  initial The names and domains of the ODE
+                                        variables.
+    @param[in]                        k The TM arithmetic/truncation order.
+    @param[in]                        J The initial remainder estimate for
+                                        finding a contractive remainder.
+    @param[in]             time_horizon The bounded time horizon.
+    @param[in]           TIME_STEP_SIZE The fixed time step size
+    @param[in] NR_CONTRACTIVENESS_TRIES The number of times to attempt widening
+                                        the remainder estimate in order to find
+                                        a contractive remainder.
+    @param[in]           NR_REFINEMENTS The number of additional remainder
+                                        refinements to apply after finding the
+                                        contractive remainder.
+    @param[in]                    SCALE The scale factor by which to widen the
+                                        remainder estimate when the
+                                        contractiveness test fails.
+    @param[in]           REFINEMENT_EPS The minimum improvement a remainder
+                                        refinement step should affect. If the
+                                        improvement falls below this threshold,
+                                        then we declare the refinement to have
+                                        converged and stop the refinment loop.
+"""
+function tm_integration_QR(
+        vector_field_constructor::Function,
+        initial::Vector{Tuple{String, Interval{S}}},
+        k::Integer,
+        J::Interval{S},
+        TIME_HORIZON::Float64,
+        TIME_STEP_SIZE::Float64,
+        NR_CONTRACTIVENESS_TRIES::Integer,
+        NR_REFINEMENTS::Integer;
+        SCALE::Float64=2.0,
+        REFINEMENT_EPS::Float64 = 0.001) where {S}
+
+    @assert(TIME_HORIZON > 0)  # The time horizon must not be [0, 0].
+    @assert(TIME_STEP_SIZE > 0)
+    @assert(NR_CONTRACTIVENESS_TRIES >= 0)
+    @assert(NR_REFINEMENTS >= 0)
+
+    # Unpack the input parameters.
+    numvars = length(initial)
+    _names::NTuple{numvars, String},
+    _init::NTuple{numvars, Interval{S}} = zip(initial...)
+    names::String = join(_names, ' ')
+    init::IntervalBox{numvars, S}  = IntervalBox(_init)
+    # This rectangle represents the initial set of the current integration
+    # iteration. Its time component should always be degenerate: [t_i, t_i].
+    # This is D_i in the maths.
+    vals::IntervalBox{numvars, S} = deepcopy(init)
+
+    # Double the truncation degree to obtain the TaylorSeries max order.
+    # This accounts for order-related assertions applicable to Taylor
+    # series arithmetic.
+    # The added degrees effectively are a buffer to make TM arithmetic work.
+    kbuffer = 2*k
+
+    # Construct Taylor variables (from TaylorSeries library)
+    # Fix the TaylorSeries internal, max order.
+    set_variables(names, order=kbuffer)
+    # Construct the variables with the actual truncation degree of choice.
+    vars = get_variables(k)
+
+    # Shift the variables so that their domains are centered on 0.
+    # FIXME: This may clash with the cvars centering of time t in the loop?
+    # FIXME: Also center the time var? Only space, right? Preconditioning only uses space?
+    init_mid = mid(init)
+    init = IntervalBox((init.v - init_mid)...)
+    shifted_vars = [v+i for (v,i) in zip(vars, init_mid)]
+
+    # The left TMs are the Taylor model representation of the interval initial set.
+    Dl0 = id(shifted_vars[1:end-1], init)
+    # The right TMs are an identity map in the space (ODE) variables.
+    Dr0 = id(vars[1:end-1], init)
+
+    rng = IntervalBox([tm() for tm in Dr0]...)
+    # Explicitly enforce equal domains so we can pick the domain of a TM.
+    @assert allequal(domain.(Dr0)) "All domains must be equal."
+    # Verify that the composition of Dl0 and Dr0 is validly preconditioned.
+    # The composition is called preconditioned iff, `Rng(Dr0) ⊆ domain(Dl0)`.
+    # See definition 5.2 in M. NEHER (2006).
+    dom = IntervalBox(domain(Dl0[1]).v[1:end-1]...)
+    @assert issubset(rng, dom) "$rng SHOULD SUBSETEQ $(dom)"
+
+    # Rename the variables to make an explicit distinction between the input
+    # TMs and the loop TMs.
+    Dli::Vector{TaylorModelN{numvars,Float64,S}} = Dl0
+    Dri::Vector{TaylorModelN{numvars,Float64,S}} = Dr0
+
+
+    println("Dli = "); display(Dli); println()
+    println("Dri = "); display(Dri); println()
+
+
+    # Setup the output vectors / buffers.
+    boxes::Vector{IntervalBox} = []
+    fboxes::Vector{IntervalBox} = []
+
+    # Round the number of iterations up;
+    # the last time step may exceed the time horizon.
+    NR_ITERATIONS::Integer = ceil(Int, TIME_HORIZON / TIME_STEP_SIZE)
+    # The width threshold below which an interval is considered degenerate.
+    # e.g. diam([-1, 1]) = 2 > threshold  =>  NOT degenerate!
+    degen_threshold = 1.0e-15
+
+    for it = 1:NR_ITERATIONS
+        println("# Start Integration Iteration $it")
+
+        # Get the time component of the initial set.
+        tdom = vals.v[end]
+        tdiam = diam(tdom)
+        @assert tdiam < degen_threshold "The time component of the initial set "*
+            "is not considered degenerate: width($tdom) = $tdiam > $degen_threshold."
+
+        # Step 0: Taylorize the dynamics.
+        # We want to have a polynomial approximation of the dynamics centered around
+        # the midpoint of the current values.
+        VarType = typeof(vars[1])
+        fpoly = Vector{VarType}(undef, length(vars) - 1)
+        vector_field_constructor(fpoly, vars)
+        println("taylorized vector field/dynamics:")
+        println(fpoly); println()
+        @assert(all([ isassigned(fpoly, idx) for idx in eachindex(fpoly) ]),
+            "The dynamics constructor did not assign all vector field components.")
+
+        cvars = vcat(vars[1:end-1], (vars[end] + mid(vals.v[end])))
+        println("cvars: ($(length(cvars))) = $cvars\n")
+        fpoly = [poly(cvars) for poly in fpoly]
+
+        # Step 1: Obtain the polynomial part of the Taylor model.
+        p::Vector{VarType} = tay_poly(fpoly, k, vars)
+        println("polynomial part of TM:")
+        println(p); println()
+
+        cvars = vcat(vars[1:end-1], (vars[end] - mid(vals.v[end])))
+        println("cvars: ($(length(cvars))) = $cvars\n")
+        p = [poly(cvars) for poly in p]
+
+
+        # Step 2: Obtain the safe remainder/error interval of the TM.
+        #
+        # This rectangle is the initial set stretched across the entire time
+        # step [ti, ti+δ] of this integration iteration. By definition it only
+        # differs from the initial set in its time component.
+        doms = IntervalBox(vals.v[1:end-1]...,  tdom.lo..(tdom.lo+TIME_STEP_SIZE))
+
+        # Find the safe/contractive remainder.
+        safe_rems, fpipe = tay_model_error(
+            vector_field_constructor,
+            p, J, vars, doms,
+            NR_CONTRACTIVENESS_TRIES,
+            NR_REFINEMENTS,
+            REFINEMENT_EPS,
+            SCALE)
+
+
+        # Step 3: Get the new local values (and interval box) and update domain for next step
+        # i.e. just change the domain of the time variable in doms
+        # Make sure all values are correctly shaped.
+        @assert length(p) == length(safe_rems) == length(Dli) == (length(doms)-1)
+
+        println("Original p: "); display(p); println()
+
+        # Fix the time variable to the current time; t = ti+δi.
+        p = [ pj([vars[1:end-1]..., TaylorN(doms.v[end].hi, k)]) for pj in p ]
+
+        println("Updated p: "); display(p); println()
+
+        # Construct the integrated left Taylor models.
+        Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
+
+        println("Dj ="); display(Dj); println()
+
+        # Attach a dummy TM to the old right TMs, for use in evaluation.
+        Drprev = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
+
+        println()
+        println("#### PRE Preconditioning, Dli & Dri:")
+        display(Dli)
+        display(Dri)
+        println()
+        Dli, Dri = precondition(Dli, Dri, vars)
+        println("#### POST Preconditioning, Dli & Dri:")
+        display(Dli)
+        display(Dri)
+        println()
+
+        # FIXME: Is this the bullsh*t again where the ranges are [-1.001, 1.001]
+        #        instead of [-1, 1] exactly??
+        println("#@#@@#@@#@#@#@#@##@# HERE BOZO")
+        display([domain(Dlij) for Dlij in Dli])
+        display([Dlij() for Dlij in Dli])
+        display([Drij() for Drij in Drprev])
+
+        # TODO: Did I go overboard with setting the domain of TMs to [-1, 1] in preconditioning?
+        #   ==> Do more scaling of domains, instead of setting them directly to [-1, 1]?
+        #   ==> i.e. setting any degenerate interval to [-1, 1] does not make much sense?
+        #       Because you cannot scale a degenerate interval to not be degenerate,
+        #       so the preconditioned domain must remain degenerate?
+        #       e.g. [a, a]*x + y = [(a*x)+y, (a*x)+y]
+        #   ==> For a=0, meaning interval [0, 0], we have [(0*x)+y, (0*x)+y] = [y, y]
+        doms = IntervalBox(doms.v[1:end-1]..., doms.v[end].hi..doms.v[end].hi)
+        vals = IntervalBox([(Dlij(Drprev))(vals) for Dlij in Dli]..., doms.v[end])
+
+        push!(boxes, vals)
+        push!(fboxes, fpipe)
+
+
+        #= TODO: M. Neher paper quotes.
+
+        p13: To compute an enclosure of the flow, it suffices to integrate
+             the given ODE for the initial values defined by Rg(Ul), and
+             to compose the integrated Taylor model with Ur.
+
+        p14: The initial set for the (j + 1)-st integration step is defined by Rg(U_(l,j+1)).
+
+        =#
+
+        println("                     vals: "); display(vals)
         println("\n=================================\n")
     end
 
