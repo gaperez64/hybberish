@@ -94,9 +94,9 @@ function scale(tmv::Vector{TaylorModelN{N,T,S}})::Matrix{T} where {N,T,S}
     # Suppose `Rng(tm_i) = [a, b]` then `s_i = 1 / max{ abs(a), abs(b) }`.
     # But, computing the scale value `s_i` requires evaluating a division 1/x.
     # This introduces a potential rounding error. To counteract this, to
-    # ensure the range bounds do not become e.g. [-1.00001, 1.00001], use
-    # interval arithmetic to incorporate the rounding error into `s_i`.
-    return diagm([ (interval(1.0) / nozero(mag(tm()))).lo for tm in tmv ])
+    # ensure the range bounds do not become e.g. [-1.00001, 1.00001], make
+    # `s_i` slightly larger to account for the rounding error.
+    return diagm([ 1.0 / (nozero(mag(tm())) * 1.001) for tm in tmv ])
 end
 
 """Perform step 2 of Algorithm 6.1 (QR Preconditioned Taylor model method).
