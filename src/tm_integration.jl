@@ -92,7 +92,11 @@ function scale(tmv::Vector{TaylorModelN{N,T,S}})::Matrix{T} where {N,T,S}
     # Since `[0, 0] in [-1, 1]` already, default to `s_i = 1` instead.
     nozero = v -> v==0 ? 1.0 : v
     # Suppose `Rng(tm_i) = [a, b]` then `s_i = 1 / max{ abs(a), abs(b) }`.
-    return diagm([ 1.0 / nozero(mag(tm())) for tm in tmv ])
+    # But, computing the scale value `s_i` requires evaluating a division 1/x.
+    # This introduces a potential rounding error. To counteract this, to
+    # ensure the range bounds do not become e.g. [-1.00001, 1.00001], use
+    # interval arithmetic to incorporate the rounding error into `s_i`.
+    return diagm([ (interval(1.0) / nozero(mag(tm()))).lo for tm in tmv ])
 end
 
 """Perform step 2 of Algorithm 6.1 (QR Preconditioned Taylor model method).
@@ -205,6 +209,13 @@ function precondition(
     # the composition is contained in [-1, 1].
     # FIXME: But, does the range also span approximately [-1, 1]?
     tmv_right = [ tm(vcat(tmv_right, ttm)) for tm in Sinv_tmv ]
+
+    # The scaled Taylor models should have a range subset of the unit box.
+    # If this fails, then likely the computed scaling matrix does not properly
+    # take rounding errors into account when computing the scale values.
+    rng = IntervalBox([tm() for tm in tmv_right]...)
+    dom = IntervalBox(unitdom.v[1:end-1]...)
+    @assert issubset(rng, dom) "The scaled range is not subset of the unit box, got: $rng"
 
     # (V)
     S_ = inv(Sinv)
@@ -810,7 +821,6 @@ function tm_integration_QR(
             "The dynamics constructor did not assign all vector field components.")
 
         cvars = vcat(vars[1:end-1], (vars[end] + mid(vals.v[end])))
-        println("cvars: ($(length(cvars))) = $cvars\n")
         fpoly = [poly(cvars) for poly in fpoly]
 
         # Step 1: Obtain the polynomial part of the Taylor model.
@@ -819,7 +829,6 @@ function tm_integration_QR(
         println(p); println()
 
         cvars = vcat(vars[1:end-1], (vars[end] - mid(vals.v[end])))
-        println("cvars: ($(length(cvars))) = $cvars\n")
         p = [poly(cvars) for poly in p]
 
 
@@ -844,64 +853,24 @@ function tm_integration_QR(
         # i.e. just change the domain of the time variable in doms
         # Make sure all values are correctly shaped.
         @assert length(p) == length(safe_rems) == length(Dli) == (length(doms)-1)
-
-        println("Original p: "); display(p); println()
+        # TODO: Is it possible to change the domain here already?
+        # Before anything else, make the time domain degenerate.
+        # The initial set is always evaluated at t = ti+δi anyways.
+        doms = IntervalBox(doms.v[1:end-1]..., doms.v[end].hi..doms.v[end].hi)
 
         # Fix the time variable to the current time; t = ti+δi.
         p = [ pj([vars[1:end-1]..., TaylorN(doms.v[end].hi, k)]) for pj in p ]
 
-        println("Updated p: "); display(p); println()
-
         # Construct the integrated left Taylor models.
         Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
+        Dli, Dri = precondition(Dj, Dri, vars)
 
-        println("Dj ="); display(Dj); println()
-
-        # Attach a dummy TM to the old right TMs, for use in evaluation.
-        Drprev = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
-
-        println()
-        println("#### PRE Preconditioning, Dli & Dri:")
-        display(Dli)
-        display(Dri)
-        println()
-        Dli, Dri = precondition(Dli, Dri, vars)
-        println("#### POST Preconditioning, Dli & Dri:")
-        display(Dli)
-        display(Dri)
-        println()
-
-        # FIXME: Is this the bullsh*t again where the ranges are [-1.001, 1.001]
-        #        instead of [-1, 1] exactly??
-        println("#@#@@#@@#@#@#@#@##@# HERE BOZO")
-        display([domain(Dlij) for Dlij in Dli])
-        display([Dlij() for Dlij in Dli])
-        display([Drij() for Drij in Drprev])
-
-        # TODO: Did I go overboard with setting the domain of TMs to [-1, 1] in preconditioning?
-        #   ==> Do more scaling of domains, instead of setting them directly to [-1, 1]?
-        #   ==> i.e. setting any degenerate interval to [-1, 1] does not make much sense?
-        #       Because you cannot scale a degenerate interval to not be degenerate,
-        #       so the preconditioned domain must remain degenerate?
-        #       e.g. [a, a]*x + y = [(a*x)+y, (a*x)+y]
-        #   ==> For a=0, meaning interval [0, 0], we have [(0*x)+y, (0*x)+y] = [y, y]
-        # FIXME: Evaluating using the initial domain seems wrong.
-        doms = IntervalBox(doms.v[1:end-1]..., doms.v[end].hi..doms.v[end].hi)
-        vals = IntervalBox([(Dlij(Drprev))(init) for Dlij in Dli]..., doms.v[end])
+        # Attach a dummy TM to the right TMs, for use in evaluation.
+        Dri_ext = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
+        vals = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli]..., doms.v[end])
 
         push!(boxes, vals)
         push!(fboxes, fpipe)
-
-
-        #= TODO: M. Neher paper quotes.
-
-        p13: To compute an enclosure of the flow, it suffices to integrate
-             the given ODE for the initial values defined by Rg(Ul), and
-             to compose the integrated Taylor model with Ur.
-
-        p14: The initial set for the (j + 1)-st integration step is defined by Rg(U_(l,j+1)).
-
-        =#
 
         println("                     vals: "); display(vals)
         println("\n=================================\n")
