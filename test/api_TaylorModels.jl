@@ -63,6 +63,7 @@ end
 
 println("## Test 'TaylorSeries.normalize_taylor'")
 
+x, y = set_variables("x y", order=5)
 b = -3..3
 t1 = Taylor1([4, 3, 2, 1])
 # Perform an affine transformation of the variable 't' so that
@@ -129,7 +130,6 @@ t1n = TaylorSeries.normalize_taylor(t1, b, true)
        ==> t1([4,10]) != t1n([-1,1])
 =#
 
-set_variables("x y", order=10)
 b = IntervalBox(-2..2, -4..4)
 tn = TaylorN(4 + x + y + y*x^2)
 tnn = TaylorSeries.normalize_taylor(tn, b, true)
@@ -157,6 +157,32 @@ tnn = TaylorSeries.normalize_taylor(tn, b, true)
 # Interval arithmetic is overapproximate; the interval evaluation
 # results are not equal in this particular case.
 @assert tn(b) != tnn([-1..1, -1..1])
+
+
+# Normalizing a variable that has a degenerate domain results in a constant.
+x, y, z = set_variables("x y z", order=5)
+b = IntervalBox(-5..(-5), 0..0, 3..3)
+
+# Normalizing variable x with degenerate domain [c, c]
+# results in a constant polynomial `c` because the used
+# affine transformation is:
+#
+#     interval(mid(I)) + x*interval(radius(I))
+#
+# x IN [-5, -5]  =>  -5 IN [-1, 1]
+tnn = TaylorSeries.normalize_taylor(x, b, true)
+@assert tnn == -5
+# y IN [0, 0]  =>  0 IN [-1, 1]
+tnn = TaylorSeries.normalize_taylor(y, b, true)
+@assert tnn == 0
+# y IN [3, 3]  =>  3 IN [-1, 1]
+tnn = TaylorSeries.normalize_taylor(z, b, true)
+@assert tnn == 3
+
+println("NORM YES")
+println("$x | $(TaylorSeries.normalize_taylor(x, b, true))")
+println("$y | $(TaylorSeries.normalize_taylor(y, b, true))")
+println("$z | $(TaylorSeries.normalize_taylor(z, b, true))")
 
 
 
