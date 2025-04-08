@@ -741,9 +741,13 @@ function tm_integration_QR(
     _init::NTuple{numvars, Interval{S}} = zip(initial...)
     names::String = join(_names, ' ')
     init::IntervalBox{numvars, S}  = IntervalBox(_init)
+
     # This rectangle represents the initial set of the current integration
     # iteration. Its time component should always be degenerate: [t_i, t_i].
     # This is D_i in the maths.
+    # NOTE: assigning the initial domains BEFORE we normalize them to [-1, 1]^m
+    # is equivalent to assigning the evaluation of the composition
+    # U_{l,0} \circ U_{r,0} over its domain [-1, 1]^m AFTER the normalization.
     vals::IntervalBox{numvars, S} = deepcopy(init)
 
     # Double the truncation degree to obtain the TaylorSeries max order.
@@ -758,15 +762,20 @@ function tm_integration_QR(
     # Construct the variables with the actual truncation degree of choice.
     vars = get_variables(k)
 
-    # Shift the variables so that their domains are centered on 0.
+    # By definition of algo 6.1 in M. Neher (2006), the symbolic (normalized)
+    # space variables should have domain [-1, 1]^m.
+    # So, normalize the variables to have domain [-1, 1]^m.
     # FIXME: This may clash with the cvars centering of time t in the loop?
     # FIXME: Also center the time var? Only space, right? Preconditioning only uses space?
-    init_mid = mid(init)
-    init = IntervalBox((init.v - init_mid)...)
-    shifted_vars = [v+i for (v,i) in zip(vars, init_mid)]
+    vars_normalized = [
+        TaylorSeries.normalize_taylor(v, init)
+        for v in vars[1:end-1]
+    ]
+    vars_normalized = vcat(vars_normalized, vars[end])
+    init = IntervalBox(unitbox(init.v[1:end-1])..., init.v[end])
 
     # The left TMs are the Taylor model representation of the interval initial set.
-    Dl0 = id(shifted_vars[1:end-1], init)
+    Dl0 = id(vars_normalized[1:end-1], init)
     # The right TMs are an identity map in the space (ODE) variables.
     Dr0 = id(vars[1:end-1], init)
 
