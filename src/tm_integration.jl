@@ -646,7 +646,7 @@ function tm_integration(
         # Find the safe/contractive remainder.
         safe_rems, fpipe = tay_model_error(
             vector_field_constructor,
-            p, J, vars, doms,
+            p, J, vars, doms, doms,
             NR_CONTRACTIVENESS_TRIES,
             NR_REFINEMENTS,
             REFINEMENT_EPS,
