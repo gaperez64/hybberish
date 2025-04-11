@@ -31,14 +31,14 @@ initial = [
 init_values = IntervalBox([e[2] for e in initial])
 
 # The fixed time step size.
-tstep::Float64 = 0.001
+tstep::Float64 = 0.01
 # The number of TM integration algo iterations.
-nr_iterations::Integer = 120
+nr_iterations::Integer = 700
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 
 # The scale factor for when contractiveness fails.
-nr_contractiveness_tries = 1
+nr_contractiveness_tries = 10
 # The number of refinements to perform at most.
 nr_refinements = 5
 # Quit refinement early if the improvement a single refinement
@@ -107,8 +107,8 @@ euler_step::Float64 = tstep / 10.0
 eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
 
 # Actual plotting
-pltND1 = plot_boxes_ND(boxes, get_variable_names(), sgtitle="vals", legend=true)
-pltND2 = plot_boxes_ND(fboxes, get_variable_names(), sgtitle="fpipe", legend=true)
+pltND1 = plot_boxes_ND(boxes, get_variable_names(), sgtitle="Initial Sets (vals)", legend=true)
+pltND2 = plot_boxes_ND(fboxes, get_variable_names(), sgtitle="Flowpipe Overapprox.", legend=true)
 plot!(pltND1, eseries[1], label="Stable ODE Forward Euler")
 plot!(pltND1, cos, label="cos(t)") # The ODE solution is "y(t) = cos(t)"
 plot!(pltND2, eseries[1], label="Stable ODE Forward Euler")
@@ -120,3 +120,8 @@ display(pltND)
 println("Press ENTER to continue.")
 readline()
 println("... done.")
+
+
+savefig(pltND,  "QR_1_tstep=$(tstep)_#iterations=$nr_iterations.svg")
+savefig(pltND1, "QR_2_tstep=$(tstep)_#iterations=$nr_iterations.svg")
+savefig(pltND2, "QR_3_tstep=$(tstep)_#iterations=$nr_iterations.svg")
