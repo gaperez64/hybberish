@@ -892,7 +892,7 @@ function tm_integration_QR(
         # Attach a dummy TM to the right TMs, for use in evaluation.
         Dri_ext = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
         vals = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli]..., doms.v[end])
-        vals_noS = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli_noS]..., doms.v[end])
+        vals_noS = IntervalBox([Dlij() for Dlij in Dli_noS]..., doms.v[end])
 
         push!(boxes, vals)
         push!(fboxes, fpipe)
