@@ -165,7 +165,7 @@ Ul1 = [
         (-1.75707e-4)..(1.60933e-4),
         dom),
 ]
-Ul1, Ur1 = precondition(Ul1, Ur0, vars)
+_, Ul1, Ur1 = precondition(Ul1, Ur0, vars)
 
 
 println("#### Preconditioning output ITERATION 1")
@@ -192,7 +192,7 @@ Ul2 = [
         (-1.80914e-4)..(1.80850e-4),
         dom),
 ]
-Ul2, Ur2 = precondition(Ul2, Ur1, vars)
+_, Ul2, Ur2 = precondition(Ul2, Ur1, vars)
 
 println("#### Preconditioning output ITERATION 2")
 println("domain(Ul2) ="); display(domain.(Ul2)); println()
