@@ -227,6 +227,7 @@ function precondition(
         arithmetic and as such influences the computed remainders. =#
     S_tmv = linear_map(S_, unitdom, vars_no_t)
     # Set U_{l, j+1} := U_{l, j+1} ◦ S_(j+1)
+    tmv_left_noS = tmv_left
     tmv_left = [ tm(vcat(S_tmv, ttm)) for tm in tmv_left ]
 
     println("Range(tmv_right) ="); display(IntervalBox([tm() for tm in tmv_right]...)); println();
@@ -235,6 +236,10 @@ function precondition(
     tmv_left  = [
         TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
         for tm in tmv_left
+    ]
+    tmv_left_noS  = [
+        TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
+        for tm in tmv_left_noS
     ]
     tmv_right = [
         TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
@@ -248,7 +253,7 @@ function precondition(
     #        that are inside [-1, 1] with a small tolerance.
     @assert all(rng -> -1.01 < rng.lo && rng.hi < 1.01, [tm() for tm in tmv_right])
 
-    return tmv_left, tmv_right
+    return tmv_left_noS, tmv_left, tmv_right
 end
 
 """Generate the Taylor polynomial approximation of the true flow specified by
@@ -382,6 +387,7 @@ function construct_tmv(
         J::IntervalBox{M,S},
         vars::Vector,
         doms::IntervalBox{N,S},
+        doms_noS::IntervalBox{N,S},
         vector_field_constructor::Function) where {N,M,S}
 
     @assert length(J) == length(p)
@@ -390,14 +396,14 @@ function construct_tmv(
     t = vars[end]
     tdom = doms.v[end]
 
-    candidate_ttm = TaylorModelN(t, interval(0), doms)
-    candidate_tmv = [ TaylorModelN(p_i, J_i, doms) for (p_i, J_i) in zip(p, J) ]
+    candidate_ttm = TaylorModelN(t, interval(0), doms_noS)
+    candidate_tmv = [ TaylorModelN(p_i, J_i, doms_noS) for (p_i, J_i) in zip(p, J) ]
 
     # based on the estimate, we want the flowpipe to be used as the domain for
     # the taylorization of the dynamics
     # FIXME: assuming the domain of time is a degenerate interval
     # NOTE: `fpipe` is F_i in the maths.
-    fpipe = IntervalBox([ p_i(doms) + J_i for (p_i, J_i) in zip(p, J) ]..., tdom)
+    fpipe = IntervalBox([ ctm() for ctm in candidate_tmv ]..., tdom)
     vartms = [ TaylorModelN(v, interval(0), fpipe) for v in vars ]
 
     tm_type = typeof(candidate_ttm)
@@ -445,6 +451,7 @@ function tay_model_error(
         J::Interval{S},
         vars::Vector,
         doms::IntervalBox{N,S},
+        doms_noS::IntervalBox{N,S},
         NR_CONTRACTIVENESS_TRIES::Integer,
         NR_REFINEMENTS::Integer,
         REFINEMENT_EPS::Float64,
@@ -467,7 +474,7 @@ function tay_model_error(
     for ctry in 1:NR_CONTRACTIVENESS_TRIES
         J0 = IntervalBox(fill(J, length(p))...)
 
-        ftmv, ctmv, fpipe = construct_tmv(p, J0, vars, doms, vector_field_constructor)
+        ftmv, ctmv, fpipe = construct_tmv(p, J0, vars, doms, doms_noS, vector_field_constructor)
 
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM.
@@ -494,7 +501,7 @@ function tay_model_error(
     for nr in 1:NR_REFINEMENTS
         print("Refinement no. $nr")
         Jprev = Jn
-        ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, vector_field_constructor)
+        ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, doms_noS, vector_field_constructor)
         Jn = picard_tm_extension(ftmv, ctmv)
 
         @assert all(issubset.(Jn, Jprev)) "Refinement should only increase the bound tightness!"
@@ -749,6 +756,7 @@ function tm_integration_QR(
     # is equivalent to assigning the evaluation of the composition
     # U_{l,0} \circ U_{r,0} over its domain [-1, 1]^m AFTER the normalization.
     vals::IntervalBox{numvars, S} = deepcopy(init)
+    vals_noS::IntervalBox{numvars, S} = deepcopy(init)
 
     # Double the truncation degree to obtain the TaylorSeries max order.
     # This accounts for order-related assertions applicable to Taylor
@@ -807,7 +815,7 @@ function tm_integration_QR(
     NR_ITERATIONS::Integer = ceil(Int, TIME_HORIZON / TIME_STEP_SIZE)
     # The width threshold below which an interval is considered degenerate.
     # e.g. diam([-1, 1]) = 2 > threshold  =>  NOT degenerate!
-    degen_threshold = 1.0e-15
+    degen_threshold = 1.0e-12
 
     for it = 1:NR_ITERATIONS
         println("# Start Integration Iteration $it")
@@ -846,17 +854,24 @@ function tm_integration_QR(
         # This rectangle is the initial set stretched across the entire time
         # step [ti, ti+δ] of this integration iteration. By definition it only
         # differs from the initial set in its time component.
-        doms = IntervalBox(vals.v[1:end-1]...,  tdom.lo..(tdom.lo+TIME_STEP_SIZE))
+        #
+        # We already shifted t in when Taylorizing the ODEs and computing p.
+        # So compensate by setting time to [0, δ]!
+        doms = IntervalBox(vals.v[1:end-1]...,  0..TIME_STEP_SIZE)
+        doms_noS = IntervalBox(vals_noS.v[1:end-1]...,  0..TIME_STEP_SIZE)
 
         # Find the safe/contractive remainder.
         safe_rems, fpipe = tay_model_error(
             vector_field_constructor,
-            p, J, vars, doms,
+            p, J, vars, doms, doms_noS,
             NR_CONTRACTIVENESS_TRIES,
             NR_REFINEMENTS,
             REFINEMENT_EPS,
             SCALE)
 
+        # BUT, when fixing t in the initial set later, we must use the true time!
+        doms = IntervalBox(vals.v[1:end-1]...,  tdom.lo..(tdom.lo+TIME_STEP_SIZE))
+        fpipe = IntervalBox(fpipe.v[1:end-1]..., doms.v[end])
 
         # Step 3: Get the new local values (and interval box) and update domain for next step
         # i.e. just change the domain of the time variable in doms
@@ -872,11 +887,12 @@ function tm_integration_QR(
 
         # Construct the integrated left Taylor models.
         Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
-        Dli, Dri = precondition(Dj, Dri, vars)
+        Dli_noS, Dli, Dri = precondition(Dj, Dri, vars)
 
         # Attach a dummy TM to the right TMs, for use in evaluation.
         Dri_ext = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
         vals = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli]..., doms.v[end])
+        vals_noS = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli_noS]..., doms.v[end])
 
         push!(boxes, vals)
         push!(fboxes, fpipe)
