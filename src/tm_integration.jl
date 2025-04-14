@@ -1,260 +1,5 @@
-using LinearAlgebra
-
 include("taylor_models/BasicTaylorModels.jl")
 
-
-"""Generate the unit IntervalBox [-1, 1]^n where n = length(a)."""
-unitbox(a) = IntervalBox(fill(-1..1, length(a)))
-
-"""Normalize the polynomials via affine transformation so that the domains become [-1, 1]^n."""
-normalize_taylor(tmv::Vector{TaylorModelN{N,T,S}}) where {N,T,S} = [
-    TaylorModelN(
-        TaylorSeries.normalize_taylor(polynomial(tm), domain(tm)),
-        remainder(tm),
-        unitbox(domain(tm))
-    )
-    for tm in tmv
-]
-
-"""Construct the TM representation of a Matrix linear map.
-
-    A linear map Matrix is equivalently a linear Taylor model (p, I) with
-    the zero constant part and zero remainder. In other words, p is only
-    allowed to contain terms of exactly order 1, and I = [0, 0].
-
-    Instead of an explicit order value, make use of the variable TaylorN
-    objects to implicitly construct a TaylorN of the correct order.
-    The vars MUST be the variable objects currently in use.
-"""
-function linear_map(linear_coeffs::Matrix{T}, dom::IntervalBox{N,S}, vars::Vector{TaylorN{T}}) where {N,T,S}
-    @assert(length(vars) == size(linear_coeffs)[1],
-        "Each linear expression must have one component for each var.")
-    @assert(length(vars) <= length(dom),
-        "Each var must define a domain component.")
-    return [
-        TaylorModelN(dot(coeffs, vars), 0..0, dom)
-        for coeffs::Vector{T} in eachrow(linear_coeffs)
-    ]
-end
-
-"""Create the identity map of an interval box.
-
-    The identity map is a Taylor model vector (p, I) so that `p(box) + I = box`.
-    In more general terms, (p, I) represents the identity function `id(x) = x`.
-    Practically, the result is a vector of identity functions
-        (p, I) = [
-            (p_1, I_1),
-            ...,
-            (p_n, I_n)
-        ]
-    where `(p_j, I_j)([x_1, ..., x_n]) = x_j` is the j-th identity function.
-
-    Note that we require the variable objects and domains to be passed.
-    Due to constraints on TaylorModelN arithmetic, these must be known
-    Explicitly at the time of construction of the identity map.
-
-    @param[in] vars The ODE variable objects to construct the polynomial part.
-    @param[in] doms The domains to assign the identity map Taylor models.
-    @return The identity map.
-"""
-function id(vars::Vector{TaylorN{T}}, doms::IntervalBox{N,S})::Vector{TaylorModelN{N,T,S}} where {N,T,S}
-    @assert(length(vars) <= length(doms),
-        "Each variable must specify its domain for the identity map.")
-    return [
-        # Choose `(p, I) = (x, [0, 0])`  so that  `(p, I)(b) = b + [0, 0] = b`.
-        # This is exactly the identity map `id(b) = b`.
-        # This property should also hold for Taylor model composition.
-        TaylorModelN(var, 0..0, doms)
-        for var in vars
-    ]
-end
-
-"""Compute a scaling matrix S that bounds `Rng(S*tmv)` within box [-1, 1]^n.
-
-    Scaling matrix S is a diagonal matrix by definition. Suppose S is nxn=3x3.
-            | s_1   0    0  |
-        S = |  0   s_2   0  |
-            |  0    0   s_3 |
-    Then the scaling factor s_i is chosen so scaling the i-th component
-    of the Taylor model vector by this factor bounds its range within [-1, 1],
-    `Rng(s_i * tmv[i]) in [-1, 1]`.
-
-    Note that `Rng(tmv[i]) = [0, 0]` would result in `s_i = 1/0 = Inf`.
-    Since `[0, 0] in [-1, 1]` already holds, default to `s_i = 1` instead.
-    All other degenerate interval ranges `Rng(tmv[i]) = [a, a]` where `a != 0`
-    result in `s_i = 1/a != Inf` so that no ad hoc correction is needed.
-
-    @param[in] tmv The Taylor models whose range to bound within [-1, 1].
-    @return The scaling matrix S.
-"""
-function scale(tmv::Vector{TaylorModelN{N,T,S}})::Matrix{T} where {N,T,S}
-    # The case where `Rng(tmv[i]) == [0, 0]` would result in `s_i = 1/0 = Inf`.
-    # Since `[0, 0] in [-1, 1]` already, default to `s_i = 1` instead.
-    nozero = v -> v==0 ? 1.0 : v
-    # Suppose `Rng(tm_i) = [a, b]` then `s_i = 1 / max{ abs(a), abs(b) }`.
-    # But, computing the scale value `s_i` requires evaluating a division 1/x.
-    # This introduces a potential rounding error. To counteract this, to
-    # ensure the range bounds do not become e.g. [-1.00001, 1.00001], make
-    # `s_i` slightly larger to account for the rounding error.
-    return diagm([ 1.0 / (nozero(mag(tm())) * 1.001) for tm in tmv ])
-end
-
-"""Perform step 2 of Algorithm 6.1 (QR Preconditioned Taylor model method).
-
-    This routine draw from section 3.3.2 of Xin Chen's thesis, and makes use of
-    the references cited there by Xin Chen.
-        1) [MB05]  K. Makino and M. Berz. Suppression of the wrapping effect by
-                   taylor modelbased verified integrators: Long-term
-                   stabilization by preconditioning. International Journal of
-                   Differential Equations and Applications, 10(4):353-384,
-                   2005.
-
-    Also see "6. Preconditioned Quadratic Example." and
-    "Algorithm 6.1 (QR preconditioned Taylor model method)"in the paper:
-        Neher, M. & Jackson, Kenneth & Nedialkov, Nedialko. (2007).
-        On Taylor model based integration of ODEs. SIAM J. Numerical Analysis.
-        45. 236-262. 10.1137/050638448.
-
-    @param[in] tmv_left The left Taylor models that were integrated in step 1.
-    @param[in] tmv_right The right Taylor models that were untouched in step 1.
-    @param[in] vars The space (ODE) variable objects, plus the time variable object.
-    @return The pair of preconditioned left and right Taylor model vectors.
-"""
-function precondition(
-        tmv_left::Vector{TaylorModelN{N,T,S}},
-        tmv_right::Vector{TaylorModelN{N,T,S}},
-        vars::Vector{TaylorN{T}}) where {N,T,S}
-
-    # We rely on unmodified variables to construct linear maps.
-    @assert vars == get_variables() "The variables must be unmodified."
-    @assert length(tmv_left) == length(tmv_right) "Vector length mismatch."
-
-    # Require all domains to be equal within a TaylorModelN vector.
-    # FIXME: `allequal` requires Julia 1.8+. Add an explicit Julia version requirement?
-    @assert allequal(domain.(tmv_left)) "All left TM domains must be equal."
-    @assert allequal(domain.(tmv_right)) "All right TM domains must be equal."
-
-    # Assume the last variable represents time t.
-    t = vars[end]
-    vars_no_t = vars[1:end-1]
-    # NOTE: We assume that neither the left nor right Taylor models contain
-    # time variable t in the polynomial parts. So whatever the value of or
-    # whatever the modifications made to the time domains, it does not affect
-    # the intermediate or final values for preconditioning.
-    timedoml = domain(tmv_left[1]).v[end]
-    unitdom = unitbox(vars)
-
-    # FIXME: Should normalization occur inside this function, or outside?
-    tmv_left = normalize_taylor(tmv_left)
-    # Construct a dummy TM because TM composition requires one TM per variable.
-    ttm = TaylorModelN(t, 0..0, unitdom)
-
-    # (I)
-    # Compute the QR factorization of the linear part of U_{l,j+1}
-    # Each matrix row corresponds to one of the polynomials' linear terms.
-    # FIXME: `stack` requires Julia 1.9+. Add an explicit Julia version requirement?
-    linear_coeffs::Matrix{T} = stack([p[1].coeffs for p in polynomial.(tmv_left)], dims=1)
-    Q::Matrix{T} = Matrix(qr(linear_coeffs).Q)
-
-    # FIXME: Ad hoc: modify the domain of tmv_right in anticipation that the
-    # composition with the QT TMs will induce this domain.
-    tmv_right = [ TaylorModelN(tm, unitdom) for tm in tmv_right ]
-
-    # (II)
-    #
-    # Shift (add) all non-constant terms AND remainders of U_{l,j+1} to U_{r,j}.
-    tmv_shift = tmv_left - constant_polynomial(tmv_left)
-    tmv_right = [ tm(vcat(tmv_right, ttm)) for tm in tmv_shift ]
-    tmv_left -= tmv_shift
-    # The remainders were shifted from left to right, so set left's to zero.
-    # In interval arithmetic generally `[a, b] - [a, b] != [0, 0]`.
-    tmv_left = [ TaylorModelN(tm, 0..0) for tm in tmv_left ]
-
-    # Make Q the linear part of U_{l, j+1}.
-    tmv_left += linear_map(Q, unitdom, vars_no_t)
-
-    # Apply Q^-1 on U_{r,j}.
-    QT::Matrix{T} = transpose(Q)
-    # FIXME: Use an arbitrary domain. See a fixme below for more info.
-    #        The linear map's domain is NOT involved in remainder computation;
-    #        This linear map is just a vehicle for TM evaluation.
-    # FIXME: Don't use arbitrary domain! Use the domain of the left Taylor models
-    # specifically, because Q originates from the left Taylor Models?
-    arbitrary_domain = IntervalBox([tm() for tm in tmv_right]..., ttm())
-    QT_tmv = linear_map(QT, arbitrary_domain, vars_no_t)
-    tmv_right = [ tm(vcat(tmv_right, ttm)) for tm in QT_tmv ]
-
-    # (III)
-    #
-    # Bound the range of the new U_{r,j}.
-    # In other words, modify the domain of the independent variables.
-    # (IV)
-    # Apply a scaling matrix S_(j+1) on U_{r,j} such that each component of the
-    # range of U_{r,j+1} := S_(j+1)^-1 ◦ U_{r,j} is contained in [-1, 1] and
-    # spans [-1, 1] approximately.
-    Sinv = scale(tmv_right)
-    # Convert the matrix to an equivalent form: a linear map Taylor model vector.
-    #=
-        FIXME: We really don't care about the domain this linear map!
-        ==> To satisfy the requirement of the composition "g(f(x))" that
-        the range of "f(x)" must be contained in the domain of "g", we sadly
-        have to provide some arbitrary domain value that satisfies the
-        requirement.
-        ==> Cheat by making the range of the TMs domain of the linear map.
-        The "iscontained" check will exactly check that the range is contained
-        in the domain, so this choice of domain will always work. =#
-    arbitrary_domain = IntervalBox([tm() for tm in tmv_right]..., ttm())
-    Sinv_tmv = linear_map(Sinv, arbitrary_domain, vars_no_t)
-    # Compute U_{r,j+1} := S ◦ U_{r,j} so that each component of the range of
-    # the composition is contained in [-1, 1].
-    # FIXME: But, does the range also span approximately [-1, 1]?
-    tmv_right = [ tm(vcat(tmv_right, ttm)) for tm in Sinv_tmv ]
-
-    # The scaled Taylor models should have a range subset of the unit box.
-    # If this fails, then likely the computed scaling matrix does not properly
-    # take rounding errors into account when computing the scale values.
-    rng = IntervalBox([tm() for tm in tmv_right]...)
-    dom = IntervalBox(unitdom.v[1:end-1]...)
-    @assert issubset(rng, dom) "The scaled range is not subset of the unit box, got: $rng"
-
-    # (V)
-    S_ = inv(Sinv)
-    # Convert the matrix to an equivalent form: a linear map Taylor model vector.
-    #=
-        FIXME: Will this linear map domain ever trigger an "iscontained" assertion?
-        The domain of this linear map matters. It will be composed into
-        another Taylor model, so the map will be involved in Taylor model
-        arithmetic and as such influences the computed remainders. =#
-    S_tmv = linear_map(S_, unitdom, vars_no_t)
-    # Set U_{l, j+1} := U_{l, j+1} ◦ S_(j+1)
-    tmv_left_noS = tmv_left
-    tmv_left = [ tm(vcat(S_tmv, ttm)) for tm in tmv_left ]
-
-    println("Range(tmv_right) ="); display(IntervalBox([tm() for tm in tmv_right]...)); println();
-
-    # Retain the input time components.
-    tmv_left  = [
-        TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
-        for tm in tmv_left
-    ]
-    tmv_left_noS  = [
-        TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
-        for tm in tmv_left_noS
-    ]
-    tmv_right = [
-        TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
-        for tm in tmv_right
-    ]
-
-    # For practical purposes, the range of each component of the right
-    # Taylor models should be contained in [-1, 1].
-    # FIXME: Make the check approximate, we need to account for
-    #        over-approximate arithmetic resulting in range bounds
-    #        that are inside [-1, 1] with a small tolerance.
-    @assert all(rng -> -1.01 < rng.lo && rng.hi < 1.01, [tm() for tm in tmv_right])
-
-    return tmv_left_noS, tmv_left, tmv_right
-end
 
 """Generate the Taylor polynomial approximation of the true flow specified by
    given dynamics (ODEs) up to the given degree via Lie derivatives.
@@ -383,12 +128,11 @@ end
 
 """The common code needed to construct the inputs to 'picard_tm_extension'."""
 function construct_tmv(
-        p::Vector,
+        p::Vector{TaylorN{T}},
         J::IntervalBox{M,S},
         vars::Vector,
         doms::IntervalBox{N,S},
-        doms_noS::IntervalBox{N,S},
-        vector_field_constructor::Function) where {N,M,S}
+        vector_field_constructor::Function) where {N,M,T,S}
 
     @assert length(J) == length(p)
     @assert length(J) == length(doms)-1
@@ -396,18 +140,16 @@ function construct_tmv(
     t = vars[end]
     tdom = doms.v[end]
 
-    candidate_ttm = TaylorModelN(t, interval(0), doms_noS)
-    candidate_tmv = [ TaylorModelN(p_i, J_i, doms_noS) for (p_i, J_i) in zip(p, J) ]
+    candidate_ttm = TaylorModelN(t, interval(0), doms)
+    candidate_tmv = [ TaylorModelN(p_i, J_i, doms) for (p_i, J_i) in zip(p, J) ]
 
-    # based on the estimate, we want the flowpipe to be used as the domain for
-    # the taylorization of the dynamics
-    # FIXME: assuming the domain of time is a degenerate interval
-    # NOTE: `fpipe` is F_i in the maths.
-    fpipe = IntervalBox([ ctm() for ctm in candidate_tmv ]..., tdom)
+    # Based on the safe Taylor model estimate, we want the flowpipe to be
+    # used as the domain for the taylorization of the dynamics.
+    fpipe = IntervalBox([ p_i(doms) + J_i for (p_i, J_i) in zip(p, J) ]..., tdom)
     vartms = [ TaylorModelN(v, interval(0), fpipe) for v in vars ]
 
     tm_type = typeof(candidate_ttm)
-    ftmv = Vector{tm_type}(undef, length(vartms) - 1)
+    ftmv = Vector{TaylorModelN{N,T,S}}(undef, length(vartms) - 1)
     vector_field_constructor(ftmv, vartms)
     @assert(all([ isassigned(ftmv, idx) for idx in eachindex(ftmv) ]),
         "The dynamics constructor did not assign all vector field components.")
@@ -447,15 +189,14 @@ end
 """
 function tay_model_error(
         vector_field_constructor::Function,
-        p::Vector,
+        p::Vector{TaylorN{T}},
         J::Interval{S},
-        vars::Vector,
+        vars::Vector{TaylorN{T}},
         doms::IntervalBox{N,S},
-        doms_noS::IntervalBox{N,S},
         NR_CONTRACTIVENESS_TRIES::Integer,
         NR_REFINEMENTS::Integer,
         REFINEMENT_EPS::Float64,
-        SCALE::Float64) where {N, S}
+        SCALE::Float64) where {N, S, T}
 
     @assert NR_CONTRACTIVENESS_TRIES > 0
     @assert NR_REFINEMENTS >= 0
@@ -474,7 +215,7 @@ function tay_model_error(
     for ctry in 1:NR_CONTRACTIVENESS_TRIES
         J0 = IntervalBox(fill(J, length(p))...)
 
-        ftmv, ctmv, fpipe = construct_tmv(p, J0, vars, doms, doms_noS, vector_field_constructor)
+        ftmv, ctmv, fpipe = construct_tmv(p, J0, vars, doms, vector_field_constructor)
 
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM.
@@ -497,11 +238,10 @@ function tay_model_error(
 
     # Perform remainder refinement to tighten the bounds.
     Jn = J1
-    # TODO: Fix remainder refinement.
     for nr in 1:NR_REFINEMENTS
         print("Refinement no. $nr")
         Jprev = Jn
-        ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, doms_noS, vector_field_constructor)
+        ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, vector_field_constructor)
         Jn = picard_tm_extension(ftmv, ctmv)
 
         @assert all(issubset.(Jn, Jprev)) "Refinement should only increase the bound tightness!"
@@ -646,7 +386,7 @@ function tm_integration(
         # Find the safe/contractive remainder.
         safe_rems, fpipe = tay_model_error(
             vector_field_constructor,
-            p, J, vars, doms, doms,
+            p, J, vars, doms,
             NR_CONTRACTIVENESS_TRIES,
             NR_REFINEMENTS,
             REFINEMENT_EPS,
@@ -686,218 +426,6 @@ function tm_integration(
         push!(fboxes, fpipe)
 
         println("                     vals: ", vals)
-        println("\n=================================\n")
-    end
-
-    return boxes, fboxes
-end
-
-
-
-"""The standard TM integration algorithm.
-
-    Compute an overapproximation of the true flow of the
-    system of ODEs represented by the given vector field,
-    as a sequence of flowpipes over partial time horizons
-    [0, δi] of the full time horizon [0, Δ].
-
-    @param[in] vector_field_constructor A constructor for the TM vector
-                                        representation of the vector field.
-    @param[in]                  initial The names and domains of the ODE
-                                        variables.
-    @param[in]                        k The TM arithmetic/truncation order.
-    @param[in]                        J The initial remainder estimate for
-                                        finding a contractive remainder.
-    @param[in]             time_horizon The bounded time horizon.
-    @param[in]           TIME_STEP_SIZE The fixed time step size
-    @param[in] NR_CONTRACTIVENESS_TRIES The number of times to attempt widening
-                                        the remainder estimate in order to find
-                                        a contractive remainder.
-    @param[in]           NR_REFINEMENTS The number of additional remainder
-                                        refinements to apply after finding the
-                                        contractive remainder.
-    @param[in]                    SCALE The scale factor by which to widen the
-                                        remainder estimate when the
-                                        contractiveness test fails.
-    @param[in]           REFINEMENT_EPS The minimum improvement a remainder
-                                        refinement step should affect. If the
-                                        improvement falls below this threshold,
-                                        then we declare the refinement to have
-                                        converged and stop the refinment loop.
-"""
-function tm_integration_QR(
-        vector_field_constructor::Function,
-        initial::Vector{Tuple{String, Interval{S}}},
-        k::Integer,
-        J::Interval{S},
-        TIME_HORIZON::Float64,
-        TIME_STEP_SIZE::Float64,
-        NR_CONTRACTIVENESS_TRIES::Integer,
-        NR_REFINEMENTS::Integer;
-        SCALE::Float64=2.0,
-        REFINEMENT_EPS::Float64 = 0.001) where {S}
-
-    @assert(TIME_HORIZON > 0)  # The time horizon must not be [0, 0].
-    @assert(TIME_STEP_SIZE > 0)
-    @assert(NR_CONTRACTIVENESS_TRIES >= 0)
-    @assert(NR_REFINEMENTS >= 0)
-
-    # Unpack the input parameters.
-    numvars = length(initial)
-    _names::NTuple{numvars, String},
-    _init::NTuple{numvars, Interval{S}} = zip(initial...)
-    names::String = join(_names, ' ')
-    init::IntervalBox{numvars, S}  = IntervalBox(_init)
-
-    # This rectangle represents the initial set of the current integration
-    # iteration. Its time component should always be degenerate: [t_i, t_i].
-    # This is D_i in the maths.
-    # NOTE: assigning the initial domains BEFORE we normalize them to [-1, 1]^m
-    # is equivalent to assigning the evaluation of the composition
-    # U_{l,0} \circ U_{r,0} over its domain [-1, 1]^m AFTER the normalization.
-    vals::IntervalBox{numvars, S} = deepcopy(init)
-    vals_noS::IntervalBox{numvars, S} = deepcopy(init)
-
-    # Double the truncation degree to obtain the TaylorSeries max order.
-    # This accounts for order-related assertions applicable to Taylor
-    # series arithmetic.
-    # The added degrees effectively are a buffer to make TM arithmetic work.
-    kbuffer = 2*k
-
-    # Construct Taylor variables (from TaylorSeries library)
-    # Fix the TaylorSeries internal, max order.
-    set_variables(names, order=kbuffer)
-    # Construct the variables with the actual truncation degree of choice.
-    vars = get_variables(k)
-
-    # By definition of algo 6.1 in M. Neher (2006), the symbolic (normalized)
-    # space variables should have domain [-1, 1]^m.
-    # So, normalize the variables to have domain [-1, 1]^m.
-    # FIXME: This may clash with the cvars centering of time t in the loop?
-    # FIXME: Also center the time var? Only space, right? Preconditioning only uses space?
-    vars_normalized = [
-        TaylorSeries.normalize_taylor(v, init)
-        for v in vars[1:end-1]
-    ]
-    vars_normalized = vcat(vars_normalized, vars[end])
-    init = IntervalBox(unitbox(init.v[1:end-1])..., init.v[end])
-
-    # The left TMs are the Taylor model representation of the interval initial set.
-    Dl0 = id(vars_normalized[1:end-1], init)
-    # The right TMs are an identity map in the space (ODE) variables.
-    Dr0 = id(vars[1:end-1], init)
-
-    rng = IntervalBox([tm() for tm in Dr0]...)
-    # Explicitly enforce equal domains so we can pick the domain of a TM.
-    @assert allequal(domain.(Dr0)) "All domains must be equal."
-    # Verify that the composition of Dl0 and Dr0 is validly preconditioned.
-    # The composition is called preconditioned iff, `Rng(Dr0) ⊆ domain(Dl0)`.
-    # See definition 5.2 in M. NEHER (2006).
-    dom = IntervalBox(domain(Dl0[1]).v[1:end-1]...)
-    @assert issubset(rng, dom) "$rng SHOULD SUBSETEQ $(dom)"
-
-    # Rename the variables to make an explicit distinction between the input
-    # TMs and the loop TMs.
-    Dli::Vector{TaylorModelN{numvars,Float64,S}} = Dl0
-    Dri::Vector{TaylorModelN{numvars,Float64,S}} = Dr0
-
-
-    println("Dli = "); display(Dli); println()
-    println("Dri = "); display(Dri); println()
-
-
-    # Setup the output vectors / buffers.
-    boxes::Vector{IntervalBox} = []
-    fboxes::Vector{IntervalBox} = []
-
-    # Round the number of iterations up;
-    # the last time step may exceed the time horizon.
-    NR_ITERATIONS::Integer = ceil(Int, TIME_HORIZON / TIME_STEP_SIZE)
-    # The width threshold below which an interval is considered degenerate.
-    # e.g. diam([-1, 1]) = 2 > threshold  =>  NOT degenerate!
-    degen_threshold = 1.0e-12
-
-    for it = 1:NR_ITERATIONS
-        println("# Start Integration Iteration $it")
-
-        # Get the time component of the initial set.
-        tdom = vals.v[end]
-        tdiam = diam(tdom)
-        @assert tdiam < degen_threshold "The time component of the initial set "*
-            "is not considered degenerate: width($tdom) = $tdiam > $degen_threshold."
-
-        # Step 0: Taylorize the dynamics.
-        # We want to have a polynomial approximation of the dynamics centered around
-        # the midpoint of the current values.
-        VarType = typeof(vars[1])
-        fpoly = Vector{VarType}(undef, length(vars) - 1)
-        vector_field_constructor(fpoly, vars)
-        println("taylorized vector field/dynamics:")
-        println(fpoly); println()
-        @assert(all([ isassigned(fpoly, idx) for idx in eachindex(fpoly) ]),
-            "The dynamics constructor did not assign all vector field components.")
-
-        cvars = vcat(vars[1:end-1], (vars[end] + mid(vals.v[end])))
-        fpoly = [poly(cvars) for poly in fpoly]
-
-        # Step 1: Obtain the polynomial part of the Taylor model.
-        p::Vector{VarType} = tay_poly(fpoly, k, vars)
-        println("polynomial part of TM:")
-        println(p); println()
-
-        cvars = vcat(vars[1:end-1], (vars[end] - mid(vals.v[end])))
-        p = [poly(cvars) for poly in p]
-
-
-        # Step 2: Obtain the safe remainder/error interval of the TM.
-        #
-        # This rectangle is the initial set stretched across the entire time
-        # step [ti, ti+δ] of this integration iteration. By definition it only
-        # differs from the initial set in its time component.
-        #
-        # We already shifted t in when Taylorizing the ODEs and computing p.
-        # So compensate by setting time to [0, δ]!
-        doms = IntervalBox(vals.v[1:end-1]...,  0..TIME_STEP_SIZE)
-        doms_noS = IntervalBox(vals_noS.v[1:end-1]...,  0..TIME_STEP_SIZE)
-
-        # Find the safe/contractive remainder.
-        safe_rems, fpipe = tay_model_error(
-            vector_field_constructor,
-            p, J, vars, doms, doms_noS,
-            NR_CONTRACTIVENESS_TRIES,
-            NR_REFINEMENTS,
-            REFINEMENT_EPS,
-            SCALE)
-
-        # BUT, when fixing t in the initial set later, we must use the true time!
-        doms = IntervalBox(vals.v[1:end-1]...,  tdom.lo..(tdom.lo+TIME_STEP_SIZE))
-        fpipe = IntervalBox(fpipe.v[1:end-1]..., doms.v[end])
-
-        # Step 3: Get the new local values (and interval box) and update domain for next step
-        # i.e. just change the domain of the time variable in doms
-        # Make sure all values are correctly shaped.
-        @assert length(p) == length(safe_rems) == length(Dli) == (length(doms)-1)
-        # TODO: Is it possible to change the domain here already?
-        # Before anything else, make the time domain degenerate.
-        # The initial set is always evaluated at t = ti+δi anyways.
-        doms = IntervalBox(doms.v[1:end-1]..., doms.v[end].hi..doms.v[end].hi)
-
-        # Fix the time variable to the current time; t = ti+δi.
-        p = [ pj([vars[1:end-1]..., TaylorN(doms.v[end].hi, k)]) for pj in p ]
-
-        # Construct the integrated left Taylor models.
-        Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
-        Dli_noS, Dli, Dri = precondition(Dj, Dri, vars)
-
-        # Attach a dummy TM to the right TMs, for use in evaluation.
-        Dri_ext = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
-        vals = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli]..., doms.v[end])
-        vals_noS = IntervalBox([Dlij() for Dlij in Dli_noS]..., doms.v[end])
-
-        push!(boxes, vals)
-        push!(fboxes, fpipe)
-
-        println("                     vals: "); display(vals)
         println("\n=================================\n")
     end
 

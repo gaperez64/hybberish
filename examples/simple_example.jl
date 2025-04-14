@@ -1,4 +1,4 @@
-include("../src/tm_integration.jl")
+include("../src/tm_integration_qr.jl")
 
 
 """Construct the dynamics.
@@ -25,7 +25,7 @@ ord = 10
 # t(0) = [0, 0]
 # This is D_0 specifically in the maths.
 initial = [
-    ("y", interval(1)),
+    ("y", interval(0.95..1.05)),
     ("t", interval(0))
 ]
 init_values = IntervalBox([e[2] for e in initial])
@@ -33,7 +33,7 @@ init_values = IntervalBox([e[2] for e in initial])
 # The fixed time step size.
 tstep::Float64 = 0.01
 # The number of TM integration algo iterations.
-nr_iterations::Integer = 700
+nr_iterations::Integer = 500
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 

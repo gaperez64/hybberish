@@ -1,7 +1,7 @@
 """This file contains examples for our TM integration algorithm helper functions.
 """
 
-include("../src/tm_integration.jl")
+include("../src/tm_integration_qr.jl")
 
 
 
