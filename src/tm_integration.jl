@@ -1,6 +1,67 @@
 include("taylor_models/BasicTaylorModels.jl")
 
 
+"""Evaluate the picard operator.
+
+   We require TaylorN representations of the variables to be supplied by the
+   caller. This allows the caller to decide their order; the variables' orders
+   influence the orders of the output polynomials.
+
+   @param[in]    f The Taylorized dynamics (ODEs).
+   @param[in]    k Number of picard operator iterations to perform.
+   @param[in] vars The TaylorN objects representing the variables.
+        Assume the last element represents the time variable.
+   @param[in] val0 The TaylorN objects representing the initial variable
+        valuation. This vector contains NO time component.
+   @return The k-th picard operator.
+"""
+function picard(
+        f::Vector{TaylorN{T}},
+        k::Integer,
+        vars::Vector{TaylorN{T}},
+        val0::Vector{TaylorN{T}}) where {T <: Number}
+
+    # We require a vector of unmodified variables for derivation.
+    # In other words, a Taylor series identity map.
+    @assert vars == get_variables()
+    # The function `evaluate(::TaylorN, ::Vector{TaylorN})` does not play nice
+    # with different orders for the substitution values. So, require all orders
+    # to be the same.
+    @assert allequal( get_order.(vars) )
+    # Taylor series arithmetic propagates the lowest order of its operands.
+    # To generate order k polynomials, all variables must be at least order k.
+    @assert all( k .<= get_order.(vars) )
+    # The variables contain an additional last component: the time variable.
+    @assert length(f) == length(vars)-1
+    @assert length(val0) == length(vars)-1
+
+    # The TaylorSeries `integrate` function requires us to specify the INDEX
+    # of the variable w.r.t. to integrate. It does NOT want us to specify
+    # the variable object directly.
+    time_var_index = get_numvars()
+
+    # Start a vector function for the result.
+    # The function g is initially the bootstrapping values.
+    # Note that it does not contain a time component.
+    g = val0
+
+    for _ = 1:k
+        # Append identity time variable t to g. Evaluation requires values
+        # for all existing variables, even the ones not used in the polynomial.
+        t = vars[end]
+        gt = vcat(g, t)
+
+        # Perform the composition into the vector field.
+        g = [ fj(gt) for fj in f ]
+
+        # Perform the integral with regards to time.
+        g = @. val0 + TaylorSeries.integrate(g, time_var_index)
+    end
+    println("Final Picard operator:"); println(g); println()
+    return g
+end
+
+
 """Generate the Taylor polynomial approximation of the true flow specified by
    given dynamics (ODEs) up to the given degree via Lie derivatives.
 
@@ -11,11 +72,20 @@ include("taylor_models/BasicTaylorModels.jl")
    @param[in]    f The Taylorized dynamics (ODEs).
    @param[in]    k The degree (order) of the resulting polynomials.
    @param[in] vars The TaylorN objects representing the variables.
-                   Assume the last element represents the time variable.
+        Assume the last element represents the time variable.
+   @param[in] val0 The TaylorN objects representing the initial variable
+        valuation. This vector contains NO time component.
    @return The polynomial approximations of the true flow.
 """
-function tay_poly(f::Vector{TaylorN{N}}, k::Integer, vars::Vector{TaylorN{N}}) where {N <: Number}
+function tay_poly(
+        f::Vector{TaylorN{N}},
+        k::Integer,
+        vars::Vector{TaylorN{N}},
+        val0::Vector{TaylorN{N}}) where {N <: Number}
     vars_orders = get_order.(vars)
+
+    # We require a vector of unmodified variables for derivation.
+    @assert vars == get_variables()
     # The function `evaluate(::TaylorN, ::Vector{TaylorN})` does not play nice
     # with different orders for the substitution values. So, require all orders
     # to be the same.
@@ -25,30 +95,28 @@ function tay_poly(f::Vector{TaylorN{N}}, k::Integer, vars::Vector{TaylorN{N}}) w
     @assert all( k .<= vars_orders )
     # The variables contain an additional last component: the time variable.
     @assert length(f) == length(vars)-1
+    @assert length(val0) == length(vars)-1
 
     t = vars[end]
     # Let's pad f with a 1 at the end for t
-    fp1 = copy(f)
-    push!(fp1, 1)
-    # Also, prepare a valuation vector with t=0
-    # NOTE: We're cheating to obtain a zero with same order as the other
-    # variables
-    val0 = copy(vars)
-    val0[end] = t - t
+    fp1 = vcat(f, 1)
     # Prepare a first lie derivative and the result,
-    # in particular we remove the time variable t
-    g = copy(vars)
-    deleteat!(g, length(vars))
-    # Start a vector function for the result
-    res = copy(g)
+    # Note that it does not contain a time component.
+    g = vars[1:end-1]
+    # Start a vector function for the result.
+    lie_derivative = copy(val0)
+    # Also, prepare a valuation vector with t=0
+    # Set time to a zero polynomial with the same order as other variables.
+    val0 = vcat(val0, zero(t))
     for i = 1:k
+        # The variables contain a time component,
+        # so the jacobian contains a time column.
         g = TaylorSeries.jacobian(g, vars) * fp1
-        println("Lie derivative:")
-        println(map((h) -> evaluate(h, vars), g))
         term = map((h) -> evaluate(h, val0) * t^i * (1 / factorial(i)), g)
-        res += term
+        lie_derivative += term
     end
-    return res
+    println("Final Lie derivative:"); println(lie_derivative); println()
+    return lie_derivative
 end
 
 
@@ -367,7 +435,7 @@ function tm_integration(
         fpoly = [poly(cvars) for poly in fpoly]
 
         # Step 1: Obtain the polynomial part of the Taylor model.
-        p::Vector{VarType} = tay_poly(fpoly, k, vars)
+        p::Vector{VarType} = tay_poly(fpoly, k, vars, vars[1:end-1])
         println("polynomial part of TM:")
         println(p)
 
