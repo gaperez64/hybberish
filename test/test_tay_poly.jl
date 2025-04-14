@@ -58,7 +58,7 @@ val0 = [
 
 # Compute the Taylor polynomial approx. of the true flow.
 p_lie = tay_poly(fpoly, k, vars, val0)
-p_pic = tay_poly(fpoly, k, vars, val0)
+p_pic = picard(fpoly, k, vars, val0)
 
 actual = [
     0.904667 + 1.01*a + 0.1*b - 0.909333*t + 0.19*a*t + 1.01*b*t +
