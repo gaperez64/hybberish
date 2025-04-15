@@ -32,7 +32,7 @@ init_values = IntervalBox([e[2] for e in initial])
 # The fixed time step size.
 tstep::Float64 = 0.001
 # The number of TM integration algo iterations.
-nr_iterations::Integer = 200
+nr_iterations::Integer = 2800
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 
@@ -90,17 +90,31 @@ euler_init_state = Vector(mid(init_values))
 # Evaluate Forward Euler.
 euler_step::Float64 = tstep / 10.0
 eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
+vnames = get_variable_names()
 
 # Actual plotting
-pltND1 = plot_boxes_ND(boxes, get_variable_names(), sgtitle="initial sets", legend=true)
-pltND2 = plot_boxes_ND(fboxes, get_variable_names(), sgtitle="flowpipes", legend=true)
+pltND1 = plot_boxes_ND(boxes, vnames, title="Initial sets", legend=false)
+pltND2 = plot_boxes_ND(fboxes, vnames, title="Flowpipes", legend=false)
 
 # Add the Forward Euler curves to the subplots, for each variable.
 for idx in eachindex(pltND1.subplots)
     plot!(pltND1.subplots[idx], eseries[idx], label="Forward Euler")
     plot!(pltND2.subplots[idx], eseries[idx], label="Forward Euler")
 end
+
+# Plot (x, y) pairs, instead of separately plotting (t, x) and (t, y).
+# The custom plotting function expects the (x, y) pair to be passed as (y, x).
+yx_boxes = [ IntervalBox(box[2], box[1]) for box in fboxes ]
+xn, yn = vnames
+pltND3 = plot_boxes_ND(yx_boxes, [yn, xn], title="xy-Flowpipes", legend=false)
+# Add the forward euler curve as well.
+xy_eseries = [ (ex[2], ey[2]) for (ex, ey) in zip(eseries[1], eseries[2]) ]
+plot!(pltND3, xy_eseries, label="Forward Euler")
+
+# Compose the plots into a grid.
 pltND = plot(pltND1, pltND2)
+pltND = plot(pltND, pltND3, layout=(2, 1))
+
 
 println("Show plot ...")
 display(pltND)

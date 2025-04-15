@@ -45,9 +45,9 @@ initial = [
 init_values = IntervalBox([e[2] for e in initial])
 
 # The fixed time step size.
-tstep::Float64 = 0.01
+tstep::Float64 = 0.001
 # The number of TM integration algo iterations.
-nr_iterations::Integer = 5
+nr_iterations::Integer = 200
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 
@@ -116,14 +116,14 @@ boxes = [IntervalBox(box[indexes]...) for box in boxes]
 fboxes = [IntervalBox(box[indexes]...) for box in fboxes]
 
 # Plot the variables against time, as initial sets.
-pltND1 = plot_boxes_ND(boxes, vnames, sgtitle="vals", legend=false)
+pltND1 = plot_boxes_ND(boxes, vnames, title="Initial sets", legend=false)
 # Plot the variables against time, as flowpipe over-approximations.
-pltND2 = plot_boxes_ND(fboxes, vnames, sgtitle="fpipe", legend=false)
+pltND2 = plot_boxes_ND(fboxes, vnames, title="Flowpipes", legend=false)
 
 # Add the Forward Euler curves to the subplots, for each variable.
 for idx in eachindex(pltND1.subplots)
-    plot!(pltND1.subplots[idx], eseries[idx], label="Stable ODE Forward Euler")
-    plot!(pltND2.subplots[idx], eseries[idx], label="Stable ODE Forward Euler")
+    plot!(pltND1.subplots[idx], eseries[idx], label="Forward Euler", legend=false)
+    plot!(pltND2.subplots[idx], eseries[idx], label="Forward Euler", legend=false)
 end
 pltND = plot(pltND1, pltND2)
 
