@@ -665,17 +665,10 @@ function tm_integration_QR(
         @assert(all([ isassigned(fpoly, idx) for idx in eachindex(fpoly) ]),
             "The dynamics constructor did not assign all vector field components.")
 
-        #cvars = vcat(vars[1:end-1], (vars[end] + mid(vals.v[end])))
-        #fpoly = [poly(cvars) for poly in fpoly]
-
         # Step 1: Obtain the polynomial part of the Taylor model.
 	p::Vector{VarType} = tay_poly(fpoly, k, vars)
         println("polynomial part of TM:")
         println(p); println()
-
-        #cvars = vcat(vars[1:end-1], (vars[end] - mid(vals.v[end])))
-        #p = [poly(cvars) for poly in p]
-
 
         # Step 2: Obtain the safe remainder/error interval of the TM.
         #
