@@ -135,14 +135,14 @@ function ttintegration(ipath::String, opath::String, tstep::Float64; rows=nothin
     rows = rows === nothing ? length(reader) : min(rows, length(reader))
 
     for data in reader[1:rows]
-        @assert(length(data) == 8,
+        @assert(length(data) == 7,
             "The CSV has an unexpected number of columns: got $(length(data)).")
 
         # Dump the original data point to disk.
         CSV.write(ofile, [data], writeheader=false, append=true)
 
         # Unpack the input data to make its column format/ordering explicit.
-        x, y, theta0, theta1, v0, dtheta0, v1, t = data
+        x, y, theta0, theta1, v0, dtheta0, t = data
 
         combinations = []
         try
@@ -162,11 +162,8 @@ function ttintegration(ipath::String, opath::String, tstep::Float64; rows=nothin
 
         # Generate one border point using each (inf, mid, sup) combination.
         product = Iterators.product # An alias.
-        # FIXME: Here we just propagate the input v1. But instead we should
-        #        output the v1 computed during TM integration in the vector
-        #        field???
         combinations = [
-            [ op1(x), op2(y), op3(theta0), op4(theta1), v0, v1, dtheta0, t ]
+            [ op1(x), op2(y), op3(theta0), op4(theta1), v0, dtheta0, t ]
             for (op1, op2, op3, op4) in product(fill([inf, mid, sup], 4)...)
         ]
         # Transform a vector of rows into a vector of columns.
