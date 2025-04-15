@@ -227,7 +227,6 @@ function precondition(
         arithmetic and as such influences the computed remainders. =#
     S_tmv = linear_map(S_, unitdom, vars_no_t)
     # Set U_{l, j+1} := U_{l, j+1} ◦ S_(j+1)
-    tmv_left_noS = tmv_left
     tmv_left = [ tm(vcat(S_tmv, ttm)) for tm in tmv_left ]
 
     println("Range(tmv_right) ="); display(IntervalBox([tm() for tm in tmv_right]...)); println();
@@ -236,10 +235,6 @@ function precondition(
     tmv_left  = [
         TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
         for tm in tmv_left
-    ]
-    tmv_left_noS  = [
-        TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
-        for tm in tmv_left_noS
     ]
     tmv_right = [
         TaylorModelN(tm, IntervalBox(domain(tm).v[1:end-1]..., timedoml))
@@ -253,7 +248,7 @@ function precondition(
     #        that are inside [-1, 1] with a small tolerance.
     @assert all(rng -> -1.01 < rng.lo && rng.hi < 1.01, [tm() for tm in tmv_right])
 
-    return tmv_left_noS, tmv_left, tmv_right
+    return tmv_left, tmv_right
 end
 
 """Generate the Taylor polynomial approximation of the true flow specified by
@@ -628,7 +623,6 @@ function tm_integration_QR(
     # To make explicit that the domain normalization is a form of manual
     # preconditioning, the interval initial set is evaluated after normalization.
     vals::IntervalBox{numvars, S} = IntervalBox([ tm() for tm in Dli ]..., init.v[end])
-    # vals_noS::IntervalBox{numvars, S} = vals
 
     println("Dli = "); display(Dli); println()
     println("Dri = "); display(Dri); println()
@@ -708,12 +702,11 @@ function tm_integration_QR(
 
         # Construct the integrated left Taylor models.
         Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
-        Dli_noS, Dli, Dri = precondition(Dj, Dri, vars)
+        Dli, Dri = precondition(Dj, Dri, vars)
 
         # Attach a dummy TM to the right TMs, for use in evaluation.
         Dri_ext = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
         vals = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli]..., doms.v[end])
-        # vals_noS = IntervalBox([Dlij() for Dlij in Dli_noS]..., doms.v[end])
 
         push!(boxes, vals)
         push!(fboxes, fpipe)
