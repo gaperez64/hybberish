@@ -196,14 +196,20 @@ end
 
 """The common code needed to construct the inputs to 'picard_tm_extension'."""
 function construct_tmv(
-        p::Vector{TaylorN{T}},
+        p::Vector,
         J::IntervalBox{M,S},
         vars::Vector,
         doms::IntervalBox{N,S},
-        vector_field_constructor::Function) where {N,M,T,S}
+	real_t::Float64,
+        vector_field_constructor::Function) where {N,M,S}
 
     @assert length(J) == length(p)
     @assert length(J) == length(doms)-1
+
+    println("doms")
+    println(doms)
+    println("real_t")
+    println(real_t)
 
     t = vars[end]
     tdom = doms.v[end]
@@ -211,14 +217,20 @@ function construct_tmv(
     candidate_ttm = TaylorModelN(t, interval(0), doms)
     candidate_tmv = [ TaylorModelN(p_i, J_i, doms) for (p_i, J_i) in zip(p, J) ]
 
-    # Based on the safe Taylor model estimate, we want the flowpipe to be
-    # used as the domain for the taylorization of the dynamics.
-    fpipe = IntervalBox([ p_i(doms) + J_i for (p_i, J_i) in zip(p, J) ]..., tdom)
+    # based on the estimate, we want the flowpipe to be used as the domain for
+    # the taylorization of the dynamics
+    # FIXME: assuming the domain of time is a degenerate interval
+    # NOTE: `fpipe` is F_i in the maths.
+    fpipe = IntervalBox([ ctm() for ctm in candidate_tmv ]..., tdom)
     vartms = [ TaylorModelN(v, interval(0), fpipe) for v in vars ]
+    println("vartms")
+    println(vartms)
+    println("fpipe")
+    println(fpipe)
 
     tm_type = typeof(candidate_ttm)
-    ftmv = Vector{TaylorModelN{N,T,S}}(undef, length(vartms) - 1)
-    vector_field_constructor(ftmv, vartms)
+    ftmv = Vector{tm_type}(undef, length(vartms) - 1)
+    vector_field_constructor(ftmv, [vartms[1:end-1]..., vartms[end] + real_t])
     @assert(all([ isassigned(ftmv, idx) for idx in eachindex(ftmv) ]),
         "The dynamics constructor did not assign all vector field components.")
 
@@ -257,14 +269,15 @@ end
 """
 function tay_model_error(
         vector_field_constructor::Function,
-        p::Vector{TaylorN{T}},
+        p::Vector,
         J::Interval{S},
-        vars::Vector{TaylorN{T}},
+        vars::Vector,
         doms::IntervalBox{N,S},
+	real_t::Float64,
         NR_CONTRACTIVENESS_TRIES::Integer,
         NR_REFINEMENTS::Integer,
         REFINEMENT_EPS::Float64,
-        SCALE::Float64) where {N, S, T}
+        SCALE::Float64) where {N, S}
 
     @assert NR_CONTRACTIVENESS_TRIES > 0
     @assert NR_REFINEMENTS >= 0
@@ -283,7 +296,7 @@ function tay_model_error(
     for ctry in 1:NR_CONTRACTIVENESS_TRIES
         J0 = IntervalBox(fill(J, length(p))...)
 
-        ftmv, ctmv, fpipe = construct_tmv(p, J0, vars, doms, vector_field_constructor)
+        ftmv, ctmv, fpipe = construct_tmv(p, J0, vars, doms, real_t, vector_field_constructor)
 
         # Then we take the TM extension of the approx'd vector field composed
         # with the candidate TM.
@@ -309,7 +322,7 @@ function tay_model_error(
     for nr in 1:NR_REFINEMENTS
         print("Refinement no. $nr")
         Jprev = Jn
-        ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, vector_field_constructor)
+        ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, real_t, vector_field_constructor)
         Jn = picard_tm_extension(ftmv, ctmv)
 
         @assert all(issubset.(Jn, Jprev)) "Refinement should only increase the bound tightness!"
@@ -408,7 +421,7 @@ function tm_integration(
     NR_ITERATIONS::Integer = ceil(Int, TIME_HORIZON / TIME_STEP_SIZE)
     # The width threshold below which an interval is considered degenerate.
     # e.g. diam([-1, 1]) = 2 > threshold  =>  NOT degenerate!
-    degen_threshold = 1.0e-15
+    degen_threshold = 1.0e-12
 
     for it = 1:NR_ITERATIONS
         println("# Start Integration Iteration $it")
@@ -424,24 +437,16 @@ function tm_integration(
         # the midpoint of the current values.
         VarType = typeof(vars[1])
         fpoly = Vector{VarType}(undef, length(vars) - 1)
-        vector_field_constructor(fpoly, vars)
+        vector_field_constructor(fpoly, vcat(vars[1:end-1], (vars[end] + mid(vals.v[end]))))
         println("taylorized vector field/dynamics:")
-        println(fpoly)
+        println(fpoly); println()
         @assert(all([ isassigned(fpoly, idx) for idx in eachindex(fpoly) ]),
             "The dynamics constructor did not assign all vector field components.")
-
-        cvars = vcat(vars[1:end-1], (vars[end] + mid(vals.v[end])))
-        println("############################### cvars ($(length(cvars))) = $cvars")
-        fpoly = [poly(cvars) for poly in fpoly]
 
         # Step 1: Obtain the polynomial part of the Taylor model.
         p::Vector{VarType} = tay_poly(fpoly, k, vars, vars[1:end-1])
         println("polynomial part of TM:")
-        println(p)
-
-        cvars = vcat(vars[1:end-1], (vars[end] - mid(vals.v[end])))
-        println("############################### cvars ($(length(cvars))) = $cvars")
-        p = [poly(cvars) for poly in p]
+        println(p); println()
 
 
         # Step 2: Obtain the safe remainder/error interval of the TM.
@@ -449,26 +454,29 @@ function tm_integration(
         # This rectangle is the initial set stretched across the entire time
         # step [ti, ti+δ] of this integration iteration. By definition it only
         # differs from the initial set in its time component.
-        doms = IntervalBox(vals.v[1:end-1]...,  tdom.lo..(tdom.lo+TIME_STEP_SIZE))
+        doms = IntervalBox(vals.v[1:end-1]...,  0..TIME_STEP_SIZE)
 
         # Find the safe/contractive remainder.
         safe_rems, fpipe = tay_model_error(
             vector_field_constructor,
-            p, J, vars, doms,
+            p, J, vars, doms, mid(vals.v[end]),
             NR_CONTRACTIVENESS_TRIES,
             NR_REFINEMENTS,
             REFINEMENT_EPS,
             SCALE)
 
+        # BUT, when fixing t in the initial set later, we must use the true time!
+        doms = IntervalBox(vals.v[1:end-1]...,  tdom.lo..(tdom.lo+TIME_STEP_SIZE))
+        fpipe = IntervalBox(fpipe.v[1:end-1]..., tdom.lo..(tdom.lo+TIME_STEP_SIZE))
 
         # Step 3: Get the new local values (and interval box) and update domain for next step
         # i.e. just change the domain of the time variable in doms
         # Make sure all values are correctly shaped.
         @assert length(p) == length(safe_rems) == length(Di) == (length(doms)-1)
 
-        # Represent the current time step's right bound as a constant TaylorModelN.
+        # Represent the step size as a constant TaylorN.
         # NOTE: The domain is unimportant, the composition later just has to succeed.
-        di = TaylorModelN(doms.v[end].hi, k, domain(Di[1]))
+        di = TaylorModelN(TIME_STEP_SIZE, k, domain(Di[1]))
 
         # TaylorModelN composition will require uniform domains for input values.
         @assert domain(di) == domain(Di[1]) ": $(domain(di)) != $(domain(Di[1]))"
@@ -477,7 +485,8 @@ function tm_integration(
         for (pj, Ij) in zip(p, safe_rems)
             # Di = (p(Di, δi), I)
             # NOTE: The domain is unimportant, the composition just has to succeed.
-            tm = TaylorModelN(pj, Ij, fpipe)([Di..., di])
+            arbitrary_domain = IntervalBox([ tm() for tm in Di ]..., di())
+            tm = TaylorModelN(pj, Ij, arbitrary_domain)([Di..., di])
 
             # Compute a Taylor model representation of the initial set.
             # The domain here IS important!
