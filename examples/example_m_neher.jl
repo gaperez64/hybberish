@@ -19,7 +19,7 @@ end
 
 # The truncation degree / the degree of all polynomials
 # that are used during computations.
-ord = 3
+ord = 4
 
 # Initial state variable bounds and domain.
 initial = [
@@ -32,14 +32,14 @@ init_values = IntervalBox([e[2] for e in initial])
 # The fixed time step size.
 tstep::Float64 = 0.001
 # The number of TM integration algo iterations.
-nr_iterations::Integer = 400
+nr_iterations::Integer = 500
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 
 # The scale factor for when contractiveness fails.
 nr_contractiveness_tries = 10
 # The number of refinements to perform at most.
-nr_refinements = 10
+nr_refinements = 100
 # Quit refinement early if the improvement a single refinement
 # provides falls below this threshold.
 refinement_eps = 0.001
