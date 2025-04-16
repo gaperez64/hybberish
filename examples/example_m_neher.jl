@@ -30,16 +30,16 @@ initial = [
 init_values = IntervalBox([e[2] for e in initial])
 
 # The fixed time step size.
-tstep::Float64 = 0.001
+tstep::Float64 = 0.1
 # The number of TM integration algo iterations.
-nr_iterations::Integer = 500
+nr_iterations::Integer = 3
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 
 # The scale factor for when contractiveness fails.
 nr_contractiveness_tries = 10
 # The number of refinements to perform at most.
-nr_refinements = 100
+nr_refinements = 0
 # Quit refinement early if the improvement a single refinement
 # provides falls below this threshold.
 refinement_eps = 0.001

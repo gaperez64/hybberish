@@ -627,7 +627,6 @@ function tm_integration_QR(
     println("Dli = "); display(Dli); println()
     println("Dri = "); display(Dri); println()
 
-
     # Setup the output vectors / buffers.
     boxes::Vector{IntervalBox} = []
     fboxes::Vector{IntervalBox} = []
@@ -699,12 +698,15 @@ function tm_integration_QR(
         # Fix the time variable to the current time; t = ti+δi.
         #p = [ pj([vars[1:end-1]..., TaylorN(doms.v[end].hi, k)]) for pj in p ]
         p = [ pj([vars[1:end-1]..., TaylorN(TIME_STEP_SIZE, k)]) for pj in p ]
-
+	
         # Construct the integrated left Taylor models.
-        Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
+	Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
         Dli, Dri = precondition(Dj, Dri, vars)
 
-        # Attach a dummy TM to the right TMs, for use in evaluation.
+	println("Dli = "); display(Dli); println()
+	println("Dri = "); display(Dri); println()
+
+        # Attach a dummy time TM to the right TMs, for use in evaluation.
         Dri_ext = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
         vals = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli]..., doms.v[end])
 
