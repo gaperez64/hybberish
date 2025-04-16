@@ -678,7 +678,8 @@ function tm_integration_QR(
         #
         # We already shifted t in when Taylorizing the ODEs and computing p.
         # So compensate by setting time to [0, δ]!
-        doms = IntervalBox(vals.v[1:end-1]...,  0..TIME_STEP_SIZE)
+        # doms = IntervalBox(vals.v[1:end-1]...,  0..TIME_STEP_SIZE)
+	doms = IntervalBox(unitbox(vals.v[1:end-1])..., 0..TIME_STEP_SIZE)
 
         # Find the safe/contractive remainder.
         safe_rems, fpipe = tay_model_error(
@@ -690,7 +691,7 @@ function tm_integration_QR(
             SCALE)
 
         # BUT, when fixing t in the initial set later, we must use the true time!
-        doms = IntervalBox(vals.v[1:end-1]...,  tdom.lo..(tdom.lo+TIME_STEP_SIZE))
+        doms = IntervalBox(doms.v[1:end-1]...,  tdom.lo..(tdom.lo+TIME_STEP_SIZE))
         fpipe = IntervalBox(fpipe.v[1:end-1]..., tdom.lo..(tdom.lo+TIME_STEP_SIZE))
 
         # Step 3: Get the new local values (and interval box) and update domain for next step
