@@ -340,19 +340,28 @@ end
      operator; the interval vector K.
 """
 function picard_tm_extension(
-        vector_field_tms::Vector{TaylorModelN{N,T,S}},
-        function_tms::Vector{TaylorModelN{N,T,S}}) where {N,T,S}
+        p::Vector,
+        J::IntervalBox{M,S},
+        vars::Vector,
+        doms::IntervalBox{N,S},
+        Dli::Vector{TaylorModelN{N,T,S}},
+        real_t::Float64,
+        vector_field_constructor::Function) where {N,M,T,S}
 
-    func_orders = get_order.(function_tms)
-    # The function `evaluate(::TaylorN, ::Vector{TaylorN})` does not play nice
-    # with different orders for the substitution values. So, require all orders
-    # to be the same.
-    @assert all( func_orders[1] .== func_orders )
-    # TM arithmetic is only defined for TMs with the same domains.
-    fdomains = domain.(function_tms)
-    @assert all( (fdomains[1],) .== fdomains )
-    # The function components additionally specify a time component.
-    @assert length(vector_field_tms) == length(function_tms)-1
+    @assert length(J) == length(p)
+    @assert length(J) == length(doms)-1
+
+    # FIXME: Implement a general picard operator function so that it works
+    #        both for constructing p given a TaylorN vector AND for doing
+    #        the contractiveness check given a TaylorModelN vector.
+
+    # Time-shift the time variable during Taylorization of time-dependent ODEs.
+    # I.e. in the ODEs substitute variable t by Taylor model (t + ti) + [0, 0].
+    candidate_ttm = TaylorModelN(vars[end] + real_t, interval(0), doms)
+    # Compose the candidate Taylor models that we guess envelop the true flow.
+    candidate_tmv = [ TaylorModelN(p_i, J_i, doms) for (p_i, J_i) in zip(p, J) ]
+
+    fpipe = IntervalBox([ ctm() for ctm in candidate_tmv ]..., doms.v[end])
 
     #= Step (1), perform the composition operation of the
       TM extension of Picard operator, which  accounts for errors
@@ -360,7 +369,8 @@ function picard_tm_extension(
         (p, I) \circ (q, J) = p(q, J) + I = (r, K) + I = (r, K + I)
       The normal Picard operator expresses this as f(g(x, t), t).
     =#
-    substitution_tms = [fj(function_tms) for fj in vector_field_tms]
+    fgtmv = Vector{TaylorModelN{N,T,S}}(undef, length(p))
+    vector_field_constructor(fgtmv, vcat(candidate_tmv, candidate_ttm))
 
     #= Step (2), apply the antiderivative formula.
         (Int(pe) + I) * \delta
@@ -378,56 +388,17 @@ function picard_tm_extension(
     intpe(tm::TaylorModelN) = evaluate(polynomial(tm)[end], domain(tm))
     """Get the width of the time component of the TaylorModelN domain."""
     dt(tm::TaylorModelN) = diam(domain(tm).v[end])
-    return IntervalBox(map(
-        (tmj) -> ( intpe(tmj) + remainder(tmj) ) * dt(tmj),
-        substitution_tms)...)
-end
+    integral_rem = IntervalBox([
+        ( intpe(tm) + remainder(tm) ) * dt(tm) for tm in fgtmv
+    ])
 
-"""The common code needed to construct the inputs to 'picard_tm_extension'."""
-function construct_tmv(
-        p::Vector,
-        J::IntervalBox{M,S},
-        vars::Vector,
-        doms::IntervalBox{N,S},
-	real_t::Float64,
-        vector_field_constructor::Function) where {N,M,S}
+    # The Picard operator depends on the current initial set.
+    # Add the remainders of the current initial set to imitate
+    # how the Picard operator would work.
+    # FIXME: This should happen as part of a generalized Picard function.
+    bootstrap_rem = IntervalBox(remainder.(Dli))
 
-    @assert length(J) == length(p)
-    @assert length(J) == length(doms)-1
-
-    println("doms")
-    println(doms)
-    println("real_t")
-    println(real_t)
-
-    t = vars[end]
-    tdom = doms.v[end]
-
-    candidate_ttm = TaylorModelN(t, interval(0), doms)
-    candidate_tmv = [ TaylorModelN(p_i, J_i, doms) for (p_i, J_i) in zip(p, J) ]
-
-    # based on the estimate, we want the flowpipe to be used as the domain for
-    # the taylorization of the dynamics
-    # FIXME: assuming the domain of time is a degenerate interval
-    # NOTE: `fpipe` is F_i in the maths.
-    fpipe = IntervalBox([ ctm() for ctm in candidate_tmv ]..., tdom)
-    vartms = [ TaylorModelN(v, interval(0), fpipe) for v in vars ]
-    println("vartms")
-    println(vartms)
-    println("fpipe")
-    println(fpipe)
-
-    tm_type = typeof(candidate_ttm)
-    ftmv = Vector{tm_type}(undef, length(vartms) - 1)
-    vector_field_constructor(ftmv, [vartms[1:end-1]..., vartms[end] + real_t])
-    @assert(all([ isassigned(ftmv, idx) for idx in eachindex(ftmv) ]),
-        "The dynamics constructor did not assign all vector field components.")
-
-    # TODO: Delete print statements.
-    println("poly version of dynamics, now with error")
-    println(ftmv)
-
-    return ftmv, vcat(candidate_tmv, candidate_ttm), fpipe
+    return bootstrap_rem + integral_rem, fpipe
 end
 
 """Compute a safe remainder interval for the i-th flowpipe.
@@ -451,6 +422,8 @@ end
     @param[in] J The initial remainder estimate.
     @param[in] vars The variable objects to use.
     @param[in] doms The previous interval inintial set, with updated time domain???
+    @param[in] Dli The current initial set.
+    @param[in] real_t The real time ti of the integration set, the time of the current initial set.
     @param[in] NR_CONTRACTIVENESS_TRIES The max number of contractiveness tries to attempt.
     @param[in] NR_REFINEMENTS The max number of refinements to perform.
     @param[in] REFINEMENT_EPS Quit refinement early if the improvement falls below this threshold.
@@ -462,11 +435,12 @@ function tay_model_error(
         J::Interval{S},
         vars::Vector,
         doms::IntervalBox{N,S},
-	real_t::Float64,
+        Dli::Vector{TaylorModelN{N,T,S}},
+        real_t::Float64,
         NR_CONTRACTIVENESS_TRIES::Integer,
         NR_REFINEMENTS::Integer,
         REFINEMENT_EPS::Float64,
-        SCALE::Float64) where {N, S}
+        SCALE::Float64) where {N, T, S}
 
     @assert NR_CONTRACTIVENESS_TRIES > 0
     @assert NR_REFINEMENTS >= 0
@@ -485,11 +459,9 @@ function tay_model_error(
     for ctry in 1:NR_CONTRACTIVENESS_TRIES
         J0 = IntervalBox(fill(J, length(p))...)
 
-        ftmv, ctmv, fpipe = construct_tmv(p, J0, vars, doms, real_t, vector_field_constructor)
-
-        # Then we take the TM extension of the approx'd vector field composed
-        # with the candidate TM.
-        J1 = picard_tm_extension(ftmv, ctmv)
+        # The TM extension of the Picard operator reveals contractiveness
+        # of the candidate safe Taylor model vector (p, J0).
+        J1, fpipe = picard_tm_extension(p, J0, vars, doms, Dli, real_t, vector_field_constructor)
 
         # Test contractiveness.
         if all(issubset.(J1, J0))
@@ -511,8 +483,9 @@ function tay_model_error(
     for nr in 1:NR_REFINEMENTS
         print("Refinement no. $nr")
         Jprev = Jn
-        ftmv, ctmv, fpipe = construct_tmv(p, Jn, vars, doms, real_t, vector_field_constructor)
-        Jn = picard_tm_extension(ftmv, ctmv)
+
+        # Refine (tighten) the safe remainder.
+        Jn, fpipe = picard_tm_extension(p, Jn, vars, doms, Dli, real_t, vector_field_constructor)
 
         @assert all(issubset.(Jn, Jprev)) "Refinement should only increase the bound tightness!"
         max_improvement::Float64 = maximum(diam.(Jprev) - diam.(Jn))
@@ -659,14 +632,14 @@ function tm_integration_QR(
         # the midpoint of the current values.
         VarType = typeof(vars[1])
         fpoly = Vector{VarType}(undef, length(vars) - 1)
-	vector_field_constructor(fpoly, vcat(vars[1:end-1], (vars[end] + mid(vals.v[end]))))
+        vector_field_constructor(fpoly, vcat(vars[1:end-1], (vars[end] + mid(vals.v[end]))))
         println("taylorized vector field/dynamics:")
         println(fpoly); println()
         @assert(all([ isassigned(fpoly, idx) for idx in eachindex(fpoly) ]),
             "The dynamics constructor did not assign all vector field components.")
 
         # Step 1: Obtain the polynomial part of the Taylor model.
-	p::Vector{VarType} = tay_poly(fpoly, k, vars, polynomial.(Dli))
+	    p::Vector{VarType} = tay_poly(fpoly, k, vars, polynomial.(Dli))
         println("polynomial part of TM:")
         println(p); println()
 
@@ -679,12 +652,14 @@ function tm_integration_QR(
         # We already shifted t in when Taylorizing the ODEs and computing p.
         # So compensate by setting time to [0, δ]!
         # doms = IntervalBox(vals.v[1:end-1]...,  0..TIME_STEP_SIZE)
-	doms = IntervalBox(unitbox(vals.v[1:end-1])..., 0..TIME_STEP_SIZE)
+        doms = IntervalBox(unitbox(vals.v[1:end-1])..., 0..TIME_STEP_SIZE)
 
+        # FIXME: The real_t parameter can be derived from Dli,
+        #        so remove that function argument?
         # Find the safe/contractive remainder.
         safe_rems, fpipe = tay_model_error(
             vector_field_constructor,
-	    p, J, vars, doms, mid(vals.v[end]),
+	        p, J, vars, doms, Dli, mid(vals.v[end]),
             NR_CONTRACTIVENESS_TRIES,
             NR_REFINEMENTS,
             REFINEMENT_EPS,
@@ -692,6 +667,10 @@ function tm_integration_QR(
 
         # BUT, when fixing t in the initial set later, we must use the true time!
         doms = IntervalBox(doms.v[1:end-1]...,  tdom.lo..(tdom.lo+TIME_STEP_SIZE))
+
+        # The flowpipe is evaluated as the composition of
+        # the integrated left models and previous right models.
+        Dri_ext = vcat(Dri, TaylorModelN(vars[end], interval(0), domain(Dri[1])))
         fpipe = IntervalBox(fpipe.v[1:end-1]..., tdom.lo..(tdom.lo+TIME_STEP_SIZE))
 
         # Step 3: Get the new local values (and interval box) and update domain for next step
@@ -706,15 +685,15 @@ function tm_integration_QR(
         # Fix the time variable to the current time; t = ti+δi.
         #p = [ pj([vars[1:end-1]..., TaylorN(doms.v[end].hi, k)]) for pj in p ]
         p = [ pj([vars[1:end-1]..., TaylorN(TIME_STEP_SIZE, k)]) for pj in p ]
-	println("Ui as in Neher:")
-	println(p)
+        println("Ui as in Neher:")
+        println(p)
 	
         # Construct the integrated left Taylor models.
-	Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
+        Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
         Dli, Dri = precondition(Dj, Dri, vars)
 
-	println("Dli = "); display(Dli); println()
-	println("Dri = "); display(Dri); println()
+        println("Dli = "); display(Dli); println()
+        println("Dri = "); display(Dri); println()
 
         # Attach a dummy time TM to the right TMs, for use in evaluation.
         Dri_ext = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
