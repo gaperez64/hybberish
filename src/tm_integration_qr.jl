@@ -261,11 +261,20 @@ end
    @param[in]    f The Taylorized dynamics (ODEs).
    @param[in]    k The degree (order) of the resulting polynomials.
    @param[in] vars The TaylorN objects representing the variables.
-                   Assume the last element represents the time variable.
+        Assume the last element represents the time variable.
+   @param[in] val0 The TaylorN objects representing the initial variable
+        valuation. This vector contains NO time component.
    @return The polynomial approximations of the true flow.
 """
-function tay_poly(f::Vector{TaylorN{N}}, k::Integer, vars::Vector{TaylorN{N}}) where {N <: Number}
+function tay_poly(
+        f::Vector{TaylorN{N}},
+        k::Integer,
+        vars::Vector{TaylorN{N}},
+        val0::Vector{TaylorN{N}}) where {N <: Number}
     vars_orders = get_order.(vars)
+
+    # We require a vector of unmodified variables for derivation.
+    @assert vars == get_variables()
     # The function `evaluate(::TaylorN, ::Vector{TaylorN})` does not play nice
     # with different orders for the substitution values. So, require all orders
     # to be the same.
@@ -275,30 +284,28 @@ function tay_poly(f::Vector{TaylorN{N}}, k::Integer, vars::Vector{TaylorN{N}}) w
     @assert all( k .<= vars_orders )
     # The variables contain an additional last component: the time variable.
     @assert length(f) == length(vars)-1
+    @assert length(val0) == length(vars)-1
 
     t = vars[end]
     # Let's pad f with a 1 at the end for t
-    fp1 = copy(f)
-    push!(fp1, 1)
-    # Also, prepare a valuation vector with t=0
-    # NOTE: We're cheating to obtain a zero with same order as the other
-    # variables
-    val0 = copy(vars)
-    val0[end] = t - t
+    fp1 = vcat(f, 1)
     # Prepare a first lie derivative and the result,
-    # in particular we remove the time variable t
-    g = copy(vars)
-    deleteat!(g, length(vars))
-    # Start a vector function for the result
-    res = copy(g)
+    # Note that it does not contain a time component.
+    g = vars[1:end-1]
+    # Start a vector function for the result.
+    lie_derivative = copy(val0)
+    # Also, prepare a valuation vector with t=0
+    # Set time to a zero polynomial with the same order as other variables.
+    val0 = vcat(val0, zero(t))
     for i = 1:k
+        # The variables contain a time component,
+        # so the jacobian contains a time column.
         g = TaylorSeries.jacobian(g, vars) * fp1
-        println("Lie derivative:")
-        println(map((h) -> evaluate(h, vars), g))
-	term = map((h) -> evaluate(h, val0) * t^i * (1 / factorial(i)), g)
-        res += term
+        term = map((h) -> evaluate(h, val0) * t^i * (1 / factorial(i)), g)
+        lie_derivative += term
     end
-    return res
+    println("Final Lie derivative:"); println(lie_derivative); println()
+    return lie_derivative
 end
 
 
@@ -659,7 +666,7 @@ function tm_integration_QR(
             "The dynamics constructor did not assign all vector field components.")
 
         # Step 1: Obtain the polynomial part of the Taylor model.
-	p::Vector{VarType} = tay_poly(fpoly, k, vars)
+	p::Vector{VarType} = tay_poly(fpoly, k, vars, polynomial.(Dli))
         println("polynomial part of TM:")
         println(p); println()
 
@@ -698,6 +705,8 @@ function tm_integration_QR(
         # Fix the time variable to the current time; t = ti+δi.
         #p = [ pj([vars[1:end-1]..., TaylorN(doms.v[end].hi, k)]) for pj in p ]
         p = [ pj([vars[1:end-1]..., TaylorN(TIME_STEP_SIZE, k)]) for pj in p ]
+	println("Ui as in Neher:")
+	println(p)
 	
         # Construct the integrated left Taylor models.
 	Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]

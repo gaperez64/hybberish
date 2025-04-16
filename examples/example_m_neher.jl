@@ -19,7 +19,7 @@ end
 
 # The truncation degree / the degree of all polynomials
 # that are used during computations.
-ord = 4
+ord = 3
 
 # Initial state variable bounds and domain.
 initial = [
