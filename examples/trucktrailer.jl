@@ -61,7 +61,7 @@ function ttintegration(
     # The fixed time step size.
     tstep::Float64 = time_step_size
     # Specify time as a finite time horizon.
-    time_horizon::Float64 = 1 * tstep
+    time_horizon::Float64 = 10 * tstep
 
     # The number of times to reattempt the contractiveness test if it fails.
     nr_contractiveness_tries = 10
