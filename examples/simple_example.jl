@@ -31,7 +31,7 @@ initial = [
 init_values = IntervalBox([e[2] for e in initial])
 
 # The fixed time step size.
-tstep::Float64 = 0.01
+tstep::Float64 = 0.1
 # The number of TM integration algo iterations.
 nr_iterations::Integer = 500
 # Specify time as a finite time horizon.
