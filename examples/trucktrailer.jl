@@ -40,9 +40,10 @@ function ttintegration(
         theta1::Interval,
         v0::Interval,
         dtheta0::Interval,
-        t::Interval;
-        truncation_degree::Integer=4,
-        time_step_size::Float64=0.01)::IntervalBox
+        t::Interval,
+        time_step_size::Float64,
+        nr_iterations::Integer;
+        truncation_degree::Integer=4)::IntervalBox
     # The truncation degree / the degree of all polynomials
     # that are used during computations.
     ord = truncation_degree
@@ -61,7 +62,7 @@ function ttintegration(
     # The fixed time step size.
     tstep::Float64 = time_step_size
     # Specify time as a finite time horizon.
-    time_horizon::Float64 = 10 * tstep
+    time_horizon::Float64 = nr_iterations * tstep
 
     # The number of times to reattempt the contractiveness test if it fails.
     nr_contractiveness_tries = 10
@@ -109,14 +110,21 @@ end
     @param[in] ifile The input CSV file path containing points to integrate from.
     @param[in] ofile The output file path to dump the generated points to.
     @param[in] tstep The time step size for TM integration.
+    @param[in] nr_iterations The number of integration iterations to perform.
     @param[in] rows Process only the first `rows` rows of the input.
                      If rows is ::Nothing, then process the entire input.
 """
-function ttintegration(ipath::String, opath::String, tstep::Float64; rows=nothing)::Nothing
+function ttintegration(
+        ipath::String, opath::String,
+        tstep::Float64, nr_iterations::Integer;
+        rows=nothing)::Nothing
     @assert isfile(ipath) "The input file path does not exist: $ipath"
     @assert !isempty(opath) "The output file path is empty."
     @assert((isdir(dirname(opath)) || isempty(dirname(opath))),
         "The directory '$(dirname(opath))' in output path '$opath' does not exist.")
+
+    @assert tstep > 0.0 "Fixed time steps must have strictly positive length."
+    @assert nr_iterations > 0 "At least one integration iteration must be done."
 
     # Create the output file if it does not exist.
     touch(opath)
@@ -134,6 +142,7 @@ function ttintegration(ipath::String, opath::String, tstep::Float64; rows=nothin
     # - `rows > length(reader)` defaults to `rows = length(reader)`
     rows = rows === nothing ? length(reader) : min(rows, length(reader))
 
+    println("\nIntegrating with time horizon $tstep * $nr_iterations = $(tstep * nr_iterations)")
     for data in reader[1:rows]
         @assert(length(data) == 7,
             "The CSV has an unexpected number of columns: got $(length(data)).")
@@ -151,7 +160,7 @@ function ttintegration(ipath::String, opath::String, tstep::Float64; rows=nothin
             x, y, theta0, theta1, _, _, t = ttintegration(
                 interval(x), interval(y), interval(theta0), interval(theta1),
                 interval(v0), interval(dtheta0), interval(t),
-                time_step_size=tstep)
+                tstep, nr_iterations)
 
             # Assume time is degenerate.
             t = t.lo
@@ -184,8 +193,7 @@ end
 
     Parse the command-line arguments passed to the program.
 
-    This will return a `Dict` with the following keys:
-    - `debug` a `Bool` flag, if true then output debug logging,
+    This will return a `Dict`.
 """
 function parse_commandline()
     settings = ArgParseSettings()
@@ -197,6 +205,13 @@ function parse_commandline()
         "tstep"
             help = "The fixed time step size for TM integration."
             arg_type = Float64
+            required = true
+        "#iterations"
+            help = "The number of integration iterations to perform."*
+                   " Given step size S and a number of iterations I,"*
+                   " integration will cover a total time horizon of S*I."*
+                   " E.g S=0.01 and I=10 then S*T = 0.1 time horizon."
+            arg_type = Int
             required = true
         "input"
             help = "The path to the CSV containing a list of inputs."
@@ -228,7 +243,8 @@ if abspath(PROGRAM_FILE) == @__FILE__
     ipath_ = parsed_args["input"]
     opath_ = parsed_args["output"]
     tstep_ = parsed_args["tstep"]
+    nritr_ = parsed_args["#iterations"]
     rows_ = parsed_args["rows"]
-    ttintegration(ipath_, opath_, tstep_, rows=rows_)
+    ttintegration(ipath_, opath_, tstep_, nritr_, rows=rows_)
 end
 
