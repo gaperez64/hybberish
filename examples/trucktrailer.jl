@@ -173,7 +173,8 @@ function ttintegration(
         product = Iterators.product # An alias.
         combinations = [
             [ op1(x), op2(y), op3(theta0), op4(theta1), v0, dtheta0, t ]
-            for (op1, op2, op3, op4) in product(fill([inf, mid, sup], 4)...)
+            #for (op1, op2, op3, op4) in product(fill([inf, mid, sup], 4)...)
+	    for (op1, op2, op3, op4) in product([inf, sup], [inf, sup], [mid], [mid])
         ]
         # Transform a vector of rows into a vector of columns.
         combinations = [collect(column) for column in zip(combinations...)]
