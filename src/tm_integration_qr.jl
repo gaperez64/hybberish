@@ -226,6 +226,11 @@ function precondition(
         another Taylor model, so the map will be involved in Taylor model
         arithmetic and as such influences the computed remainders. =#
     S_tmv = linear_map(S_, unitdom, vars_no_t)
+    println("Range(S_tmv) = "); 
+    rng_of_stmv = IntervalBox([tm() for tm in S_tmv]..., unitdom.v[end])
+    display(rng_of_stmv); println()
+    # FIXME: Ad hoc: modify the domain of the left because why not?
+    tmv_left = [ TaylorModelN(tm, rng_of_stmv) for tm in tmv_left ]
     # Set U_{l, j+1} := U_{l, j+1} ◦ S_(j+1)
     tmv_left = [ tm(vcat(S_tmv, ttm)) for tm in tmv_left ]
 
