@@ -572,6 +572,7 @@ function tm_integration_QR(
     # space variables should have domain [-1, 1]^m.
     # So, normalize the variables to have domain [-1, 1]^m.
     # These variables take the form: c + x*A
+    println("init:"); println(init);
     vars_normalized = [
         TaylorSeries.normalize_taylor(v, init)
         for v in vars[1:end-1]
