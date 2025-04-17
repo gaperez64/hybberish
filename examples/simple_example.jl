@@ -107,13 +107,13 @@ euler_step::Float64 = tstep / 10.0
 eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
 
 # Actual plotting
-pltND1 = plot_boxes_ND(boxes, get_variable_names(), sgtitle="Initial Sets (vals)", legend=true)
-pltND2 = plot_boxes_ND(fboxes, get_variable_names(), sgtitle="Flowpipe Overapprox.", legend=true)
+pltND1 = plot_boxes_ND(boxes, get_variable_names(), title="Initial Sets (vals)", legend=true)
+pltND2 = plot_boxes_ND(fboxes, get_variable_names(), title="Flowpipe Overapprox.", legend=true)
 plot!(pltND1, eseries[1], label="Stable ODE Forward Euler")
 plot!(pltND1, cos, label="cos(t)") # The ODE solution is "y(t) = cos(t)"
 plot!(pltND2, eseries[1], label="Stable ODE Forward Euler")
 plot!(pltND2, cos, label="cos(t)") # The ODE solution is "y(t) = cos(t)"
-pltND = plot(pltND1, pltND2)
+pltND = plot(pltND1, pltND2, legend=:outertop)
 
 println("Show plot ...")
 display(pltND)
