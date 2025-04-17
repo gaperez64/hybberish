@@ -674,10 +674,8 @@ function tm_integration_QR(
 
 	# Construct the integrated left Taylor models to get a flowpipe
         Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
-        Dri_ext = vcat(Dri, TaylorModelN(vars[end], 0..0, domain(Dri[1])))
-	fpipe = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli]..., tdom.hi..(tdom.hi+TIME_STEP_SIZE))
-	vals = IntervalBox([(Dlij(Dri_ext))() for Dlij in Dli]..., interval(tdom.hi+TIME_STEP_SIZE))
-	
+        fpipe = IntervalBox([Dji() for Dji in Dj]..., tdom.hi..(tdom.hi+TIME_STEP_SIZE))
+
         # Fix the time variable to the current time; t = ti+δi.
         p = [ pj([vars[1:end-1]..., TaylorN(TIME_STEP_SIZE, k)]) for pj in p ]
         println("Ui as in Neher:")
@@ -686,7 +684,10 @@ function tm_integration_QR(
         Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
 	# to precondition
         #Dli, Dri = precondition(Dj, Dri, vars)
-	Dli = Dj
+        Dli = Dj
+
+        vals = IntervalBox([Dlij() for Dlij in Dli]..., interval(tdom.hi+TIME_STEP_SIZE))
+
         println("Dli = "); display(Dli); println()
         println("Dri = "); display(Dri); println()
 
