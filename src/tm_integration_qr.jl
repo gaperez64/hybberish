@@ -685,7 +685,8 @@ function tm_integration_QR(
         # and construct simpler left Taylor models
         Dj = [ TaylorModelN(pj, Ij, doms) for (pj, Ij) in zip(p, safe_rems) ]
 	# to precondition
-        Dli, Dri = precondition(Dj, Dri, vars)
+        #Dli, Dri = precondition(Dj, Dri, vars)
+	Dli = Dj
         println("Dli = "); display(Dli); println()
         println("Dri = "); display(Dri); println()
 
