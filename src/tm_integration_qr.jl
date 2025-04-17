@@ -577,6 +577,7 @@ function tm_integration_QR(
         for v in vars[1:end-1]
     ]
     vars_normalized = vcat(vars_normalized, vars[end]) # Add the time variable.
+    println("Vars normalized:"); println(vars_normalized);
     init = IntervalBox(unitbox(init.v[1:end-1])..., init.v[end])
 
     # The left TMs are the Taylor model representation of the interval initial set.
