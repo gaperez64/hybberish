@@ -572,14 +572,27 @@ function tm_integration_QR(
     # space variables should have domain [-1, 1]^m.
     # So, normalize the variables to have domain [-1, 1]^m.
     # These variables take the form: c + x*A
+    vars_normalized::Vector{typeof(vars[1])} = []
+    doms_normalized::Vector{Interval{S}} = []
+    for (v, d) in zip(vars[1:end-1], init.v[1:end-1])
+        # Only translate degenerate domains. The normalization's scaling factor
+        # would be 0, so that (c + s*x) = (c + 0*x) = c which eliminates x.
+        if diam(d) == 0
+            # Forego scaling. This implicitly fixes s=1 as in (c + 1*x).
+            push!(vars_normalized, v + mid(d))
+            # A translated degenerate domain is always [0, 0] = [a, a] - a.
+            push!(doms_normalized, 0..0)
+        # Non degenerate domains allow normalization to domain [-1, 1].
+        else
+            push!(vars_normalized, TaylorSeries.normalize_taylor(v, init))
+            push!(doms_normalized, -1..1)
+        end
+    end
+    push!(vars_normalized, vars[end])
+    push!(doms_normalized, init.v[end])
+    init = IntervalBox(doms_normalized)
+
     println("init:"); println(init);
-    vars_normalized = [
-        TaylorSeries.normalize_taylor(v, init)
-        for v in vars[1:end-1]
-    ]
-    vars_normalized = vcat(vars_normalized, vars[end]) # Add the time variable.
-    println("Vars normalized:"); println(vars_normalized);
-    init = IntervalBox(unitbox(init.v[1:end-1])..., init.v[end])
 
     # The left TMs are the Taylor model representation of the interval initial set.
     Dl0 = id(vars_normalized[1:end-1], init)
