@@ -92,15 +92,15 @@ euler_step::Float64 = tstep / 10.0
 eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
 
 # Actual plotting
-pltND1 = plot_boxes_ND(boxes, get_variable_names(), sgtitle="initial sets", legend=false, xaxis=false, yaxis=false)
-pltND2 = plot_boxes_ND(fboxes, get_variable_names(), sgtitle="flowpipes", legend=false, xaxis=false, yaxis=false)
+pltND1 = plot_boxes_ND(boxes, get_variable_names(), title="initial sets", legend=true)
+pltND2 = plot_boxes_ND(fboxes, get_variable_names(), title="flowpipes", legend=true)
 
 # Add the Forward Euler curves to the subplots, for each variable.
 for idx in eachindex(pltND1.subplots)
-    plot!(pltND1.subplots[idx], eseries[idx], label="Forward Euler", legend=false)
-    plot!(pltND2.subplots[idx], eseries[idx], label="Forward Euler", legend=false)
+    plot!(pltND1.subplots[idx], eseries[idx], label="Forward Euler", legend=true)
+    plot!(pltND2.subplots[idx], eseries[idx], label="Forward Euler", legend=true)
 end
-pltND = plot(pltND1, pltND2)
+pltND = plot(pltND1, pltND2, legend=:outertop)
 
 println("Show plot ...")
 display(pltND)
