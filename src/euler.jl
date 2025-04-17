@@ -36,7 +36,8 @@ function euler(vector_field, # ::ODEFunction
     tspan = (0.0, time_horizon)
     prob = ODEProblem(vector_field, initial_state, tspan, dt=time_step_size)
 
-    sol::ODESolution = solve(prob, Euler())
+    #sol::ODESolution = solve(prob, Euler())
+    sol::ODESolution = solve(prob, AutoTsit5(Rosenbrock23()))
     tseries, vseries = sol.t, sol.u
     return [
         collect(zip(tseries, getindex.(vseries, var_idx)))

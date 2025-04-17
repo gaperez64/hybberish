@@ -1,4 +1,4 @@
-include("../src/tm_integration.jl")
+include("../src/tm_integration_qr.jl")
 
 
 """Construct the vector field of the given ODEs.
@@ -47,7 +47,7 @@ init_values = IntervalBox([e[2] for e in initial])
 # The fixed time step size.
 tstep::Float64 = 0.001
 # The number of TM integration algo iterations.
-nr_iterations::Integer = 200
+nr_iterations::Integer = 15
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 
@@ -66,7 +66,7 @@ scale_factor = 2.0
 
 boxes::Vector{IntervalBox} = []
 fboxes::Vector{IntervalBox} = []
-boxes, fboxes = tm_integration(
+boxes, fboxes = tm_integration_QR(
     f_dot!,
     initial,
     ord,
