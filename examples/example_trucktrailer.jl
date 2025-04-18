@@ -122,8 +122,8 @@ pltND2 = plot_boxes_ND(fboxes, vnames, title="Flowpipes", legend=false)
 
 # Add the Forward Euler curves to the subplots, for each variable.
 for idx in eachindex(pltND1.subplots)
-    plot!(pltND1.subplots[idx], eseries[idx], label="Forward Euler", legend=false)
-    plot!(pltND2.subplots[idx], eseries[idx], label="Forward Euler", legend=false)
+    plot!(pltND1.subplots[idx], eseries[idx], label="Numerically Integrated", legend=false)
+    plot!(pltND2.subplots[idx], eseries[idx], label="Numerically Integrated", legend=false)
 end
 pltND = plot(pltND1, pltND2)
 

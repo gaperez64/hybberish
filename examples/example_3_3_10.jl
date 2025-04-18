@@ -36,7 +36,7 @@ nr_iterations::Integer = 2800
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 
-# The scale factor for when contractiveness fails.
+# The amount of contractiveness attempts before giving up.
 nr_contractiveness_tries = 100
 # The number of refinements to perform at most.
 nr_refinements = 100
@@ -96,10 +96,10 @@ vnames = get_variable_names()
 pltND1 = plot_boxes_ND(boxes, vnames, title="Initial sets", legend=false)
 pltND2 = plot_boxes_ND(fboxes, vnames, title="Flowpipes", legend=false)
 
-# Add the Forward Euler curves to the subplots, for each variable.
+# Add the numerical integration curves to the subplots, for each variable.
 for idx in eachindex(pltND1.subplots)
-    plot!(pltND1.subplots[idx], eseries[idx], label="Forward Euler")
-    plot!(pltND2.subplots[idx], eseries[idx], label="Forward Euler")
+    plot!(pltND1.subplots[idx], eseries[idx], label="Numerically Integrated")
+    plot!(pltND2.subplots[idx], eseries[idx], label="Numerically Integrated")
 end
 
 # Plot (x, y) pairs, instead of separately plotting (t, x) and (t, y).
@@ -107,9 +107,9 @@ end
 yx_boxes = [ IntervalBox(box[2], box[1]) for box in fboxes ]
 xn, yn = vnames
 pltND3 = plot_boxes_ND(yx_boxes, [yn, xn], title="xy-Flowpipes", legend=false)
-# Add the forward euler curve as well.
+# Add the numerical integration curve as well.
 xy_eseries = [ (ex[2], ey[2]) for (ex, ey) in zip(eseries[1], eseries[2]) ]
-plot!(pltND3, xy_eseries, label="Forward Euler")
+plot!(pltND3, xy_eseries, label="Numerically Integrated")
 
 # Compose the plots into a grid.
 pltND = plot(pltND1, pltND2)
