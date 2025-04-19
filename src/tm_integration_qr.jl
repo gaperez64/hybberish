@@ -669,7 +669,7 @@ function tm_integration_QR(
         # We already shifted t in when Taylorizing the ODEs and computing p.
         # So compensate by setting time to [0, δ]!
         # doms = IntervalBox(vals.v[1:end-1]...,  0..TIME_STEP_SIZE)
-        doms = IntervalBox(unitbox(vals.v[1:end-1])..., 0..TIME_STEP_SIZE)
+        doms = IntervalBox(init.v[1:end-1]..., 0..TIME_STEP_SIZE)
 
         # FIXME: The real_t parameter can be derived from Dli,
         #        so remove that function argument?
