@@ -143,9 +143,12 @@ function ttintegration(
     rows = rows === nothing ? length(reader) : min(rows, length(reader))
 
     println("\nIntegrating with time horizon $tstep * $nr_iterations = $(tstep * nr_iterations)")
-    for data in reader[1:rows]
+
+    for (i, data) in enumerate(reader[1:rows])
         @assert(length(data) == 7,
             "The CSV has an unexpected number of columns: got $(length(data)).")
+
+        println("Processing $i/$rows")
 
         # Dump the original data point to disk.
         CSV.write(ofile, [data], writeheader=false, append=true)
