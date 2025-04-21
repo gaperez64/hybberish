@@ -6,7 +6,7 @@ if [ "$#" -ne 2 ] || [ "$1" = "--help" ]; then
   exit 1
 fi
 
-cd /project_antwerp/hybberish_code/hybberish/
+cd /project_antwerp/hybberish/
 
 EXP_NAME=$1
 NODE_NR=$2
