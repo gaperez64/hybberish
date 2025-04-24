@@ -313,6 +313,94 @@ function tay_poly(
     return lie_derivative
 end
 
+function picard(
+    f::Vector{TaylorN{T}},
+    k::Integer,
+    vars::Vector{TaylorN{T}},
+    val0::Vector{TaylorN{T}}) where {T <: Number}
+
+    # We require a vector of unmodified variables for derivation.
+    # In other words, a Taylor series identity map.
+    @assert vars == get_variables()
+    # The function `evaluate(::TaylorN, ::Vector{TaylorN})` does not play nice
+    # with different orders for the substitution values. So, require all orders
+    # to be the same.
+    @assert allequal( get_order.(vars) )
+    # Taylor series arithmetic propagates the lowest order of its operands.
+    # To generate order k polynomials, all variables must be at least order k.
+    @assert all( k .<= get_order.(vars) )
+    # The variables contain an additional last component: the time variable.
+    @assert length(f) == length(vars)-1
+    @assert length(val0) == length(vars)-1
+
+    # The TaylorSeries `integrate` function requires us to specify the INDEX
+    # of the variable w.r.t. to integrate. It does NOT want us to specify
+    # the variable object directly.
+    time_var_index = get_numvars()
+
+    # Start a vector function for the result.
+    # The function g is initially the bootstrapping values.
+    # Note that it does not contain a time component.
+    g = val0
+
+    for _ = 1:k
+        # Append identity time variable t to g. Evaluation requires values
+        # for all existing variables, even the ones not used in the polynomial.
+        t = vars[end]
+        gt = vcat(g, t)
+
+        # Perform the composition into the vector field.
+        g = [ fj(gt) for fj in f ]
+
+        # Perform the integral with regards to time.
+        g = @. val0 + TaylorSeries.integrate(g, time_var_index)
+    end
+    println("Final Picard operator:"); println(g); println()
+    return g
+end
+
+"""Picard iteration."""
+function picardit(
+    f::Vector{TaylorN{T}},
+    k::Integer,
+    t::TaylorN{T},
+    val0::Vector{TaylorN{T}}) where {T <: Number}
+
+    # Taylor series arithmetic propagates the lowest order of its operands.
+    # To generate order k polynomials, all variables must be at least order k.
+    @assert k .<= get_order() "TaylorSeries order limits the Picard op order."
+    @assert k == get_order(t) "The time variable should be of truncation order"
+    @assert length(f) == length(val0)
+
+    # Start a vector function for the result.
+    # Note that it does not contain a time component.
+    g = val0
+    for _ = 1:k
+        # Assume compositions will require an added time component.
+        g = vcat(g, t)
+        g = picardop(f, g, val0)
+    end
+    println("Final Picard operator:"); println(g); println()
+    return g
+end
+
+"""The Picard operator."""
+function picardop(
+        f::Vector{TaylorN{T}},
+        g::Vector{TaylorN{T}},
+        val0::Vector{TaylorN{T}}) where {T <: Number}
+
+    # The variables contain an additional last component: the time variable.
+    @assert length(f) == get_numvars()-1
+    @assert length(g) == get_numvars()
+    @assert length(val0) == get_numvars()-1
+
+    # Perform the composition into the vector field.
+    fg = [ fj(g) for fj in f ]
+
+    # Perform the integral with regards to the time variable.
+    return @. val0 + TaylorSeries.integrate(fg, get_numvars())
+end
 
 """Compute the remainder of the TM extension of the picard operator.
 
@@ -501,6 +589,17 @@ function tay_model_error(
     return Jn
 end
 
+"""Create variables of given order with TaylorSeries arithmetic in mind.
+
+@return A vector of TaylorN variable objects of order `order`.
+"""
+function setup_variables(names::String, order::Integer)
+    # For TaylorSeries multiplication to work, the TaylorSeries internal max
+    # order must be double that of the used variables.
+    set_variables(names, order=2*order)
+    return get_variables(order)
+end
+
 """The QR preconditioned TM integration algorithm.
 
     Compute an overapproximation of the true flow of the
@@ -550,23 +649,12 @@ function tm_integration_QR(
     @assert(NR_REFINEMENTS >= 0)
 
     # Unpack the input parameters.
-    numvars = length(initial)
-    _names::NTuple{numvars, String},
-    _init::NTuple{numvars, Interval{S}} = zip(initial...)
-    names::String = join(_names, ' ')
-    init::IntervalBox{numvars, S}  = IntervalBox(_init)
+    N = length(initial)
+    names::String = join([ name for (name, _) in initial ], ' ')
+    init::IntervalBox{N, S} = IntervalBox([ dom for (_, dom) in initial ])
 
-    # Double the truncation degree to obtain the TaylorSeries max order.
-    # This accounts for order-related assertions applicable to Taylor
-    # series arithmetic.
-    # The added degrees effectively are a buffer to make TM arithmetic work.
-    kbuffer = 2*k
-
-    # Construct Taylor variables (from TaylorSeries library)
-    # Fix the TaylorSeries internal, max order.
-    set_variables(names, order=kbuffer)
     # Construct the variables with the actual truncation degree of choice.
-    vars = get_variables(k)
+    vars = setup_variables(names, k)
 
     # By definition of algo 6.1 in M. Neher (2006), the symbolic (normalized)
     # space variables should have domain [-1, 1]^m.
@@ -610,8 +698,8 @@ function tm_integration_QR(
 
     # Rename the variables to make an explicit distinction between the input
     # TMs and the loop TMs.
-    Dli::Vector{TaylorModelN{numvars,Float64,S}} = Dl0
-    Dri::Vector{TaylorModelN{numvars,Float64,S}} = Dr0
+    Dli::Vector{TaylorModelN{N,Float64,S}} = Dl0
+    Dri::Vector{TaylorModelN{N,Float64,S}} = Dr0
 
     # This rectangle represents the initial set of the current integration
     # iteration. Its time component should always be degenerate: [t, t].
@@ -619,7 +707,7 @@ function tm_integration_QR(
     # "The initial set for the (j + 1)-st integration step is defined by `Rg(Ul,j+1)`".
     # To make explicit that the domain normalization is a form of manual
     # preconditioning, the interval initial set is evaluated after normalization.
-    vals::IntervalBox{numvars, S} = IntervalBox([ tm() for tm in Dli ]..., init.v[end])
+    vals::IntervalBox{N, S} = IntervalBox([ tm() for tm in Dli ]..., init.v[end])
 
     println("Dli = "); display(Dli); println()
     println("Dri = "); display(Dri); println()
