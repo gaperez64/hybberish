@@ -18,7 +18,7 @@ end
 
 # The truncation degree / the degree of all polynomials
 # that are used during computations.
-ord = 9
+ord = 6
 
 # Initial state variable bounds and domain.
 initial = [
@@ -30,7 +30,7 @@ init_values = IntervalBox([e[2] for e in initial])
 # The fixed time step size.
 tstep::Float64 = 0.01
 # The number of TM integration algo iterations.
-nr_iterations::Integer = 50
+nr_iterations::Integer = 200
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 

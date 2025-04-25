@@ -32,7 +32,7 @@ init_values = IntervalBox([e[2] for e in initial])
 # The fixed time step size.
 tstep::Float64 = 0.001
 # The number of TM integration algo iterations.
-nr_iterations::Integer = 2800
+nr_iterations::Integer = 1000
 # Specify time as a finite time horizon.
 time_horizon::Float64 = nr_iterations * tstep
 
@@ -121,7 +121,3 @@ display(pltND)
 println("Press ENTER to continue.")
 readline()
 println("... done.")
-
-savefig(pltND,  "QR_1_tstep=$(tstep)_#iterations=$nr_iterations.svg")
-savefig(pltND1, "QR_2_tstep=$(tstep)_#iterations=$nr_iterations.svg")
-savefig(pltND2, "QR_3_tstep=$(tstep)_#iterations=$nr_iterations.svg")

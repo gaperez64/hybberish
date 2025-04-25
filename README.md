@@ -1,34 +1,28 @@
 # Hybberish
-Utilities for the anylisis of hybrid systems
+Utilities for the analysis of hybrid systems
 
-## Notes on how to compile
+## Dependencies
 
-The compilation is quite straightforward.
+The Julia dependencies are listed in the root `project.toml` file. The **specific versions** of *TaylorSeries* and *IntervalArithmetic* **listed there must be installed**, instead of the most recent versions. We started development making use of the *TaylorModels* package, which used an older version of *IntervalArithmetic*. The use of *IntervalBox* now locks us into an older version of *IntervalArithmetic*, which consequently limits the version of *TaylorSeries* as well, until we refactor the code to allow bumping the *IntervalArithmetic* version.
 
-A note for MacOS users: the "bison" utility that ships with MacOS is not compatible. Please install a newer version using homebrew. GNU Bison 3.8.2 should work.
+## How to run
 
-## Notes on generating documentation
+The project is currently unpolished and untested. Thus, the examples contained in `examples/` are the most interesting way to gauge the performance of the current implementation.
 
-[Doxygen](https://www.doxygen.nl/manual/index.html) is used for documentation.
-
-To generate the documentation locally, follow the following steps (on linux), starting at root of the project.
+Once all dependencies are installed, simply invoking the example scripts should suffice to generate a plot of the results. The scripts that are currently known to at least run, and which are interesting, are listed below. Note that some of the examples may take a few minutes to finish running.
 
 ```sh
-# Have doxygen installed
-apt install doxygen
-
-# Generate documentation in the doxygen dir
-cd doxygen/
-doxygen
+# Invoke an example script.
+julia examples/simple_trucktrailer.jl
+julia examples/example_3_3_10.jl
+julia examples/example_m_neher.jl
+julia examples/simple_example.jl
+julia examples/simple_example_modified.jl
 ```
 
-## Running the notebooks
 
-There are a number of Pluto notebooks present in this repository. Pluto can be started using `./run_pluto.sh`.
+## Notes on Implementation
 
-The dependency situation is a bit complicated. This project requires the latest version of the TaylorSeries.jl package (v0.18.2), but the latest version of TaylorModels.jl only supports versions 0.17.x.
+Confusingly, the file `src/tm_integration_qr.jl` implements our most up-to-date version of naive Taylor model integration. The original intent was to add QR preconditioning to improve the naive method, but this was not finished on time.
 
-The dependencies can be resolved by opening Pkg-mode and activating the current environment. The commands `instantiate` and `rm TaylorModels` should be ran. Next, clone the reposity of the TaylorModels.jl package in a separate directory. Modify its `Project.toml` file and set the required version of TaylorSeries.jl to `=0.18` instead of `=0.17`. Then, in the Pkg-mode of the Hybberish project, develop your local modification of TaylorModels.jl by issuing the command `develop <PATH TO LOCAL TAYLOR MODELS JL PACKGE>`. The notebooks should now run normally.
-
-
-
+The file `src/tm_integration.jl` implements an implementation of naive Taylor model integration that we want to deprecate and replace by the newer version. Nevertheless, this older version was used to pad the NN trace for the DAggr approach.

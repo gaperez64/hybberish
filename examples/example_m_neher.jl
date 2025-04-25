@@ -107,7 +107,3 @@ display(pltND)
 println("Press ENTER to continue.")
 readline()
 println("... done.")
-
-savefig(pltND,  "QR_1_tstep=$(tstep)_#iterations=$nr_iterations.svg")
-savefig(pltND1, "QR_2_tstep=$(tstep)_#iterations=$nr_iterations.svg")
-savefig(pltND2, "QR_3_tstep=$(tstep)_#iterations=$nr_iterations.svg")

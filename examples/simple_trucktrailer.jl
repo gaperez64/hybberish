@@ -98,7 +98,7 @@ end
 euler_init_state = Vector(mid(init_values))
 
 # Evaluate Forward Euler.
-euler_step::Float64 = tstep / 10.0
+euler_step::Float64 = 0.0001
 eseries = euler(ode_euler!, time_horizon, euler_step, euler_init_state)
 
 # FIXME: The indexes specify which variables to plot.
@@ -122,8 +122,8 @@ pltND2 = plot_boxes_ND(fboxes, vnames, title="Flowpipes", legend=false)
 
 # Add the Forward Euler curves to the subplots, for each variable.
 for idx in eachindex(pltND1.subplots)
-    plot!(pltND1.subplots[idx], eseries[idx], label="Numerically Integrated", legend=false)
-    plot!(pltND2.subplots[idx], eseries[idx], label="Numerically Integrated", legend=false)
+    plot!(pltND1.subplots[idx], eseries[idx], label="Numerically Integrated", linewidth=0.1, legend=false)
+    plot!(pltND2.subplots[idx], eseries[idx], label="Numerically Integrated", linewidth=0.1, legend=false)
 end
 pltND = plot(pltND1, pltND2)
 
