@@ -18,6 +18,7 @@ julia examples/example_3_3_10.jl
 julia examples/example_m_neher.jl
 julia examples/simple_example.jl
 julia examples/simple_example_modified.jl
+julia examples/example_tmjets.jl
 ```
 
 
