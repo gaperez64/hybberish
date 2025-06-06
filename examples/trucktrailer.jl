@@ -1,130 +1,48 @@
-include("../src/tm_integration.jl")
+using ReachabilityAnalysis
 using ArgParse
 using CSV
 
-"""Construct the vector field of the given ODEs.
+@taylorize function vector_field!(du, u, p, t)
+    x1, y1, theta0, theta1, v0, dtheta0, = u
 
-	@param[out] du The vector field, the right-hand side of the ODEs.
-	@param[in]   u The ODE variables to use in construction.
-"""
-function vector_field!(du::Vector, u::Vector)
-	x1, y1, theta0, theta1, v0, dtheta0, = u
+    local L0 = 0.3375  # truck length
+    local M0 = 0.1     # truck distance to center of mass
+    local L1 = 0.3     # trailer length
+    local M1 = 0.06    # trailer distance to center of mass
 
-    L0 = 0.3375  # truck length
-    M0 = 0.1     # truck distance to center of mass
-    L1 = 0.3     # trailer length
-    M1 = 0.06    # trailer distance to center of mass
+    # intermediate variables
+    beta01 = theta0 - theta1  # angle between truck and trailer
+    v1 = v0 * cos(beta01) + M0 * sin(beta01) * dtheta0  # trailer velocity
 
-	# intermediate variables
-	beta01 = theta0 - theta1  # angle between truck and trailer
-	v1 = v0 * cos(beta01) + M0 * sin(beta01) * dtheta0  # trailer velocity
-
-	# ODEs + zero(u[.]) for type stability
-	du[1] = v1 * cos(theta1) + zero(u[1])
-	du[2] = v1 * sin(theta1) + zero(u[2])
-	du[3] = dtheta0 + zero(u[3])
-	du[4] = (v0 * (1/L1)) * sin(beta01) - (M0 / L1) * cos(beta01) * dtheta0 + zero(u[4])
-	du[5] = zero(u[5])  # v0 remains constant
-	du[6] = zero(u[6])  # dtheta0 remains constant
+    # ODEs + zero(u[.]) for type stability
+    du[1] = v1 * cos(theta1) + zero(u[1])
+    du[2] = v1 * sin(theta1) + zero(u[2])
+    du[3] = dtheta0 + zero(u[3])
+    du[4] = (v0 * (1/L1)) * sin(beta01) - (M0 / L1) * cos(beta01) * dtheta0 + zero(u[4])
+    du[5] = zero(u[5])  # v0 remains constant
+    du[6] = zero(u[6])  # dtheta0 remains constant
 end
 
-"""Run one singular trucktrailer TM integration iteration.
-
-    @return The components (x, y, θ0, θ1, v0, dθ0, t) of the result initial
-            set rectangle. Return ::Nothing in case of an exception.
-"""
-function ttintegration(
-        x::Interval,
-        y::Interval,
-        theta0::Interval,
-        theta1::Interval,
-        v0::Interval,
-        dtheta0::Interval,
-        t::Interval,
-        time_step_size::Float64,
-        nr_iterations::Integer;
-        truncation_degree::Integer=4)::IntervalBox
-    # The truncation degree / the degree of all polynomials
-    # that are used during computations.
-    ord = truncation_degree
-
+function ttintegration(initial, time_horizon)
     # Initial state variable bounds and domain.
-    initial = [
-        ("x",       x),
-        ("y",       y),
-        ("theta0",  theta0),
-        ("theta1",  theta1),
-        ("v0",      v0),
-        ("dtheta0", dtheta0),
-        ("t",       t),
-    ]
+    prob = @ivp(x' = vector_field!(x), x(0) ∈ initial, dim=6)
 
-    # The fixed time step size.
-    tstep::Float64 = time_step_size
-    # Specify time as a finite time horizon.
-    time_horizon::Float64 = nr_iterations * tstep
+    sol = solve(prob, tspan=(0.0, time_horizon), alg=TMJets21a());
 
-    # The number of times to reattempt the contractiveness test if it fails.
-    nr_contractiveness_tries = 10
-    # The number of safe remainder refinements to perform at most.
-    nr_refinements = 10
-    # Quit refinement early if the improvement a single refinement
-    # provides falls below this threshold.
-    refinement_eps = 0.001
-    # The scale factor with which to widen the initial safe remainder
-    # estimate when the contractiveness check fails.
-    scale_factor = 2.0
-
-
-    # The list of initial sets produced by TM integration.
-    # Each initial set is represented as a box / rectangle.
-    initial_sets::Vector{IntervalBox} = []
-    try
-        # Suppress the 'println' statements 
-        redirect_stdout(devnull) do
-            initial_sets, _ = tm_integration(
-                vector_field!,
-                initial,
-                ord,
-                (-0.1..0.1),
-                time_horizon,
-                tstep,
-                nr_contractiveness_tries,
-                nr_refinements,
-                SCALE=scale_factor,
-                REFINEMENT_EPS=refinement_eps
-            )
-        end
-
-    catch e
-        @error "TM Integration failed with the following exception: $e"
-        return nothing
-    end
 
     # Only output the final initial set, at the end of the time horizon.
-    return initial_sets[end]
+    # NOTE: The last f() evaluates the vector of taylor models on their domain
+    return [f(domain(f)) for f in evaluate(sol[end], tend(sol[end]))]
 end
 
-"""Call ttintegration for given input and output files.
-
-    @param[in] ifile The input CSV file path containing points to integrate from.
-    @param[in] ofile The output file path to dump the generated points to.
-    @param[in] tstep The time step size for TM integration.
-    @param[in] nr_iterations The number of integration iterations to perform.
-    @param[in] rows Process only the first `rows` rows of the input.
-                     If rows is ::Nothing, then process the entire input.
-"""
-function ttintegration(
-        ipath::String, opath::String,
-        tstep::Float64, nr_iterations::Integer;
-        rows=nothing)::Nothing
+function ttintegration(ipath::String, opath::String)::Nothing
     @assert isfile(ipath) "The input file path does not exist: $ipath"
     @assert !isempty(opath) "The output file path is empty."
     @assert((isdir(dirname(opath)) || isempty(dirname(opath))),
         "The directory '$(dirname(opath))' in output path '$opath' does not exist.")
 
-    @assert tstep > 0.0 "Fixed time steps must have strictly positive length."
-    @assert nr_iterations > 0 "At least one integration iteration must be done."
+    thor = 0.5
+    @assert thor > 0.0 "Time horizon must have strictly positive value."
 
     # Create the output file if it does not exist.
     touch(opath)
@@ -137,12 +55,9 @@ function ttintegration(
     header = join(string.(propertynames(reader)), ",") * "\n"
     write(ofile, header)
 
-    # Only process the first `rows` rows of the input.
-    # - `rows = 0` is allowed
-    # - `rows > length(reader)` defaults to `rows = length(reader)`
-    rows = rows === nothing ? length(reader) : min(rows, length(reader))
+    rows = length(reader)
 
-    println("\nIntegrating with time horizon $tstep * $nr_iterations = $(tstep * nr_iterations)")
+    println("\nIntegrating with time horizon $thor")
 
     for (i, data) in enumerate(reader[1:rows])
         @assert(length(data) == 7,
@@ -160,13 +75,15 @@ function ttintegration(
         try
             # NOTE: Only overwrite variables that change;
             # v0 and dtheta0 remain unchanged after integration.
-            x, y, theta0, theta1, _, _, t = ttintegration(
-                interval(x), interval(y), interval(theta0), interval(theta1),
-                interval(v0), interval(dtheta0), interval(t),
-                tstep, nr_iterations)
+            x0 = Hyperrectangle(low=[x, y, theta0, theta1, v0 - 0.001, dtheta0 - 0.05],
+                                high=[x, y, theta0, theta1, v0 + 0.001, dtheta0 + 0.05])
+            # Why v0 - 0.01..v0 + 0.01?  # an extra cm/s is fine
+            # Why dtheta0 - 0.05..dtheta0 + 0.05?  # an extra 3 deg/s is fine
+            res = ttintegration(x0, thor)
+            x, y, theta0, theta1, _, _, = res
 
             # Assume time is degenerate.
-            t = t.lo
+            t = t + thor
         catch e
             # If TM integration fails, just don't generate additional points.
             continue
@@ -176,8 +93,8 @@ function ttintegration(
         product = Iterators.product # An alias.
         combinations = [
             [ op1(x), op2(y), op3(theta0), op4(theta1), v0, dtheta0, t ]
-            #for (op1, op2, op3, op4) in product(fill([inf, mid, sup], 4)...)
-	    for (op1, op2, op3, op4) in product([inf, sup], [inf, sup], [mid], [mid])
+            #f or (op1, op2, op3, op4) in product(fill([inf, mid, sup], 4)...)
+        for (op1, op2, op3, op4) in product([inf, sup], [inf, sup], [mid], [mid])
         ]
         # Transform a vector of rows into a vector of columns.
         combinations = [collect(column) for column in zip(combinations...)]
@@ -192,31 +109,10 @@ function ttintegration(
     end
 end
 
-"""
-    parse_commandline()
-
-    Parse the command-line arguments passed to the program.
-
-    This will return a `Dict`.
-"""
 function parse_commandline()
     settings = ArgParseSettings()
 
     @add_arg_table! settings begin
-        "--debug"
-            help = "Enable/disable debug logging."
-            action = :store_true
-        "tstep"
-            help = "The fixed time step size for TM integration."
-            arg_type = Float64
-            required = true
-        "#iterations"
-            help = "The number of integration iterations to perform."*
-                   " Given step size S and a number of iterations I,"*
-                   " integration will cover a total time horizon of S*I."*
-                   " E.g S=0.01 and I=10 then S*T = 0.1 time horizon."
-            arg_type = Int
-            required = true
         "input"
             help = "The path to the CSV containing a list of inputs."
             arg_type = String
@@ -225,17 +121,10 @@ function parse_commandline()
             help = "The path to the output CSV to dump the results in."
             arg_type = String
             required = true
-        "rows"
-            help = "Only process the first `rows` rows of the input."
-            arg_type = Int
-            default  = nothing
-            required = false
     end
 
     return parse_args(settings)
 end
-
-
 
 # If the script is called from the CLI, then run this code.
 if abspath(PROGRAM_FILE) == @__FILE__
@@ -246,9 +135,6 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Handle the file input + file output use case.
     ipath_ = parsed_args["input"]
     opath_ = parsed_args["output"]
-    tstep_ = parsed_args["tstep"]
-    nritr_ = parsed_args["#iterations"]
-    rows_ = parsed_args["rows"]
-    ttintegration(ipath_, opath_, tstep_, nritr_, rows=rows_)
+    ttintegration(ipath_, opath_)
 end
 
