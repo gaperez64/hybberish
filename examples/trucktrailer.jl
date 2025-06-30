@@ -60,7 +60,7 @@ function ttintegration(ipath::String, opath::String)::Nothing
     println("\nIntegrating with time horizon $thor")
 
     for (i, data) in enumerate(reader[1:rows])
-        @assert(length(data) == 7,
+        @assert(length(data) == 8,
             "The CSV has an unexpected number of columns: got $(length(data)).")
 
         println("Processing $i/$rows")
@@ -69,7 +69,7 @@ function ttintegration(ipath::String, opath::String)::Nothing
         CSV.write(ofile, [data], writeheader=false, append=true)
 
         # Unpack the input data to make its column format/ordering explicit.
-        x, y, theta0, theta1, v0, dtheta0, t = data
+        idx, x, y, theta0, theta1, v0, dtheta0, t = data
 
         combinations = []
         try
@@ -92,7 +92,7 @@ function ttintegration(ipath::String, opath::String)::Nothing
         # Generate one border point using each (inf, mid, sup) combination.
         product = Iterators.product # An alias.
         combinations = [
-            [ op1(x), op2(y), op3(theta0), op4(theta1), v0, dtheta0, t ]
+        [ (idx + 1), op1(x), op2(y), op3(theta0), op4(theta1), v0, dtheta0, t ]
             #f or (op1, op2, op3, op4) in product(fill([inf, mid, sup], 4)...)
         for (op1, op2, op3, op4) in product([inf, sup], [inf, sup], [mid], [mid])
         ]
