@@ -70,8 +70,7 @@ function ttintegration(ipath::String, opath::String)::Nothing
         t = thor * idx
 
         # Dump the original data point to disk.
-        CSV.write(ofile, [idx, x, y, theta0, theta1, v0, dtheta0, t],
-                  writeheader=false, append=true)
+        CSV.write(ofile, [data], writeheader=false, append=true)
 
 
         combinations = []
@@ -95,7 +94,7 @@ function ttintegration(ipath::String, opath::String)::Nothing
         # Generate one border point using each (inf, mid, sup) combination.
         product = Iterators.product # An alias.
         combinations = [
-        [ (idx + 1), op1(x), op2(y), op3(theta0), op4(theta1), v0, dtheta0, t ]
+                        [ (idx + 1), op1(x), op2(y), op3(theta0), op4(theta1), v0, dtheta0]  #, t ]
             #f or (op1, op2, op3, op4) in product(fill([inf, mid, sup], 4)...)
         for (op1, op2, op3, op4) in product([inf, sup], [inf, sup], [mid], [mid])
         ]
