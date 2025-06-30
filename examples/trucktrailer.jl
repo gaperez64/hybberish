@@ -60,16 +60,19 @@ function ttintegration(ipath::String, opath::String)::Nothing
     println("\nIntegrating with time horizon $thor")
 
     for (i, data) in enumerate(reader[1:rows])
-        @assert(length(data) == 8,
+        @assert(length(data) == 7,
             "The CSV has an unexpected number of columns: got $(length(data)).")
 
         println("Processing $i/$rows")
 
-        # Dump the original data point to disk.
-        CSV.write(ofile, [data], writeheader=false, append=true)
-
         # Unpack the input data to make its column format/ordering explicit.
-        idx, x, y, theta0, theta1, v0, dtheta0, t = data
+        idx, x, y, theta0, theta1, v0, dtheta0 = data  # t = data
+        t = thor * idx
+
+        # Dump the original data point to disk.
+        CSV.write(ofile, [idx, x, y, theta0, theta1, v0, dtheta0, t],
+                  writeheader=false, append=true)
+
 
         combinations = []
         try
